@@ -6,6 +6,8 @@ import {
   useDeleteOrder,
   useConfirmOrder,
   useSendOrderEmail,
+  useUpdateOrderItem,
+  useDeleteOrderItem,
   getGetOrderQueryKey,
   getListOrdersQueryKey,
   getGetDashboardSummaryQueryKey,
@@ -23,7 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -43,6 +45,49 @@ export default function OrderDetail() {
   const deleteOrder = useDeleteOrder();
   const confirmOrder = useConfirmOrder();
   const sendEmail = useSendOrderEmail();
+  const updateOrderItem = useUpdateOrderItem();
+  const deleteOrderItem = useDeleteOrderItem();
+
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editingQty, setEditingQty] = useState<number>(1);
+
+  const startEditItem = (itemId: number, currentQty: number) => {
+    setEditingItemId(itemId);
+    setEditingQty(currentQty);
+  };
+
+  const cancelEditItem = () => {
+    setEditingItemId(null);
+    setEditingQty(1);
+  };
+
+  const saveEditItem = (itemId: number) => {
+    if (editingQty < 1) return;
+    updateOrderItem.mutate(
+      { orderId, itemId, data: { quantityOrdered: editingQty } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
+          setEditingItemId(null);
+        },
+        onError: () => toast({ title: "Error", description: "Failed to update quantity.", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleDeleteItem = (itemId: number) => {
+    deleteOrderItem.mutate(
+      { orderId, itemId },
+      {
+        onSuccess: () => {
+          toast({ title: "Item removed" });
+          queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
+          queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+        },
+        onError: () => toast({ title: "Error", description: "Failed to remove item.", variant: "destructive" }),
+      }
+    );
+  };
 
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmData, setConfirmData] = useState<Record<number, { 
@@ -347,15 +392,19 @@ export default function OrderDetail() {
                         {isConfirming && <TableHead>Notes</TableHead>}
                       </>
                     )}
+                    {order.status === "draft" && (
+                      <TableHead className="w-[100px]" />
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {order.items.map((item) => {
                     const confirmRow = confirmData[item.id];
                     const isRowConfirming = isConfirming && confirmRow;
+                    const isEditingThisItem = editingItemId === item.id;
 
                     return (
-                      <TableRow key={item.id} className={isRowConfirming && confirmRow.availability === "unavailable" ? "opacity-70 bg-muted/30" : ""}>
+                      <TableRow key={item.id} className={isRowConfirming && confirmRow.availability === "unavailable" ? "opacity-70 bg-muted/30" : isEditingThisItem ? "bg-primary/5" : ""}>
                         <TableCell className="font-medium">
                           {item.productName}
                           {item.notes && !isRowConfirming && order.status !== "draft" && (
@@ -365,8 +414,26 @@ export default function OrderDetail() {
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{item.packSize || "N/A"}</TableCell>
-                        <TableCell className="text-right font-medium">{item.quantityOrdered}</TableCell>
-                        
+                        <TableCell className="text-right font-medium">
+                          {isEditingThisItem ? (
+                            <Input
+                              type="number"
+                              min="1"
+                              autoFocus
+                              value={editingQty}
+                              onChange={(e) => setEditingQty(parseInt(e.target.value) || 1)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEditItem(item.id);
+                                if (e.key === "Escape") cancelEditItem();
+                              }}
+                              className="w-20 ml-auto text-right h-8"
+                              data-testid={`input-edit-qty-${item.id}`}
+                            />
+                          ) : (
+                            item.quantityOrdered
+                          )}
+                        </TableCell>
+
                         {order.status !== "draft" && (
                           <>
                             <TableCell className="text-right">
@@ -427,6 +494,75 @@ export default function OrderDetail() {
                               </TableCell>
                             )}
                           </>
+                        )}
+
+                        {order.status === "draft" && (
+                          <TableCell>
+                            {isEditingThisItem ? (
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-green-700 hover:text-green-800 hover:bg-green-50"
+                                  onClick={() => saveEditItem(item.id)}
+                                  disabled={updateOrderItem.isPending}
+                                  data-testid={`button-save-item-${item.id}`}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={cancelEditItem}
+                                  data-testid={`button-cancel-item-${item.id}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 justify-end">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-primary"
+                                  onClick={() => startEditItem(item.id, item.quantityOrdered)}
+                                  data-testid={`button-edit-item-${item.id}`}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                      data-testid={`button-delete-item-${item.id}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Remove Line Item?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Remove <strong>{item.productName}</strong> from this order? This cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteItem(item.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Remove
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </TableCell>
                         )}
                       </TableRow>
                     );
