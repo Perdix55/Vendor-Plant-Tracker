@@ -287,7 +287,7 @@ export default function OrderDetail() {
                     data-testid="button-mark-sent"
                   >
                     <Send className="mr-2 h-4 w-4" />
-                    Mark as Sent
+                    {updateOrder.isPending ? "Submitting..." : "Submit Order"}
                   </Button>
                 </>
               )}
