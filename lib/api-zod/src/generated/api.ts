@@ -166,7 +166,7 @@ export const ListOrdersResponseItem = zod.object({
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  status: zod.enum(["draft", "submitted", "sent", "confirmed", "partial"]),
   totalItems: zod.number(),
   confirmedItems: zod.number(),
   totalQuantity: zod.number(),
@@ -208,7 +208,7 @@ export const GetOrderResponse = zod.object({
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  status: zod.enum(["draft", "submitted", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
   emailSentAt: zod.string().nullish(),
   items: zod.array(
@@ -238,7 +238,9 @@ export const UpdateOrderParams = zod.object({
 });
 
 export const UpdateOrderBody = zod.object({
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]).optional(),
+  status: zod
+    .enum(["draft", "submitted", "sent", "confirmed", "partial"])
+    .optional(),
   notes: zod.string().nullish(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
@@ -252,7 +254,7 @@ export const UpdateOrderResponse = zod.object({
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  status: zod.enum(["draft", "submitted", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
   emailSentAt: zod.string().nullish(),
   items: zod.array(
@@ -401,7 +403,7 @@ export const ConfirmOrderResponse = zod.object({
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  status: zod.enum(["draft", "submitted", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
   emailSentAt: zod.string().nullish(),
   items: zod.array(
@@ -451,7 +453,7 @@ export const GetOrderByTokenResponse = zod.object({
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  status: zod.enum(["draft", "submitted", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
   emailSentAt: zod.string().nullish(),
   items: zod.array(
@@ -499,7 +501,7 @@ export const ConfirmOrderByTokenResponse = zod.object({
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  status: zod.enum(["draft", "submitted", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
   emailSentAt: zod.string().nullish(),
   items: zod.array(
@@ -607,7 +609,7 @@ export const GetRecentOrdersResponseItem = zod.object({
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  status: zod.enum(["draft", "submitted", "sent", "confirmed", "partial"]),
   totalItems: zod.number(),
   confirmedItems: zod.number(),
   totalQuantity: zod.number(),

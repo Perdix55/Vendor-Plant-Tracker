@@ -125,6 +125,7 @@ export type OrderSummaryStatus =
 
 export const OrderSummaryStatus = {
   draft: "draft",
+  submitted: "submitted",
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",
@@ -150,6 +151,7 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export const OrderStatus = {
   draft: "draft",
+  submitted: "submitted",
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",
@@ -213,6 +215,7 @@ export type UpdateOrderBodyStatus =
 
 export const UpdateOrderBodyStatus = {
   draft: "draft",
+  submitted: "submitted",
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",

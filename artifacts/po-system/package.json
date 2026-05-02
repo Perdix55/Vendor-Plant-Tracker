@@ -75,6 +75,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "jsbarcode": "^3.12.3",
     "xlsx": "^0.18.5"
   }
 }

@@ -851,7 +851,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [draft, sent, confirmed, partial]
+          enum: [draft, submitted, sent, confirmed, partial]
         totalItems:
           type: integer
         confirmedItems:
@@ -890,7 +890,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [draft, sent, confirmed, partial]
+          enum: [draft, submitted, sent, confirmed, partial]
         notes:
           type: string
           nullable: true
@@ -962,7 +962,7 @@ components:
       properties:
         status:
           type: string
-          enum: [draft, sent, confirmed, partial]
+          enum: [draft, submitted, sent, confirmed, partial]
         notes:
           type: string
           nullable: true

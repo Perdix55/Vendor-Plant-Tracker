@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import JsBarcode from "jsbarcode";
 import { useRoute, useLocation, Link } from "wouter";
 import { 
   useGetOrder, 
@@ -9,6 +10,7 @@ import {
   useUpdateOrderItem,
   useDeleteOrderItem,
   useListInventoryTransactions,
+  getListInventoryTransactionsQueryKey,
   getGetOrderQueryKey,
   getListOrdersQueryKey,
   getGetDashboardSummaryQueryKey,
@@ -26,7 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X, PackageCheck } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X, PackageCheck, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -51,7 +53,7 @@ export default function OrderDetail() {
 
   const { data: receiveTransactions } = useListInventoryTransactions(
     { orderId, limit: 200 },
-    { query: { enabled: !!orderId } }
+    { query: { enabled: !!orderId, queryKey: getListInventoryTransactionsQueryKey({ orderId, limit: 200 }) } }
   );
   const receivedProductIds = new Set(
     (receiveTransactions ?? [])
@@ -61,6 +63,31 @@ export default function OrderDetail() {
 
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editingQty, setEditingQty] = useState<number>(1);
+  const [labelQtys, setLabelQtys] = useState<Record<number, number>>({});
+
+  const printBarcodeLabels = useCallback((productName: string, productId: number, packSize: string | null | undefined, qty: number) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast({ title: "Popup blocked", description: "Please allow popups to print labels.", variant: "destructive" });
+      return;
+    }
+    const barcodeValue = String(productId).padStart(8, "0");
+    const tempSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    document.body.appendChild(tempSvg);
+    JsBarcode(tempSvg, barcodeValue, { format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 9, margin: 4 });
+    const svgHtml = tempSvg.outerHTML;
+    document.body.removeChild(tempSvg);
+    const labelHtml = `<div class="label">${svgHtml}<div class="product-name">${productName}</div>${packSize && packSize !== "N/A" ? `<div class="pack-size">Pack: ${packSize}</div>` : ""}</div>`;
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>Labels</title><style>
+      *{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif}
+      .grid{display:flex;flex-wrap:wrap;gap:6px;padding:6px}
+      .label{width:2.625in;border:1px solid #ddd;padding:4px 6px;display:flex;flex-direction:column;align-items:center;break-inside:avoid}
+      .label svg{max-width:100%}.product-name{font-size:8pt;font-weight:bold;text-align:center;margin-top:2px;word-break:break-word;max-width:2.4in}
+      .pack-size{font-size:7pt;color:#666;text-align:center}
+      @media print{@page{margin:.25in}}
+    </style></head><body onload="window.print();setTimeout(()=>window.close(),1000)"><div class="grid">${Array.from({ length: qty }).map(() => labelHtml).join("")}</div></body></html>`);
+    printWindow.document.close();
+  }, [toast]);
 
   const startEditItem = (itemId: number, currentQty: number) => {
     setEditingItemId(itemId);
@@ -415,6 +442,9 @@ export default function OrderDetail() {
                         <TableHead className="text-right">Confirmed</TableHead>
                         <TableHead>Availability</TableHead>
                         {isConfirming && <TableHead>Notes</TableHead>}
+                        {receivedProductIds.size > 0 && !isConfirming && (
+                          <TableHead className="text-right">Labels</TableHead>
+                        )}
                       </>
                     )}
                     {order.status === "draft" && (
@@ -516,6 +546,32 @@ export default function OrderDetail() {
                                   onChange={(e) => handleConfirmItemChange(item.id, "notes", e.target.value)}
                                   className="h-8 max-w-[150px]"
                                 />
+                              </TableCell>
+                            )}
+                            {receivedProductIds.size > 0 && !isConfirming && (
+                              <TableCell className="text-right">
+                                <div className="flex items-center gap-1 justify-end">
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={labelQtys[item.id] ?? (item.packSize ? parseInt(String(item.packSize)) || 1 : 1)}
+                                    onChange={(e) => setLabelQtys(prev => ({ ...prev, [item.id]: parseInt(e.target.value) || 1 }))}
+                                    className="w-16 text-right h-8"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2"
+                                    onClick={() => printBarcodeLabels(
+                                      item.productName,
+                                      item.productId,
+                                      item.packSize ? String(item.packSize) : null,
+                                      labelQtys[item.id] ?? (item.packSize ? parseInt(String(item.packSize)) || 1 : 1)
+                                    )}
+                                  >
+                                    <Printer className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             )}
                           </>
