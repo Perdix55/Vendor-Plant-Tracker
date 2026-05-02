@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { vendorsTable, productsTable } from "@workspace/db";
-import { eq, sql, count } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 
 const router = Router();
 
@@ -12,6 +12,7 @@ router.get("/vendors", async (req, res) => {
       .select({
         id: vendorsTable.id,
         name: vendorsTable.name,
+        email: vendorsTable.email,
         notes: vendorsTable.notes,
         createdAt: vendorsTable.createdAt,
         productCount: count(productsTable.id),
@@ -36,6 +37,7 @@ router.get("/vendors/:vendorId", async (req, res) => {
       .select({
         id: vendorsTable.id,
         name: vendorsTable.name,
+        email: vendorsTable.email,
         notes: vendorsTable.notes,
         createdAt: vendorsTable.createdAt,
         productCount: count(productsTable.id),
@@ -50,6 +52,41 @@ router.get("/vendors/:vendorId", async (req, res) => {
     res.json({ ...v, createdAt: v.createdAt.toISOString() });
   } catch (err) {
     req.log.error({ err }, "Failed to get vendor");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /vendors/:vendorId
+router.patch("/vendors/:vendorId", async (req, res) => {
+  try {
+    const vendorId = parseInt(req.params.vendorId, 10);
+    const { email, notes } = req.body;
+
+    const updateData: Partial<typeof vendorsTable.$inferInsert> = {};
+    if (email !== undefined) updateData.email = email;
+    if (notes !== undefined) updateData.notes = notes;
+
+    await db.update(vendorsTable).set(updateData).where(eq(vendorsTable.id, vendorId));
+
+    const rows = await db
+      .select({
+        id: vendorsTable.id,
+        name: vendorsTable.name,
+        email: vendorsTable.email,
+        notes: vendorsTable.notes,
+        createdAt: vendorsTable.createdAt,
+        productCount: count(productsTable.id),
+      })
+      .from(vendorsTable)
+      .leftJoin(productsTable, eq(productsTable.vendorId, vendorsTable.id))
+      .where(eq(vendorsTable.id, vendorId))
+      .groupBy(vendorsTable.id);
+
+    if (!rows.length) return res.status(404).json({ error: "Vendor not found" });
+    const v = rows[0];
+    res.json({ ...v, createdAt: v.createdAt.toISOString() });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update vendor");
     res.status(500).json({ error: "Internal server error" });
   }
 });

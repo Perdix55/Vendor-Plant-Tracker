@@ -27,8 +27,10 @@ import type {
   OrderItem,
   OrderSummary,
   Product,
+  SendEmailResponse,
   UpdateOrderBody,
   UpdateOrderItemBody,
+  UpdateVendorBody,
   Vendor,
   VendorActivity,
 } from "./api.schemas";
@@ -274,6 +276,93 @@ export function useGetVendor<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update vendor email or notes
+ */
+export const getUpdateVendorUrl = (vendorId: number) => {
+  return `/api/vendors/${vendorId}`;
+};
+
+export const updateVendor = async (
+  vendorId: number,
+  updateVendorBody: UpdateVendorBody,
+  options?: RequestInit,
+): Promise<Vendor> => {
+  return customFetch<Vendor>(getUpdateVendorUrl(vendorId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateVendorBody),
+  });
+};
+
+export const getUpdateVendorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVendor>>,
+    TError,
+    { vendorId: number; data: BodyType<UpdateVendorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateVendor>>,
+  TError,
+  { vendorId: number; data: BodyType<UpdateVendorBody> },
+  TContext
+> => {
+  const mutationKey = ["updateVendor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateVendor>>,
+    { vendorId: number; data: BodyType<UpdateVendorBody> }
+  > = (props) => {
+    const { vendorId, data } = props ?? {};
+
+    return updateVendor(vendorId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateVendorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateVendor>>
+>;
+export type UpdateVendorMutationBody = BodyType<UpdateVendorBody>;
+export type UpdateVendorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update vendor email or notes
+ */
+export const useUpdateVendor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateVendor>>,
+    TError,
+    { vendorId: number; data: BodyType<UpdateVendorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateVendor>>,
+  TError,
+  { vendorId: number; data: BodyType<UpdateVendorBody> },
+  TContext
+> => {
+  return useMutation(getUpdateVendorMutationOptions(options));
+};
 
 /**
  * @summary List products for a vendor
@@ -1232,6 +1321,264 @@ export const useConfirmOrder = <
   TContext
 > => {
   return useMutation(getConfirmOrderMutationOptions(options));
+};
+
+/**
+ * @summary Send PO confirmation email to vendor
+ */
+export const getSendOrderEmailUrl = (orderId: number) => {
+  return `/api/orders/${orderId}/send-email`;
+};
+
+export const sendOrderEmail = async (
+  orderId: number,
+  options?: RequestInit,
+): Promise<SendEmailResponse> => {
+  return customFetch<SendEmailResponse>(getSendOrderEmailUrl(orderId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSendOrderEmailMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendOrderEmail>>,
+    TError,
+    { orderId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendOrderEmail>>,
+  TError,
+  { orderId: number },
+  TContext
+> => {
+  const mutationKey = ["sendOrderEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendOrderEmail>>,
+    { orderId: number }
+  > = (props) => {
+    const { orderId } = props ?? {};
+
+    return sendOrderEmail(orderId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendOrderEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendOrderEmail>>
+>;
+
+export type SendOrderEmailMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send PO confirmation email to vendor
+ */
+export const useSendOrderEmail = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendOrderEmail>>,
+    TError,
+    { orderId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendOrderEmail>>,
+  TError,
+  { orderId: number },
+  TContext
+> => {
+  return useMutation(getSendOrderEmailMutationOptions(options));
+};
+
+/**
+ * @summary Get order details by confirmation token (public)
+ */
+export const getGetOrderByTokenUrl = (token: string) => {
+  return `/api/vendor-confirm/${token}`;
+};
+
+export const getOrderByToken = async (
+  token: string,
+  options?: RequestInit,
+): Promise<Order> => {
+  return customFetch<Order>(getGetOrderByTokenUrl(token), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOrderByTokenQueryKey = (token: string) => {
+  return [`/api/vendor-confirm/${token}`] as const;
+};
+
+export const getGetOrderByTokenQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOrderByToken>>,
+  TError = ErrorType<unknown>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOrderByToken>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOrderByTokenQueryKey(token);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrderByToken>>> = ({
+    signal,
+  }) => getOrderByToken(token, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!token,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOrderByToken>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOrderByTokenQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOrderByToken>>
+>;
+export type GetOrderByTokenQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get order details by confirmation token (public)
+ */
+
+export function useGetOrderByToken<
+  TData = Awaited<ReturnType<typeof getOrderByToken>>,
+  TError = ErrorType<unknown>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOrderByToken>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOrderByTokenQueryOptions(token, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Submit vendor confirmations via token (public)
+ */
+export const getConfirmOrderByTokenUrl = (token: string) => {
+  return `/api/vendor-confirm/${token}/confirm`;
+};
+
+export const confirmOrderByToken = async (
+  token: string,
+  confirmOrderBody: ConfirmOrderBody,
+  options?: RequestInit,
+): Promise<Order> => {
+  return customFetch<Order>(getConfirmOrderByTokenUrl(token), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(confirmOrderBody),
+  });
+};
+
+export const getConfirmOrderByTokenMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmOrderByToken>>,
+    TError,
+    { token: string; data: BodyType<ConfirmOrderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmOrderByToken>>,
+  TError,
+  { token: string; data: BodyType<ConfirmOrderBody> },
+  TContext
+> => {
+  const mutationKey = ["confirmOrderByToken"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmOrderByToken>>,
+    { token: string; data: BodyType<ConfirmOrderBody> }
+  > = (props) => {
+    const { token, data } = props ?? {};
+
+    return confirmOrderByToken(token, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmOrderByTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmOrderByToken>>
+>;
+export type ConfirmOrderByTokenMutationBody = BodyType<ConfirmOrderBody>;
+export type ConfirmOrderByTokenMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Submit vendor confirmations via token (public)
+ */
+export const useConfirmOrderByToken = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmOrderByToken>>,
+    TError,
+    { token: string; data: BodyType<ConfirmOrderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmOrderByToken>>,
+  TError,
+  { token: string; data: BodyType<ConfirmOrderBody> },
+  TContext
+> => {
+  return useMutation(getConfirmOrderByTokenMutationOptions(options));
 };
 
 /**

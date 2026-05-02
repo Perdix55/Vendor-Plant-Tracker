@@ -18,6 +18,8 @@ tags:
     description: Purchase orders
   - name: summary
     description: Dashboard summaries
+  - name: vendorConfirm
+    description: Public vendor confirmation (token-based)
 
 paths:
   /healthz:
@@ -62,6 +64,29 @@ paths:
       responses:
         "200":
           description: Vendor details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+    patch:
+      operationId: updateVendor
+      tags: [vendors]
+      summary: Update vendor email or notes
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVendorBody"
+      responses:
+        "200":
+          description: Updated vendor
           content:
             application/json:
               schema:
@@ -306,6 +331,69 @@ paths:
               schema:
                 $ref: "#/components/schemas/Order"
 
+  /orders/{orderId}/send-email:
+    post:
+      operationId: sendOrderEmail
+      tags: [orders]
+      summary: Send PO confirmation email to vendor
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendEmailResponse"
+
+  /vendor-confirm/{token}:
+    get:
+      operationId: getOrderByToken
+      tags: [vendorConfirm]
+      summary: Get order details by confirmation token (public)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order for vendor confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /vendor-confirm/{token}/confirm:
+    post:
+      operationId: confirmOrderByToken
+      tags: [vendorConfirm]
+      summary: Submit vendor confirmations via token (public)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmOrderBody"
+      responses:
+        "200":
+          description: Confirmed order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
   /summary/dashboard:
     get:
       operationId: getDashboardSummary
@@ -365,6 +453,9 @@ components:
           type: integer
         name:
           type: string
+        email:
+          type: string
+          nullable: true
         notes:
           type: string
           nullable: true
@@ -373,6 +464,16 @@ components:
         createdAt:
           type: string
       required: [id, name, productCount, createdAt]
+
+    UpdateVendorBody:
+      type: object
+      properties:
+        email:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
 
     Product:
       type: object
@@ -419,6 +520,9 @@ components:
         notes:
           type: string
           nullable: true
+        emailSentAt:
+          type: string
+          nullable: true
         createdAt:
           type: string
       required: [id, vendorId, vendorName, weekDate, status, totalItems, confirmedItems, totalQuantity, createdAt]
@@ -432,6 +536,9 @@ components:
           type: integer
         vendorName:
           type: string
+        vendorEmail:
+          type: string
+          nullable: true
         weekDate:
           type: string
         shipDate:
@@ -444,6 +551,9 @@ components:
           type: string
           enum: [draft, sent, confirmed, partial]
         notes:
+          type: string
+          nullable: true
+        emailSentAt:
           type: string
           nullable: true
         items:
@@ -568,6 +678,17 @@ components:
                 nullable: true
             required: [itemId, availability]
       required: [items]
+
+    SendEmailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        emailSentAt:
+          type: string
+      required: [success, message]
 
     DashboardSummary:
       type: object

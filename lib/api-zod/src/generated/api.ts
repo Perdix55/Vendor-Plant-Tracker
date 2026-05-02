@@ -20,6 +20,7 @@ export const HealthCheckResponse = zod.object({
 export const ListVendorsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
+  email: zod.string().nullish(),
   notes: zod.string().nullish(),
   productCount: zod.number(),
   createdAt: zod.string(),
@@ -36,6 +37,28 @@ export const GetVendorParams = zod.object({
 export const GetVendorResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
+  email: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  productCount: zod.number(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update vendor email or notes
+ */
+export const UpdateVendorParams = zod.object({
+  vendorId: zod.coerce.number(),
+});
+
+export const UpdateVendorBody = zod.object({
+  email: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateVendorResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  email: zod.string().nullish(),
   notes: zod.string().nullish(),
   productCount: zod.number(),
   createdAt: zod.string(),
@@ -80,6 +103,7 @@ export const ListOrdersResponseItem = zod.object({
   confirmedItems: zod.number(),
   totalQuantity: zod.number(),
   notes: zod.string().nullish(),
+  emailSentAt: zod.string().nullish(),
   createdAt: zod.string(),
 });
 export const ListOrdersResponse = zod.array(ListOrdersResponseItem);
@@ -112,11 +136,13 @@ export const GetOrderResponse = zod.object({
   id: zod.number(),
   vendorId: zod.number(),
   vendorName: zod.string(),
+  vendorEmail: zod.string().nullish(),
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
   status: zod.enum(["draft", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
+  emailSentAt: zod.string().nullish(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -154,11 +180,13 @@ export const UpdateOrderResponse = zod.object({
   id: zod.number(),
   vendorId: zod.number(),
   vendorName: zod.string(),
+  vendorEmail: zod.string().nullish(),
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
   status: zod.enum(["draft", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
+  emailSentAt: zod.string().nullish(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -280,11 +308,111 @@ export const ConfirmOrderResponse = zod.object({
   id: zod.number(),
   vendorId: zod.number(),
   vendorName: zod.string(),
+  vendorEmail: zod.string().nullish(),
   weekDate: zod.string(),
   shipDate: zod.string().nullish(),
   arriveDate: zod.string().nullish(),
   status: zod.enum(["draft", "sent", "confirmed", "partial"]),
   notes: zod.string().nullish(),
+  emailSentAt: zod.string().nullish(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      orderId: zod.number(),
+      productId: zod.number(),
+      productName: zod.string(),
+      packSize: zod.string().nullish(),
+      quantityOrdered: zod.number(),
+      quantityConfirmed: zod.number().nullish(),
+      availability: zod
+        .enum(["pending", "available", "unavailable", "partial"])
+        .nullish(),
+      notes: zod.string().nullish(),
+    }),
+  ),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Send PO confirmation email to vendor
+ */
+export const SendOrderEmailParams = zod.object({
+  orderId: zod.coerce.number(),
+});
+
+export const SendOrderEmailResponse = zod.object({
+  success: zod.boolean(),
+  message: zod.string(),
+  emailSentAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get order details by confirmation token (public)
+ */
+export const GetOrderByTokenParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const GetOrderByTokenResponse = zod.object({
+  id: zod.number(),
+  vendorId: zod.number(),
+  vendorName: zod.string(),
+  vendorEmail: zod.string().nullish(),
+  weekDate: zod.string(),
+  shipDate: zod.string().nullish(),
+  arriveDate: zod.string().nullish(),
+  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  notes: zod.string().nullish(),
+  emailSentAt: zod.string().nullish(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      orderId: zod.number(),
+      productId: zod.number(),
+      productName: zod.string(),
+      packSize: zod.string().nullish(),
+      quantityOrdered: zod.number(),
+      quantityConfirmed: zod.number().nullish(),
+      availability: zod
+        .enum(["pending", "available", "unavailable", "partial"])
+        .nullish(),
+      notes: zod.string().nullish(),
+    }),
+  ),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Submit vendor confirmations via token (public)
+ */
+export const ConfirmOrderByTokenParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const ConfirmOrderByTokenBody = zod.object({
+  items: zod.array(
+    zod.object({
+      itemId: zod.number(),
+      availability: zod.enum(["available", "unavailable", "partial"]),
+      quantityConfirmed: zod.number().nullish(),
+      notes: zod.string().nullish(),
+    }),
+  ),
+});
+
+export const ConfirmOrderByTokenResponse = zod.object({
+  id: zod.number(),
+  vendorId: zod.number(),
+  vendorName: zod.string(),
+  vendorEmail: zod.string().nullish(),
+  weekDate: zod.string(),
+  shipDate: zod.string().nullish(),
+  arriveDate: zod.string().nullish(),
+  status: zod.enum(["draft", "sent", "confirmed", "partial"]),
+  notes: zod.string().nullish(),
+  emailSentAt: zod.string().nullish(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -333,6 +461,7 @@ export const GetRecentOrdersResponseItem = zod.object({
   confirmedItems: zod.number(),
   totalQuantity: zod.number(),
   notes: zod.string().nullish(),
+  emailSentAt: zod.string().nullish(),
   createdAt: zod.string(),
 });
 export const GetRecentOrdersResponse = zod.array(GetRecentOrdersResponseItem);

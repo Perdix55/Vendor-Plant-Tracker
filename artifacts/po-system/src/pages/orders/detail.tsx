@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { 
   useGetOrder, 
   useUpdateOrder,
   useDeleteOrder,
   useConfirmOrder,
-  useUpdateOrderItem,
+  useSendOrderEmail,
   getGetOrderQueryKey,
   getListOrdersQueryKey,
   getGetDashboardSummaryQueryKey,
@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, CheckCircle2, Clock, Send, Trash2, Edit2, Info, XCircle } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -42,6 +42,7 @@ export default function OrderDetail() {
   const updateOrder = useUpdateOrder();
   const deleteOrder = useDeleteOrder();
   const confirmOrder = useConfirmOrder();
+  const sendEmail = useSendOrderEmail();
 
   const [isConfirming, setIsConfirming] = useState(false);
   const [confirmData, setConfirmData] = useState<Record<number, { 
@@ -115,6 +116,19 @@ export default function OrderDetail() {
         queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
+      }
+    });
+  };
+
+  const handleSendEmail = () => {
+    sendEmail.mutate({ orderId }, {
+      onSuccess: () => {
+        toast({ title: "Email Sent", description: "A confirmation link has been emailed to the vendor." });
+        queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
+      },
+      onError: (err: any) => {
+        const msg = err?.response?.data?.error ?? "Failed to send email. Check that this vendor has an email address set in Admin.";
+        toast({ title: "Email Failed", description: msg, variant: "destructive" });
       }
     });
   };
@@ -220,10 +234,21 @@ export default function OrderDetail() {
               )}
               
               {(order.status === "sent" || order.status === "partial") && !isConfirming && (
-                <Button onClick={handleStartConfirming} data-testid="button-enter-confirmations">
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Enter Vendor Confirmations
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleSendEmail}
+                    disabled={sendEmail.isPending}
+                    data-testid="button-send-email"
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    {sendEmail.isPending ? "Sending..." : order.emailSentAt ? "Resend Email" : "Send Email"}
+                  </Button>
+                  <Button onClick={handleStartConfirming} data-testid="button-enter-confirmations">
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Enter Vendor Confirmations
+                  </Button>
+                </>
               )}
 
               {isConfirming && (
@@ -356,7 +381,7 @@ export default function OrderDetail() {
                                 />
                               ) : (
                                 <span className={
-                                  item.quantityConfirmed !== null && item.quantityConfirmed < item.quantityOrdered 
+                                  item.quantityConfirmed != null && item.quantityConfirmed < item.quantityOrdered 
                                     ? "text-amber-600 dark:text-amber-500 font-semibold" 
                                     : "text-green-700 dark:text-green-500"
                                 }>

@@ -5,7 +5,8 @@ import {
   useListVendorProducts, 
   useCreateOrder,
   getListOrdersQueryKey,
-  getGetDashboardSummaryQueryKey
+  getGetDashboardSummaryQueryKey,
+  getListVendorProductsQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export default function NewOrder() {
   const selectedVendorIdNum = vendorId ? parseInt(vendorId) : 0;
   const { data: products, isLoading: isLoadingProducts } = useListVendorProducts(
     selectedVendorIdNum, 
-    { query: { enabled: !!selectedVendorIdNum } }
+    { query: { enabled: !!selectedVendorIdNum, queryKey: getListVendorProductsQueryKey(selectedVendorIdNum) } }
   );
 
   const createOrder = useCreateOrder();

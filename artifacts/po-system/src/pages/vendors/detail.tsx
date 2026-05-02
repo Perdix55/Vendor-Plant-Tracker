@@ -1,4 +1,4 @@
-import { useGetVendor, useListVendorProducts } from "@workspace/api-client-react";
+import { useGetVendor, useListVendorProducts, getGetVendorQueryKey, getListVendorProductsQueryKey } from "@workspace/api-client-react";
 import { useRoute, Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -20,10 +20,10 @@ export default function VendorDetail() {
   const vendorId = params?.id ? parseInt(params.id) : 0;
 
   const { data: vendor, isLoading: isLoadingVendor } = useGetVendor(vendorId, { 
-    query: { enabled: !!vendorId } 
+    query: { enabled: !!vendorId, queryKey: getGetVendorQueryKey(vendorId) } 
   });
   const { data: products, isLoading: isLoadingProducts } = useListVendorProducts(vendorId, {
-    query: { enabled: !!vendorId }
+    query: { enabled: !!vendorId, queryKey: getListVendorProductsQueryKey(vendorId) }
   });
 
   const [search, setSearch] = useState("");

@@ -7,6 +7,8 @@ import {
   productsTable,
 } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 
 const router = Router();
 
@@ -15,11 +17,13 @@ function mapOrder(order: any, items: any[]) {
     id: order.id,
     vendorId: order.vendorId,
     vendorName: order.vendorName,
+    vendorEmail: order.vendorEmail ?? null,
     weekDate: order.weekDate,
     shipDate: order.shipDate ?? null,
     arriveDate: order.arriveDate ?? null,
     status: order.status,
     notes: order.notes ?? null,
+    emailSentAt: order.emailSentAt instanceof Date ? order.emailSentAt.toISOString() : (order.emailSentAt ?? null),
     items: items.map(mapItem),
     createdAt: order.createdAt instanceof Date ? order.createdAt.toISOString() : order.createdAt,
     updatedAt: order.updatedAt instanceof Date ? order.updatedAt.toISOString() : order.updatedAt,
@@ -38,6 +42,47 @@ function mapItem(item: any) {
     availability: item.availability ?? null,
     notes: item.notes ?? null,
   };
+}
+
+async function fetchOrderWithItems(orderId: number) {
+  const rows = await db
+    .select({
+      id: ordersTable.id,
+      vendorId: ordersTable.vendorId,
+      vendorName: vendorsTable.name,
+      vendorEmail: vendorsTable.email,
+      weekDate: ordersTable.weekDate,
+      shipDate: ordersTable.shipDate,
+      arriveDate: ordersTable.arriveDate,
+      status: ordersTable.status,
+      notes: ordersTable.notes,
+      emailSentAt: ordersTable.emailSentAt,
+      createdAt: ordersTable.createdAt,
+      updatedAt: ordersTable.updatedAt,
+    })
+    .from(ordersTable)
+    .innerJoin(vendorsTable, eq(vendorsTable.id, ordersTable.vendorId))
+    .where(eq(ordersTable.id, orderId));
+
+  if (!rows.length) return null;
+
+  const items = await db
+    .select({
+      id: orderItemsTable.id,
+      orderId: orderItemsTable.orderId,
+      productId: orderItemsTable.productId,
+      productName: productsTable.name,
+      packSize: productsTable.packSize,
+      quantityOrdered: orderItemsTable.quantityOrdered,
+      quantityConfirmed: orderItemsTable.quantityConfirmed,
+      availability: orderItemsTable.availability,
+      notes: orderItemsTable.notes,
+    })
+    .from(orderItemsTable)
+    .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
+    .where(eq(orderItemsTable.orderId, orderId));
+
+  return { order: rows[0], items };
 }
 
 // GET /orders
@@ -60,6 +105,7 @@ router.get("/orders", async (req, res) => {
         arriveDate: ordersTable.arriveDate,
         status: ordersTable.status,
         notes: ordersTable.notes,
+        emailSentAt: ordersTable.emailSentAt,
         createdAt: ordersTable.createdAt,
       })
       .from(ordersTable)
@@ -67,7 +113,6 @@ router.get("/orders", async (req, res) => {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(ordersTable.createdAt));
 
-    // Get item counts per order
     const orderIds = orders.map((o) => o.id);
     let itemCounts: Record<number, { total: number; confirmed: number; totalQty: number }> = {};
 
@@ -98,6 +143,7 @@ router.get("/orders", async (req, res) => {
         arriveDate: o.arriveDate ?? null,
         status: o.status,
         notes: o.notes ?? null,
+        emailSentAt: o.emailSentAt instanceof Date ? o.emailSentAt.toISOString() : (o.emailSentAt ?? null),
         totalItems: itemCounts[o.id]?.total ?? 0,
         confirmedItems: itemCounts[o.id]?.confirmed ?? 0,
         totalQuantity: itemCounts[o.id]?.totalQty ?? 0,
@@ -134,26 +180,14 @@ router.post("/orders", async (req, res) => {
       );
     }
 
-    const fullItems = await db
-      .select({
-        id: orderItemsTable.id,
-        orderId: orderItemsTable.orderId,
-        productId: orderItemsTable.productId,
-        productName: productsTable.name,
-        packSize: productsTable.packSize,
-        quantityOrdered: orderItemsTable.quantityOrdered,
-        quantityConfirmed: orderItemsTable.quantityConfirmed,
-        availability: orderItemsTable.availability,
-        notes: orderItemsTable.notes,
-      })
-      .from(orderItemsTable)
-      .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
-      .where(eq(orderItemsTable.orderId, order.id));
-
+    const result = await fetchOrderWithItems(order.id);
     const [vendor] = await db.select().from(vendorsTable).where(eq(vendorsTable.id, vendorId));
 
     res.status(201).json(
-      mapOrder({ ...order, vendorName: vendor?.name ?? "" }, fullItems)
+      mapOrder(
+        { ...order, vendorName: vendor?.name ?? "", vendorEmail: vendor?.email ?? null },
+        result?.items ?? []
+      )
     );
   } catch (err) {
     req.log.error({ err }, "Failed to create order");
@@ -165,43 +199,9 @@ router.post("/orders", async (req, res) => {
 router.get("/orders/:orderId", async (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId, 10);
-
-    const rows = await db
-      .select({
-        id: ordersTable.id,
-        vendorId: ordersTable.vendorId,
-        vendorName: vendorsTable.name,
-        weekDate: ordersTable.weekDate,
-        shipDate: ordersTable.shipDate,
-        arriveDate: ordersTable.arriveDate,
-        status: ordersTable.status,
-        notes: ordersTable.notes,
-        createdAt: ordersTable.createdAt,
-        updatedAt: ordersTable.updatedAt,
-      })
-      .from(ordersTable)
-      .innerJoin(vendorsTable, eq(vendorsTable.id, ordersTable.vendorId))
-      .where(eq(ordersTable.id, orderId));
-
-    if (!rows.length) return res.status(404).json({ error: "Order not found" });
-
-    const items = await db
-      .select({
-        id: orderItemsTable.id,
-        orderId: orderItemsTable.orderId,
-        productId: orderItemsTable.productId,
-        productName: productsTable.name,
-        packSize: productsTable.packSize,
-        quantityOrdered: orderItemsTable.quantityOrdered,
-        quantityConfirmed: orderItemsTable.quantityConfirmed,
-        availability: orderItemsTable.availability,
-        notes: orderItemsTable.notes,
-      })
-      .from(orderItemsTable)
-      .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
-      .where(eq(orderItemsTable.orderId, orderId));
-
-    res.json(mapOrder(rows[0], items));
+    const result = await fetchOrderWithItems(orderId);
+    if (!result) return res.status(404).json({ error: "Order not found" });
+    res.json(mapOrder(result.order, result.items));
   } catch (err) {
     req.log.error({ err }, "Failed to get order");
     res.status(500).json({ error: "Internal server error" });
@@ -222,42 +222,9 @@ router.patch("/orders/:orderId", async (req, res) => {
 
     await db.update(ordersTable).set(updateData).where(eq(ordersTable.id, orderId));
 
-    const rows = await db
-      .select({
-        id: ordersTable.id,
-        vendorId: ordersTable.vendorId,
-        vendorName: vendorsTable.name,
-        weekDate: ordersTable.weekDate,
-        shipDate: ordersTable.shipDate,
-        arriveDate: ordersTable.arriveDate,
-        status: ordersTable.status,
-        notes: ordersTable.notes,
-        createdAt: ordersTable.createdAt,
-        updatedAt: ordersTable.updatedAt,
-      })
-      .from(ordersTable)
-      .innerJoin(vendorsTable, eq(vendorsTable.id, ordersTable.vendorId))
-      .where(eq(ordersTable.id, orderId));
-
-    if (!rows.length) return res.status(404).json({ error: "Order not found" });
-
-    const items = await db
-      .select({
-        id: orderItemsTable.id,
-        orderId: orderItemsTable.orderId,
-        productId: orderItemsTable.productId,
-        productName: productsTable.name,
-        packSize: productsTable.packSize,
-        quantityOrdered: orderItemsTable.quantityOrdered,
-        quantityConfirmed: orderItemsTable.quantityConfirmed,
-        availability: orderItemsTable.availability,
-        notes: orderItemsTable.notes,
-      })
-      .from(orderItemsTable)
-      .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
-      .where(eq(orderItemsTable.orderId, orderId));
-
-    res.json(mapOrder(rows[0], items));
+    const result = await fetchOrderWithItems(orderId);
+    if (!result) return res.status(404).json({ error: "Order not found" });
+    res.json(mapOrder(result.order, result.items));
   } catch (err) {
     req.log.error({ err }, "Failed to update order");
     res.status(500).json({ error: "Internal server error" });
@@ -390,56 +357,174 @@ router.post("/orders/:orderId/confirm", async (req, res) => {
       await db.update(orderItemsTable).set(updateData).where(eq(orderItemsTable.id, item.itemId));
     }
 
-    // Determine new order status
     const allItems = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, orderId));
-    const hasUnavailable = allItems.some((i) => i.availability === "unavailable");
+    const hasUnavailable = allItems.some((i) => i.availability === "unavailable" || i.availability === "partial");
     const allAvailable = allItems.every((i) => i.availability === "available");
-    const anyConfirmed = allItems.some((i) => i.availability !== null && i.availability !== "pending");
 
     let newStatus = "sent";
     if (allAvailable) newStatus = "confirmed";
-    else if (hasUnavailable && anyConfirmed) newStatus = "partial";
+    else if (hasUnavailable) newStatus = "partial";
 
     await db.update(ordersTable).set({ status: newStatus, updatedAt: new Date() }).where(eq(ordersTable.id, orderId));
+
+    const result = await fetchOrderWithItems(orderId);
+    if (!result) return res.status(404).json({ error: "Order not found" });
+    res.json(mapOrder(result.order, result.items));
+  } catch (err) {
+    req.log.error({ err }, "Failed to confirm order");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /orders/:orderId/send-email
+router.post("/orders/:orderId/send-email", async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId, 10);
 
     const rows = await db
       .select({
         id: ordersTable.id,
         vendorId: ordersTable.vendorId,
         vendorName: vendorsTable.name,
+        vendorEmail: vendorsTable.email,
         weekDate: ordersTable.weekDate,
-        shipDate: ordersTable.shipDate,
-        arriveDate: ordersTable.arriveDate,
         status: ordersTable.status,
-        notes: ordersTable.notes,
-        createdAt: ordersTable.createdAt,
-        updatedAt: ordersTable.updatedAt,
+        confirmToken: ordersTable.confirmToken,
       })
       .from(ordersTable)
       .innerJoin(vendorsTable, eq(vendorsTable.id, ordersTable.vendorId))
       .where(eq(ordersTable.id, orderId));
 
-    const fullItems = await db
-      .select({
-        id: orderItemsTable.id,
-        orderId: orderItemsTable.orderId,
-        productId: orderItemsTable.productId,
-        productName: productsTable.name,
-        packSize: productsTable.packSize,
-        quantityOrdered: orderItemsTable.quantityOrdered,
-        quantityConfirmed: orderItemsTable.quantityConfirmed,
-        availability: orderItemsTable.availability,
-        notes: orderItemsTable.notes,
-      })
-      .from(orderItemsTable)
-      .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
-      .where(eq(orderItemsTable.orderId, orderId));
+    if (!rows.length) return res.status(404).json({ error: "Order not found" });
 
-    res.json(mapOrder(rows[0], fullItems));
+    const order = rows[0];
+
+    if (!order.vendorEmail) {
+      return res.status(400).json({ error: "Vendor has no email address on file. Please add one in Admin > Vendors." });
+    }
+
+    // Generate or reuse confirm token
+    let token = order.confirmToken;
+    if (!token) {
+      token = randomUUID();
+      await db.update(ordersTable).set({ confirmToken: token }).where(eq(ordersTable.id, orderId));
+    }
+
+    // Build the confirmation URL using REPLIT_DOMAINS or fallback
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim()
+      ?? `localhost:80`;
+    const protocol = domain.startsWith("localhost") ? "http" : "https";
+    const confirmUrl = `${protocol}://${domain}/confirm/${token}`;
+
+    // Format week date nicely
+    const weekDateDisplay = order.weekDate;
+
+    const emailBody = buildEmailHtml({
+      vendorName: order.vendorName,
+      weekDate: weekDateDisplay,
+      confirmUrl,
+      orderId,
+    });
+
+    const connectors = new ReplitConnectors();
+    const emailB64 = Buffer.from(
+      `To: ${order.vendorEmail}\r\n` +
+      `Subject: Purchase Order Confirmation Request - ${order.vendorName} - Week of ${weekDateDisplay}\r\n` +
+      `MIME-Version: 1.0\r\n` +
+      `Content-Type: text/html; charset=UTF-8\r\n` +
+      `\r\n` +
+      emailBody
+    ).toString("base64url");
+
+    const response = await connectors.proxy("google-mail", "/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      body: JSON.stringify({ raw: emailB64 }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      req.log.error({ status: response.status, errText }, "Gmail send failed");
+      return res.status(502).json({ error: "Failed to send email via Gmail" });
+    }
+
+    const emailSentAt = new Date();
+    await db.update(ordersTable)
+      .set({ emailSentAt, status: order.status === "draft" ? "sent" : order.status, updatedAt: emailSentAt })
+      .where(eq(ordersTable.id, orderId));
+
+    res.json({
+      success: true,
+      message: `Email sent to ${order.vendorEmail}`,
+      emailSentAt: emailSentAt.toISOString(),
+    });
   } catch (err) {
-    req.log.error({ err }, "Failed to confirm order");
+    req.log.error({ err }, "Failed to send order email");
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+function buildEmailHtml({ vendorName, weekDate, confirmUrl, orderId }: {
+  vendorName: string;
+  weekDate: string;
+  confirmUrl: string;
+  orderId: number;
+}) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f5f0e8;font-family:Georgia,serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f0e8;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#2d5a3d;padding:32px 40px;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:normal;letter-spacing:0.5px;">Vickery Wholesale Greenhouse</h1>
+              <p style="margin:6px 0 0;color:#a8c9b4;font-size:14px;">Purchase Order Confirmation Request</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px;">
+              <p style="margin:0 0 16px;color:#3d2b1f;font-size:16px;">Dear ${vendorName},</p>
+              <p style="margin:0 0 24px;color:#5a4a3a;font-size:15px;line-height:1.6;">
+                Please review and confirm your availability for Purchase Order #${orderId} for the week of <strong>${weekDate}</strong>.
+              </p>
+              <p style="margin:0 0 32px;color:#5a4a3a;font-size:15px;line-height:1.6;">
+                Click the button below to open the order and mark each item as available, unavailable, or partial. No login is required.
+              </p>
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:#2d5a3d;border-radius:6px;">
+                    <a href="${confirmUrl}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;text-decoration:none;font-family:Georgia,serif;">
+                      Review &amp; Confirm Order
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:32px 0 0;color:#9a8a7a;font-size:13px;line-height:1.5;">
+                If the button above doesn't work, copy and paste this link into your browser:<br>
+                <a href="${confirmUrl}" style="color:#2d5a3d;word-break:break-all;">${confirmUrl}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f5f0e8;padding:24px 40px;border-top:1px solid #e8e0d0;">
+              <p style="margin:0;color:#9a8a7a;font-size:12px;">
+                This email was sent by Vickery Wholesale Greenhouse purchasing system. 
+                If you have questions, please reply to this email or contact your buyer directly.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
 
 export default router;

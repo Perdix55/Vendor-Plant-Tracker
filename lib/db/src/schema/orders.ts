@@ -11,6 +11,8 @@ export const ordersTable = pgTable("orders", {
   arriveDate: text("arrive_date"),
   status: text("status").notNull().default("draft"),
   notes: text("notes"),
+  confirmToken: text("confirm_token"),
+  emailSentAt: timestamp("email_sent_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

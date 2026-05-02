@@ -12,9 +12,15 @@ export interface HealthStatus {
 export interface Vendor {
   id: number;
   name: string;
+  email?: string | null;
   notes?: string | null;
   productCount: number;
   createdAt: string;
+}
+
+export interface UpdateVendorBody {
+  email?: string | null;
+  notes?: string | null;
 }
 
 export interface Product {
@@ -47,6 +53,7 @@ export interface OrderSummary {
   confirmedItems: number;
   totalQuantity: number;
   notes?: string | null;
+  emailSentAt?: string | null;
   createdAt: string;
 }
 
@@ -86,11 +93,13 @@ export interface Order {
   id: number;
   vendorId: number;
   vendorName: string;
+  vendorEmail?: string | null;
   weekDate: string;
   shipDate?: string | null;
   arriveDate?: string | null;
   status: OrderStatus;
   notes?: string | null;
+  emailSentAt?: string | null;
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
@@ -163,6 +172,12 @@ export type ConfirmOrderBodyItemsItem = {
 
 export interface ConfirmOrderBody {
   items: ConfirmOrderBodyItemsItem[];
+}
+
+export interface SendEmailResponse {
+  success: boolean;
+  message: string;
+  emailSentAt?: string;
 }
 
 export interface DashboardSummary {
