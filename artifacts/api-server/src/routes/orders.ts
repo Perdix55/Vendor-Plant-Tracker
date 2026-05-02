@@ -509,7 +509,7 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
 
     const emailSentAt = new Date();
     await db.update(ordersTable)
-      .set({ emailSentAt, status: order.status === "draft" ? "sent" : order.status, updatedAt: emailSentAt })
+      .set({ emailSentAt, status: "sent", updatedAt: emailSentAt })
       .where(eq(ordersTable.id, orderId));
 
     res.json({

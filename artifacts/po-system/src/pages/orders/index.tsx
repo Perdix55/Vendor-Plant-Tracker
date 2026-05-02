@@ -37,16 +37,18 @@ export default function Orders() {
   }, [orders, search]);
 
   const StatusBadge = ({ status }: { status: OrderSummaryStatus }) => {
-    const styles = {
+    const styles: Record<string, string> = {
       draft: "bg-secondary text-secondary-foreground hover:bg-secondary",
+      submitted: "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
       sent: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
       confirmed: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
       partial: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     };
-    
+    const label = status === "submitted" ? "Created" : status.charAt(0).toUpperCase() + status.slice(1);
+
     return (
-      <Badge variant="outline" className={styles[status]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge variant="outline" className={styles[status] ?? "bg-secondary text-secondary-foreground"}>
+        {label}
       </Badge>
     );
   };
@@ -90,6 +92,7 @@ export default function Orders() {
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="submitted">Created</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="partial">Partial</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>

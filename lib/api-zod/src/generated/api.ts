@@ -153,7 +153,9 @@ export const UpdateProductResponse = zod.object({
  */
 export const ListOrdersQueryParams = zod.object({
   vendorId: zod.coerce.number().optional(),
-  status: zod.enum(["draft", "sent", "confirmed", "partial"]).optional(),
+  status: zod
+    .enum(["draft", "submitted", "sent", "confirmed", "partial"])
+    .optional(),
   weekDate: zod.coerce.string().optional(),
 });
 

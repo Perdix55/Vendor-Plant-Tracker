@@ -298,6 +298,7 @@ export type ListOrdersStatus =
 
 export const ListOrdersStatus = {
   draft: "draft",
+  submitted: "submitted",
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",

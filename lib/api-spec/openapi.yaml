@@ -216,7 +216,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [draft, sent, confirmed, partial]
+            enum: [draft, submitted, sent, confirmed, partial]
         - name: weekDate
           in: query
           schema:

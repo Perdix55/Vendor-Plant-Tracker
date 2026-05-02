@@ -165,10 +165,10 @@ export default function OrderDetail() {
   const handleMarkAsSent = () => {
     updateOrder.mutate({
       orderId,
-      data: { status: "sent" }
+      data: { status: "submitted" }
     }, {
       onSuccess: () => {
-        toast({ title: "Order Sent", description: "Order status updated to sent." });
+        toast({ title: "Order Submitted", description: "Order submitted. Send the vendor an email to request confirmation." });
         queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey() });
@@ -206,13 +206,15 @@ export default function OrderDetail() {
   if (!orderId) return null;
 
   const renderStatusBadge = (status: OrderSummaryStatus) => {
-    const styles = {
+    const styles: Record<string, string> = {
       draft: "bg-secondary text-secondary-foreground",
+      submitted: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
       sent: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
       confirmed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
       partial: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
     };
-    return <Badge className={styles[status]} variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
+    const label = status === "submitted" ? "Created" : status.charAt(0).toUpperCase() + status.slice(1);
+    return <Badge className={styles[status] ?? "bg-secondary text-secondary-foreground"} variant="outline">{label}</Badge>;
   };
 
   const renderAvailabilityBadge = (avail: string | null | undefined, productId?: number) => {
@@ -292,7 +294,7 @@ export default function OrderDetail() {
                 </>
               )}
               
-              {(order.status === "sent" || order.status === "partial") && !isConfirming && (
+              {(order.status === "submitted" || order.status === "sent" || order.status === "partial") && !isConfirming && (
                 <>
                   <Button
                     variant="outline"
