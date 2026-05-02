@@ -556,6 +556,10 @@ paths:
           in: query
           schema:
             type: integer
+        - name: orderId
+          in: query
+          schema:
+            type: integer
         - name: limit
           in: query
           schema:

@@ -309,5 +309,6 @@ export type ReceiveOrder200 = {
 
 export type ListInventoryTransactionsParams = {
   productId?: number;
+  orderId?: number;
   limit?: number;
 };

@@ -128,7 +128,12 @@ router.post("/inventory/adjust", async (req, res) => {
 router.get("/inventory/transactions", async (req, res) => {
   try {
     const productIdFilter = req.query.productId ? parseInt(req.query.productId as string) : null;
+    const orderIdFilter = req.query.orderId ? parseInt(req.query.orderId as string) : null;
     const limitVal = req.query.limit ? parseInt(req.query.limit as string) : 100;
+
+    const conditions = [];
+    if (productIdFilter) conditions.push(eq(inventoryTransactionsTable.productId, productIdFilter));
+    if (orderIdFilter) conditions.push(eq(inventoryTransactionsTable.orderId, orderIdFilter));
 
     const rows = await db
       .select({
@@ -146,7 +151,7 @@ router.get("/inventory/transactions", async (req, res) => {
       .from(inventoryTransactionsTable)
       .innerJoin(productsTable, eq(productsTable.id, inventoryTransactionsTable.productId))
       .innerJoin(vendorsTable, eq(vendorsTable.id, inventoryTransactionsTable.vendorId))
-      .where(productIdFilter ? eq(inventoryTransactionsTable.productId, productIdFilter) : undefined)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(inventoryTransactionsTable.createdAt))
       .limit(limitVal);
 

@@ -8,6 +8,7 @@ import {
   useSendOrderEmail,
   useUpdateOrderItem,
   useDeleteOrderItem,
+  useListInventoryTransactions,
   getGetOrderQueryKey,
   getListOrdersQueryKey,
   getGetDashboardSummaryQueryKey,
@@ -47,6 +48,16 @@ export default function OrderDetail() {
   const sendEmail = useSendOrderEmail();
   const updateOrderItem = useUpdateOrderItem();
   const deleteOrderItem = useDeleteOrderItem();
+
+  const { data: receiveTransactions } = useListInventoryTransactions(
+    { orderId, limit: 200 },
+    { query: { enabled: !!orderId } }
+  );
+  const receivedProductIds = new Set(
+    (receiveTransactions ?? [])
+      .filter((t) => t.type === "receive")
+      .map((t) => t.productId)
+  );
 
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editingQty, setEditingQty] = useState<number>(1);
@@ -204,7 +215,10 @@ export default function OrderDetail() {
     return <Badge className={styles[status]} variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
   };
 
-  const renderAvailabilityBadge = (avail: string | null | undefined) => {
+  const renderAvailabilityBadge = (avail: string | null | undefined, productId?: number) => {
+    if (productId && receivedProductIds.has(productId)) {
+      return <Badge variant="outline" className="border-teal-200 bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400">Received</Badge>;
+    }
     if (!avail || avail === "pending") return <Badge variant="outline" className="text-muted-foreground">Pending</Badge>;
     if (avail === "available") return <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">Available</Badge>;
     if (avail === "unavailable") return <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">Unavailable</Badge>;
@@ -489,7 +503,7 @@ export default function OrderDetail() {
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                renderAvailabilityBadge(item.availability)
+                                renderAvailabilityBadge(item.availability, item.productId)
                               )}
                             </TableCell>
                             {isConfirming && (

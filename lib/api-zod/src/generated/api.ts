@@ -561,6 +561,7 @@ export const AdjustInventoryResponse = zod.object({
  */
 export const ListInventoryTransactionsQueryParams = zod.object({
   productId: zod.coerce.number().optional(),
+  orderId: zod.coerce.number().optional(),
   limit: zod.coerce.number().optional(),
 });
 
