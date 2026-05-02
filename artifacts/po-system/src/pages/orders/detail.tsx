@@ -312,7 +312,7 @@ export default function OrderDetail() {
                 </>
               )}
 
-              {(order.status === "confirmed" || order.status === "partial") && !isConfirming && (
+              {(order.status === "confirmed" || order.status === "partial") && !isConfirming && receivedProductIds.size === 0 && (
                 <Link href={`/orders/${order.id}/receive`}>
                   <Button className="bg-green-700 hover:bg-green-800 text-white" data-testid="button-receive-shipment">
                     <PackageCheck className="mr-2 h-4 w-4" />
