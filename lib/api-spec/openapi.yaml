@@ -3,20 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Purchase Order System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: vendors
+    description: Vendor management
+  - name: products
+    description: Product catalog
+  - name: orders
+    description: Purchase orders
+  - name: summary
+    description: Dashboard summaries
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,323 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /vendors:
+    get:
+      operationId: listVendors
+      tags: [vendors]
+      summary: List all vendors
+      responses:
+        "200":
+          description: List of vendors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vendor"
+
+  /vendors/{vendorId}:
+    get:
+      operationId: getVendor
+      tags: [vendors]
+      summary: Get a vendor by ID
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vendor details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
+
+  /vendors/{vendorId}/products:
+    get:
+      operationId: listVendorProducts
+      tags: [products]
+      summary: List products for a vendor
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List purchase orders
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, sent, confirmed, partial]
+        - name: weekDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of purchase orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderSummary"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a new purchase order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "201":
+          description: Created order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get a purchase order with its line items
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    patch:
+      operationId: updateOrder
+      tags: [orders]
+      summary: Update order status or notes
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderBody"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    delete:
+      operationId: deleteOrder
+      tags: [orders]
+      summary: Delete a draft purchase order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /orders/{orderId}/items:
+    get:
+      operationId: listOrderItems
+      tags: [orders]
+      summary: List line items for an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order line items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderItem"
+    post:
+      operationId: addOrderItem
+      tags: [orders]
+      summary: Add a line item to an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddOrderItemBody"
+      responses:
+        "201":
+          description: Added item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderItem"
+
+  /orders/{orderId}/items/{itemId}:
+    patch:
+      operationId: updateOrderItem
+      tags: [orders]
+      summary: Update an order line item (quantity or confirmation)
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderItemBody"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderItem"
+    delete:
+      operationId: deleteOrderItem
+      tags: [orders]
+      summary: Remove a line item from an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /orders/{orderId}/confirm:
+    post:
+      operationId: confirmOrder
+      tags: [orders]
+      summary: Bulk confirm/deny items in an order (vendor response)
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmOrderBody"
+      responses:
+        "200":
+          description: Confirmed order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /summary/dashboard:
+    get:
+      operationId: getDashboardSummary
+      tags: [summary]
+      summary: Get dashboard stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /summary/recent-orders:
+    get:
+      operationId: getRecentOrders
+      tags: [summary]
+      summary: Get recent orders across all vendors
+      responses:
+        "200":
+          description: Recent orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderSummary"
+
+  /summary/vendor-activity:
+    get:
+      operationId: getVendorActivity
+      tags: [summary]
+      summary: Get order counts per vendor
+      responses:
+        "200":
+          description: Vendor activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VendorActivity"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +356,250 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Vendor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        productCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, name, productCount, createdAt]
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorId:
+          type: integer
+        name:
+          type: string
+        packSize:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+      required: [id, vendorId, name, isActive]
+
+    OrderSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        weekDate:
+          type: string
+        shipDate:
+          type: string
+          nullable: true
+        arriveDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, sent, confirmed, partial]
+        totalItems:
+          type: integer
+        confirmedItems:
+          type: integer
+        totalQuantity:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, vendorId, vendorName, weekDate, status, totalItems, confirmedItems, totalQuantity, createdAt]
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        weekDate:
+          type: string
+        shipDate:
+          type: string
+          nullable: true
+        arriveDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, sent, confirmed, partial]
+        notes:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required: [id, vendorId, vendorName, weekDate, status, items, createdAt, updatedAt]
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        packSize:
+          type: string
+          nullable: true
+        quantityOrdered:
+          type: integer
+        quantityConfirmed:
+          type: integer
+          nullable: true
+        availability:
+          type: string
+          enum: [pending, available, unavailable, partial]
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [id, orderId, productId, productName, quantityOrdered]
+
+    CreateOrderBody:
+      type: object
+      properties:
+        vendorId:
+          type: integer
+        weekDate:
+          type: string
+        shipDate:
+          type: string
+          nullable: true
+        arriveDate:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AddOrderItemBody"
+      required: [vendorId, weekDate, items]
+
+    UpdateOrderBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, sent, confirmed, partial]
+        notes:
+          type: string
+          nullable: true
+        shipDate:
+          type: string
+          nullable: true
+        arriveDate:
+          type: string
+          nullable: true
+
+    AddOrderItemBody:
+      type: object
+      properties:
+        productId:
+          type: integer
+        quantityOrdered:
+          type: integer
+      required: [productId, quantityOrdered]
+
+    UpdateOrderItemBody:
+      type: object
+      properties:
+        quantityOrdered:
+          type: integer
+        quantityConfirmed:
+          type: integer
+          nullable: true
+        availability:
+          type: string
+          enum: [pending, available, unavailable, partial]
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    ConfirmOrderBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              itemId:
+                type: integer
+              availability:
+                type: string
+                enum: [available, unavailable, partial]
+              quantityConfirmed:
+                type: integer
+                nullable: true
+              notes:
+                type: string
+                nullable: true
+            required: [itemId, availability]
+      required: [items]
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+        draftOrders:
+          type: integer
+        sentOrders:
+          type: integer
+        confirmedOrders:
+          type: integer
+        partialOrders:
+          type: integer
+        totalVendors:
+          type: integer
+        currentWeekOrders:
+          type: integer
+        upcomingWeeks:
+          type: integer
+      required: [totalOrders, draftOrders, sentOrders, confirmedOrders, partialOrders, totalVendors, currentWeekOrders, upcomingWeeks]
+
+    VendorActivity:
+      type: object
+      properties:
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        totalOrders:
+          type: integer
+        lastOrderDate:
+          type: string
+          nullable: true
+      required: [vendorId, vendorName, totalOrders]
