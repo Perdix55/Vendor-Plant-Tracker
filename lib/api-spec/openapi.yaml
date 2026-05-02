@@ -395,6 +395,35 @@ paths:
         "204":
           description: Deleted
 
+  /orders/{orderId}/receive:
+    post:
+      operationId: receiveOrder
+      tags: [orders]
+      summary: Receive a shipment for an order — adds to inventory
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiveOrderBody"
+      responses:
+        "200":
+          description: Receipt recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: integer
+                required: [received]
+
   /orders/{orderId}/confirm:
     post:
       operationId: confirmOrder
@@ -482,6 +511,64 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Order"
+
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      summary: List current inventory stock levels
+      responses:
+        "200":
+          description: Inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+
+  /inventory/adjust:
+    post:
+      operationId: adjustInventory
+      tags: [inventory]
+      summary: Adjust inventory (sale, write-off, or manual correction)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryAdjustBody"
+      responses:
+        "200":
+          description: Adjusted item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  /inventory/transactions:
+    get:
+      operationId: listInventoryTransactions
+      tags: [inventory]
+      summary: List inventory transaction history
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryTransaction"
 
   /summary/dashboard:
     get:
@@ -635,6 +722,90 @@ components:
         productsCreated:
           type: integer
       required: [vendor, productsCreated]
+
+    ReceiveOrderBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+              quantityReceived:
+                type: integer
+              notes:
+                type: string
+                nullable: true
+            required: [productId, quantityReceived]
+      required: [items]
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        vendorId:
+          type: integer
+        productName:
+          type: string
+        packSize:
+          type: string
+          nullable: true
+        vendorName:
+          type: string
+        quantityOnHand:
+          type: integer
+        updatedAt:
+          type: string
+      required: [id, productId, vendorId, productName, vendorName, quantityOnHand, updatedAt]
+
+    InventoryTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        vendorId:
+          type: integer
+        productName:
+          type: string
+        vendorName:
+          type: string
+        orderId:
+          type: integer
+          nullable: true
+        type:
+          type: string
+        quantity:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, productId, vendorId, productName, vendorName, type, quantity, createdAt]
+
+    InventoryAdjustBody:
+      type: object
+      properties:
+        productId:
+          type: integer
+        vendorId:
+          type: integer
+        quantity:
+          type: integer
+        type:
+          type: string
+          enum: [sale, adjustment, write_off]
+        notes:
+          type: string
+          nullable: true
+      required: [productId, vendorId, quantity, type]
 
     CreateProductBody:
       type: object

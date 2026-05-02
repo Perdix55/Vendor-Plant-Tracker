@@ -26,11 +26,17 @@ import type {
   HealthStatus,
   ImportVendorBody,
   ImportVendorResult,
+  InventoryAdjustBody,
+  InventoryItem,
+  InventoryTransaction,
+  ListInventoryTransactionsParams,
   ListOrdersParams,
   Order,
   OrderItem,
   OrderSummary,
   Product,
+  ReceiveOrder200,
+  ReceiveOrderBody,
   SendEmailResponse,
   UpdateOrderBody,
   UpdateOrderItemBody,
@@ -1589,6 +1595,93 @@ export const useDeleteOrderItem = <
 };
 
 /**
+ * @summary Receive a shipment for an order — adds to inventory
+ */
+export const getReceiveOrderUrl = (orderId: number) => {
+  return `/api/orders/${orderId}/receive`;
+};
+
+export const receiveOrder = async (
+  orderId: number,
+  receiveOrderBody: ReceiveOrderBody,
+  options?: RequestInit,
+): Promise<ReceiveOrder200> => {
+  return customFetch<ReceiveOrder200>(getReceiveOrderUrl(orderId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(receiveOrderBody),
+  });
+};
+
+export const getReceiveOrderMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveOrder>>,
+    TError,
+    { orderId: number; data: BodyType<ReceiveOrderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof receiveOrder>>,
+  TError,
+  { orderId: number; data: BodyType<ReceiveOrderBody> },
+  TContext
+> => {
+  const mutationKey = ["receiveOrder"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof receiveOrder>>,
+    { orderId: number; data: BodyType<ReceiveOrderBody> }
+  > = (props) => {
+    const { orderId, data } = props ?? {};
+
+    return receiveOrder(orderId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReceiveOrderMutationResult = NonNullable<
+  Awaited<ReturnType<typeof receiveOrder>>
+>;
+export type ReceiveOrderMutationBody = BodyType<ReceiveOrderBody>;
+export type ReceiveOrderMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Receive a shipment for an order — adds to inventory
+ */
+export const useReceiveOrder = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveOrder>>,
+    TError,
+    { orderId: number; data: BodyType<ReceiveOrderBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof receiveOrder>>,
+  TError,
+  { orderId: number; data: BodyType<ReceiveOrderBody> },
+  TContext
+> => {
+  return useMutation(getReceiveOrderMutationOptions(options));
+};
+
+/**
  * @summary Bulk confirm/deny items in an order (vendor response)
  */
 export const getConfirmOrderUrl = (orderId: number) => {
@@ -1932,6 +2025,273 @@ export const useConfirmOrderByToken = <
 > => {
   return useMutation(getConfirmOrderByTokenMutationOptions(options));
 };
+
+/**
+ * @summary List current inventory stock levels
+ */
+export const getListInventoryUrl = () => {
+  return `/api/inventory`;
+};
+
+export const listInventory = async (
+  options?: RequestInit,
+): Promise<InventoryItem[]> => {
+  return customFetch<InventoryItem[]>(getListInventoryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListInventoryQueryKey = () => {
+  return [`/api/inventory`] as const;
+};
+
+export const getListInventoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInventory>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInventory>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListInventoryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listInventory>>> = ({
+    signal,
+  }) => listInventory({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInventory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListInventoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInventory>>
+>;
+export type ListInventoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List current inventory stock levels
+ */
+
+export function useListInventory<
+  TData = Awaited<ReturnType<typeof listInventory>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInventory>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListInventoryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Adjust inventory (sale, write-off, or manual correction)
+ */
+export const getAdjustInventoryUrl = () => {
+  return `/api/inventory/adjust`;
+};
+
+export const adjustInventory = async (
+  inventoryAdjustBody: InventoryAdjustBody,
+  options?: RequestInit,
+): Promise<InventoryItem> => {
+  return customFetch<InventoryItem>(getAdjustInventoryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(inventoryAdjustBody),
+  });
+};
+
+export const getAdjustInventoryMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adjustInventory>>,
+    TError,
+    { data: BodyType<InventoryAdjustBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adjustInventory>>,
+  TError,
+  { data: BodyType<InventoryAdjustBody> },
+  TContext
+> => {
+  const mutationKey = ["adjustInventory"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adjustInventory>>,
+    { data: BodyType<InventoryAdjustBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return adjustInventory(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdjustInventoryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adjustInventory>>
+>;
+export type AdjustInventoryMutationBody = BodyType<InventoryAdjustBody>;
+export type AdjustInventoryMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Adjust inventory (sale, write-off, or manual correction)
+ */
+export const useAdjustInventory = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adjustInventory>>,
+    TError,
+    { data: BodyType<InventoryAdjustBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adjustInventory>>,
+  TError,
+  { data: BodyType<InventoryAdjustBody> },
+  TContext
+> => {
+  return useMutation(getAdjustInventoryMutationOptions(options));
+};
+
+/**
+ * @summary List inventory transaction history
+ */
+export const getListInventoryTransactionsUrl = (
+  params?: ListInventoryTransactionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/inventory/transactions?${stringifiedParams}`
+    : `/api/inventory/transactions`;
+};
+
+export const listInventoryTransactions = async (
+  params?: ListInventoryTransactionsParams,
+  options?: RequestInit,
+): Promise<InventoryTransaction[]> => {
+  return customFetch<InventoryTransaction[]>(
+    getListInventoryTransactionsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListInventoryTransactionsQueryKey = (
+  params?: ListInventoryTransactionsParams,
+) => {
+  return [`/api/inventory/transactions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListInventoryTransactionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInventoryTransactions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListInventoryTransactionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listInventoryTransactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListInventoryTransactionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listInventoryTransactions>>
+  > = ({ signal }) =>
+    listInventoryTransactions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInventoryTransactions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListInventoryTransactionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInventoryTransactions>>
+>;
+export type ListInventoryTransactionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List inventory transaction history
+ */
+
+export function useListInventoryTransactions<
+  TData = Awaited<ReturnType<typeof listInventoryTransactions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListInventoryTransactionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listInventoryTransactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListInventoryTransactionsQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get dashboard stats

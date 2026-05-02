@@ -11,6 +11,8 @@ import VendorDetail from "@/pages/vendors/detail";
 import Orders from "@/pages/orders/index";
 import NewOrder from "@/pages/orders/new";
 import OrderDetail from "@/pages/orders/detail";
+import ReceiveOrder from "@/pages/orders/receive";
+import Inventory from "@/pages/inventory/index";
 import AdminVendors from "@/pages/admin/index";
 import VendorConfirm from "@/pages/confirm/index";
 
@@ -28,7 +30,9 @@ function Router() {
             <Route path="/vendors/:id" component={VendorDetail} />
             <Route path="/orders" component={Orders} />
             <Route path="/orders/new" component={NewOrder} />
+            <Route path="/orders/:id/receive" component={ReceiveOrder} />
             <Route path="/orders/:id" component={OrderDetail} />
+            <Route path="/inventory" component={Inventory} />
             <Route path="/admin" component={AdminVendors} />
             <Route component={NotFound} />
           </Switch>

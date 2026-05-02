@@ -25,7 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X, PackageCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -294,6 +294,15 @@ export default function OrderDetail() {
                     Enter Vendor Confirmations
                   </Button>
                 </>
+              )}
+
+              {(order.status === "confirmed" || order.status === "partial") && !isConfirming && (
+                <Link href={`/orders/${order.id}/receive`}>
+                  <Button className="bg-green-700 hover:bg-green-800 text-white" data-testid="button-receive-shipment">
+                    <PackageCheck className="mr-2 h-4 w-4" />
+                    Receive Shipment
+                  </Button>
+                </Link>
               )}
 
               {isConfirming && (

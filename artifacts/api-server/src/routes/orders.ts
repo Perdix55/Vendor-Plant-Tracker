@@ -5,6 +5,8 @@ import {
   orderItemsTable,
   vendorsTable,
   productsTable,
+  inventoryItemsTable,
+  inventoryTransactionsTable,
 } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -336,6 +338,63 @@ router.delete("/orders/:orderId/items/:itemId", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete order item");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /orders/:orderId/receive
+router.post("/orders/:orderId/receive", async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId, 10);
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "items array required" });
+    }
+
+    // Fetch order to get vendorId
+    const orderRows = await db
+      .select({ vendorId: ordersTable.vendorId })
+      .from(ordersTable)
+      .where(eq(ordersTable.id, orderId));
+    if (!orderRows.length) return res.status(404).json({ error: "Order not found" });
+    const vendorId = orderRows[0].vendorId;
+
+    for (const item of items) {
+      if (!item.productId || !item.quantityReceived || item.quantityReceived <= 0) continue;
+
+      // Record transaction
+      await db.insert(inventoryTransactionsTable).values({
+        productId: item.productId,
+        vendorId,
+        orderId,
+        type: "receive",
+        quantity: item.quantityReceived,
+        notes: item.notes ?? null,
+      });
+
+      // Upsert inventory_items
+      const existing = await db
+        .select()
+        .from(inventoryItemsTable)
+        .where(and(eq(inventoryItemsTable.productId, item.productId), eq(inventoryItemsTable.vendorId, vendorId)));
+
+      if (existing.length > 0) {
+        await db
+          .update(inventoryItemsTable)
+          .set({ quantityOnHand: existing[0].quantityOnHand + item.quantityReceived, updatedAt: new Date() })
+          .where(eq(inventoryItemsTable.id, existing[0].id));
+      } else {
+        await db.insert(inventoryItemsTable).values({
+          productId: item.productId,
+          vendorId,
+          quantityOnHand: item.quantityReceived,
+        });
+      }
+    }
+
+    res.json({ received: items.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to receive order");
     res.status(500).json({ error: "Internal server error" });
   }
 });

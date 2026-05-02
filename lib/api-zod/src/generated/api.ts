@@ -353,6 +353,27 @@ export const DeleteOrderItemParams = zod.object({
 });
 
 /**
+ * @summary Receive a shipment for an order — adds to inventory
+ */
+export const ReceiveOrderParams = zod.object({
+  orderId: zod.coerce.number(),
+});
+
+export const ReceiveOrderBody = zod.object({
+  items: zod.array(
+    zod.object({
+      productId: zod.number(),
+      quantityReceived: zod.number(),
+      notes: zod.string().nullish(),
+    }),
+  ),
+});
+
+export const ReceiveOrderResponse = zod.object({
+  received: zod.number(),
+});
+
+/**
  * @summary Bulk confirm/deny items in an order (vendor response)
  */
 export const ConfirmOrderParams = zod.object({
@@ -497,6 +518,67 @@ export const ConfirmOrderByTokenResponse = zod.object({
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
+
+/**
+ * @summary List current inventory stock levels
+ */
+export const ListInventoryResponseItem = zod.object({
+  id: zod.number(),
+  productId: zod.number(),
+  vendorId: zod.number(),
+  productName: zod.string(),
+  packSize: zod.string().nullish(),
+  vendorName: zod.string(),
+  quantityOnHand: zod.number(),
+  updatedAt: zod.string(),
+});
+export const ListInventoryResponse = zod.array(ListInventoryResponseItem);
+
+/**
+ * @summary Adjust inventory (sale, write-off, or manual correction)
+ */
+export const AdjustInventoryBody = zod.object({
+  productId: zod.number(),
+  vendorId: zod.number(),
+  quantity: zod.number(),
+  type: zod.enum(["sale", "adjustment", "write_off"]),
+  notes: zod.string().nullish(),
+});
+
+export const AdjustInventoryResponse = zod.object({
+  id: zod.number(),
+  productId: zod.number(),
+  vendorId: zod.number(),
+  productName: zod.string(),
+  packSize: zod.string().nullish(),
+  vendorName: zod.string(),
+  quantityOnHand: zod.number(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary List inventory transaction history
+ */
+export const ListInventoryTransactionsQueryParams = zod.object({
+  productId: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListInventoryTransactionsResponseItem = zod.object({
+  id: zod.number(),
+  productId: zod.number(),
+  vendorId: zod.number(),
+  productName: zod.string(),
+  vendorName: zod.string(),
+  orderId: zod.number().nullish(),
+  type: zod.string(),
+  quantity: zod.number(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListInventoryTransactionsResponse = zod.array(
+  ListInventoryTransactionsResponseItem,
+);
 
 /**
  * @summary Get dashboard stats

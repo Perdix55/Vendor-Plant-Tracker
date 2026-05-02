@@ -106,6 +106,7 @@ export default function Orders() {
                 <TableHead>PO #</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Ship Date</TableHead>
+                <TableHead>Arrive Date</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total Qty</TableHead>
                 <TableHead>Status</TableHead>
@@ -117,6 +118,7 @@ export default function Orders() {
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
@@ -135,6 +137,7 @@ export default function Orders() {
                 <TableHead className="w-[100px]">PO #</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Ship Date</TableHead>
+                <TableHead>Arrive Date</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total Qty</TableHead>
                 <TableHead>Status</TableHead>
@@ -151,10 +154,17 @@ export default function Orders() {
                       <span>{order.weekDate}</span>
                       {order.shipDate && (
                         <span className="text-xs text-muted-foreground mt-0.5">
-                          Actual: {format(new Date(order.shipDate), 'MM/dd')}
+                          Ship: {format(new Date(order.shipDate), 'MM/dd')}
                         </span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {order.arriveDate ? (
+                      <span className="text-sm">{format(new Date(order.arriveDate), 'MM/dd/yyyy')}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {order.status === 'confirmed' || order.status === 'partial' ? (

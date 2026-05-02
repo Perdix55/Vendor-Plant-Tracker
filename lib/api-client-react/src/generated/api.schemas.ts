@@ -58,6 +58,57 @@ export interface ImportVendorResult {
   productsCreated: number;
 }
 
+export type ReceiveOrderBodyItemsItem = {
+  productId: number;
+  quantityReceived: number;
+  notes?: string | null;
+};
+
+export interface ReceiveOrderBody {
+  items: ReceiveOrderBodyItemsItem[];
+}
+
+export interface InventoryItem {
+  id: number;
+  productId: number;
+  vendorId: number;
+  productName: string;
+  packSize?: string | null;
+  vendorName: string;
+  quantityOnHand: number;
+  updatedAt: string;
+}
+
+export interface InventoryTransaction {
+  id: number;
+  productId: number;
+  vendorId: number;
+  productName: string;
+  vendorName: string;
+  orderId?: number | null;
+  type: string;
+  quantity: number;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type InventoryAdjustBodyType =
+  (typeof InventoryAdjustBodyType)[keyof typeof InventoryAdjustBodyType];
+
+export const InventoryAdjustBodyType = {
+  sale: "sale",
+  adjustment: "adjustment",
+  write_off: "write_off",
+} as const;
+
+export interface InventoryAdjustBody {
+  productId: number;
+  vendorId: number;
+  quantity: number;
+  type: InventoryAdjustBodyType;
+  notes?: string | null;
+}
+
 export interface CreateProductBody {
   name: string;
   packSize?: string | null;
@@ -251,3 +302,12 @@ export const ListOrdersStatus = {
   confirmed: "confirmed",
   partial: "partial",
 } as const;
+
+export type ReceiveOrder200 = {
+  received: number;
+};
+
+export type ListInventoryTransactionsParams = {
+  productId?: number;
+  limit?: number;
+};
