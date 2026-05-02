@@ -24,6 +24,8 @@ import type {
   CreateVendorBody,
   DashboardSummary,
   HealthStatus,
+  ImportVendorBody,
+  ImportVendorResult,
   ListOrdersParams,
   Order,
   OrderItem,
@@ -279,6 +281,92 @@ export const useCreateVendor = <
   TContext
 > => {
   return useMutation(getCreateVendorMutationOptions(options));
+};
+
+/**
+ * @summary Import a new vendor with products from a spreadsheet
+ */
+export const getImportVendorUrl = () => {
+  return `/api/vendors/import`;
+};
+
+export const importVendor = async (
+  importVendorBody: ImportVendorBody,
+  options?: RequestInit,
+): Promise<ImportVendorResult> => {
+  return customFetch<ImportVendorResult>(getImportVendorUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importVendorBody),
+  });
+};
+
+export const getImportVendorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importVendor>>,
+    TError,
+    { data: BodyType<ImportVendorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importVendor>>,
+  TError,
+  { data: BodyType<ImportVendorBody> },
+  TContext
+> => {
+  const mutationKey = ["importVendor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importVendor>>,
+    { data: BodyType<ImportVendorBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importVendor(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportVendorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importVendor>>
+>;
+export type ImportVendorMutationBody = BodyType<ImportVendorBody>;
+export type ImportVendorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Import a new vendor with products from a spreadsheet
+ */
+export const useImportVendor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importVendor>>,
+    TError,
+    { data: BodyType<ImportVendorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importVendor>>,
+  TError,
+  { data: BodyType<ImportVendorBody> },
+  TContext
+> => {
+  return useMutation(getImportVendorMutationOptions(options));
 };
 
 /**

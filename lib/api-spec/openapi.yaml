@@ -67,6 +67,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Vendor"
 
+  /vendors/import:
+    post:
+      operationId: importVendor
+      tags: [vendors]
+      summary: Import a new vendor with products from a spreadsheet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportVendorBody"
+      responses:
+        "201":
+          description: Imported vendor with products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportVendorResult"
+
   /vendors/{vendorId}:
     get:
       operationId: getVendor
@@ -583,6 +602,39 @@ components:
           type: string
           nullable: true
       required: [name]
+
+    ImportVendorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          nullable: true
+        shippingDays:
+          type: integer
+          nullable: true
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              packSize:
+                type: string
+                nullable: true
+            required: [name]
+      required: [name, products]
+
+    ImportVendorResult:
+      type: object
+      properties:
+        vendor:
+          $ref: "#/components/schemas/Vendor"
+        productsCreated:
+          type: integer
+      required: [vendor, productsCreated]
 
     CreateProductBody:
       type: object

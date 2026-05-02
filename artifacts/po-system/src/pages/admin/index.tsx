@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import * as XLSX from "xlsx";
 import {
   useListVendors,
   useUpdateVendor,
   useCreateVendor,
+  useImportVendor,
   useListVendorProducts,
   useCreateProduct,
   useUpdateProduct,
@@ -20,8 +22,249 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+type ParsedProduct = { name: string; packSize: string };
+
+function pickCol(headers: string[], candidates: string[]): number {
+  const lower = headers.map((h) => h.toLowerCase().trim());
+  for (const c of candidates) {
+    const i = lower.indexOf(c);
+    if (i !== -1) return i;
+  }
+  return -1;
+}
+
+function parseSpreadsheet(file: File): Promise<ParsedProduct[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target!.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: "array" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: string[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        if (rows.length < 2) return resolve([]);
+        const headers = rows[0].map(String);
+        const nameIdx = pickCol(headers, ["product name", "name", "product", "item", "item name"]);
+        const sizeIdx = pickCol(headers, ["pack size", "packsize", "size", "pack", "unit"]);
+        const products: ParsedProduct[] = [];
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          const name = nameIdx >= 0 ? String(row[nameIdx] ?? "").trim() : String(row[0] ?? "").trim();
+          const packSize = sizeIdx >= 0 ? String(row[sizeIdx] ?? "").trim() : "";
+          if (name) products.push({ name, packSize });
+        }
+        resolve(products);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [vendorName, setVendorName] = useState("");
+  const [vendorEmail, setVendorEmail] = useState("");
+  const [vendorShippingDays, setVendorShippingDays] = useState("");
+  const [products, setProducts] = useState<ParsedProduct[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [parseError, setParseError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const importVendor = useImportVendor();
+  const { toast } = useToast();
+
+  const reset = () => {
+    setVendorName(""); setVendorEmail(""); setVendorShippingDays("");
+    setProducts([]); setFileName(""); setParseError("");
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleClose = (v: boolean) => {
+    if (!v) reset();
+    setOpen(v);
+  };
+
+  const handleFile = async (file: File) => {
+    setParseError("");
+    setFileName(file.name);
+    try {
+      const parsed = await parseSpreadsheet(file);
+      setProducts(parsed);
+      if (parsed.length === 0) setParseError("No product rows found. Make sure the file has a header row and at least one product.");
+    } catch {
+      setParseError("Could not read the file. Make sure it's a valid .xlsx, .xls, or .csv file.");
+      setProducts([]);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  const handleImport = () => {
+    if (!vendorName.trim() || products.length === 0) return;
+    const shippingDays = vendorShippingDays.trim() ? parseInt(vendorShippingDays, 10) : null;
+    importVendor.mutate(
+      {
+        data: {
+          name: vendorName.trim(),
+          email: vendorEmail.trim() || null,
+          shippingDays: shippingDays ?? undefined,
+          products: products.map((p) => ({ name: p.name, packSize: p.packSize || null })),
+        },
+      },
+      {
+        onSuccess: (result) => {
+          toast({
+            title: "Import successful",
+            description: `${result.vendor.name} added with ${result.productsCreated} product${result.productsCreated === 1 ? "" : "s"}.`,
+          });
+          setOpen(false);
+          reset();
+          onSuccess();
+        },
+        onError: () => toast({ title: "Import failed", description: "Could not import vendor.", variant: "destructive" }),
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5" data-testid="button-import-vendor">
+          <FileSpreadsheet className="h-4 w-4" />
+          Import Spreadsheet
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Import Vendor from Spreadsheet</DialogTitle>
+          <DialogDescription>
+            Upload a .xlsx, .xls, or .csv file. The file should have a <strong>Product Name</strong> column and an optional <strong>Pack Size</strong> column.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5 py-1">
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/30 ${fileName ? "border-green-300 bg-green-50/50 dark:bg-green-900/10" : "border-muted-foreground/25"}`}
+            onClick={() => fileRef.current?.click()}
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            data-testid="dropzone-spreadsheet"
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+              data-testid="input-file-spreadsheet"
+            />
+            {fileName ? (
+              <div className="flex flex-col items-center gap-1">
+                <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                <p className="font-medium text-sm text-green-700 dark:text-green-400">{fileName}</p>
+                <p className="text-xs text-muted-foreground">{products.length} product{products.length === 1 ? "" : "s"} found — click to change</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium">Drop your spreadsheet here or click to browse</p>
+                <p className="text-xs text-muted-foreground">.xlsx, .xls, or .csv</p>
+              </div>
+            )}
+          </div>
+
+          {parseError && (
+            <div className="flex items-start gap-2 text-destructive text-sm bg-destructive/10 rounded-md p-3">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              {parseError}
+            </div>
+          )}
+
+          {products.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Preview ({products.length} products)</Label>
+              <ScrollArea className="h-44 rounded-md border">
+                <Table>
+                  <TableHeader className="bg-muted/50 sticky top-0">
+                    <TableRow>
+                      <TableHead className="text-xs">Product Name</TableHead>
+                      <TableHead className="text-xs">Pack Size</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((p, i) => (
+                      <TableRow key={i} className="text-sm">
+                        <TableCell className="py-1.5">{p.name}</TableCell>
+                        <TableCell className="py-1.5 text-muted-foreground">{p.packSize || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-1 space-y-1.5">
+              <Label htmlFor="import-vendor-name">Vendor Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="import-vendor-name"
+                placeholder="e.g. Acme Growers"
+                value={vendorName}
+                onChange={(e) => setVendorName(e.target.value)}
+                data-testid="input-import-vendor-name"
+              />
+            </div>
+            <div className="sm:col-span-1 space-y-1.5">
+              <Label htmlFor="import-vendor-email">Email <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input
+                id="import-vendor-email"
+                type="email"
+                placeholder="vendor@example.com"
+                value={vendorEmail}
+                onChange={(e) => setVendorEmail(e.target.value)}
+                data-testid="input-import-vendor-email"
+              />
+            </div>
+            <div className="sm:col-span-1 space-y-1.5">
+              <Label htmlFor="import-shipping-days">Shipping Days <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Input
+                id="import-shipping-days"
+                type="number"
+                min="0"
+                placeholder="e.g. 3"
+                value={vendorShippingDays}
+                onChange={(e) => setVendorShippingDays(e.target.value)}
+                data-testid="input-import-shipping-days"
+              />
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
+          <Button
+            onClick={handleImport}
+            disabled={!vendorName.trim() || products.length === 0 || importVendor.isPending}
+            data-testid="button-confirm-import-vendor"
+          >
+            {importVendor.isPending ? "Importing..." : `Import ${products.length > 0 ? `${products.length} Products` : ""}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function VendorEmailTab() {
   const { data: vendors, isLoading } = useListVendors();
@@ -120,13 +363,15 @@ function VendorEmailTab() {
               <Mail className="h-5 w-5 text-primary" />
               <CardTitle className="text-lg">Vendor Email Addresses</CardTitle>
             </div>
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-1.5" data-testid="button-add-vendor">
-                  <Plus className="h-4 w-4" />
-                  Add Vendor
-                </Button>
-              </DialogTrigger>
+            <div className="flex items-center gap-2">
+              <ImportVendorDialog onSuccess={() => queryClient.invalidateQueries({ queryKey: getListVendorsQueryKey() })} />
+              <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-1.5" data-testid="button-add-vendor">
+                    <Plus className="h-4 w-4" />
+                    Add Vendor
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Vendor</DialogTitle>
@@ -168,7 +413,8 @@ function VendorEmailTab() {
                   </Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+            </div>
           </div>
           <CardDescription>
             Each vendor can receive a unique confirmation link via email when you send a PO.

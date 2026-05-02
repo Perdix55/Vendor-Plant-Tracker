@@ -41,6 +41,23 @@ export interface CreateVendorBody {
   notes?: string | null;
 }
 
+export type ImportVendorBodyProductsItem = {
+  name: string;
+  packSize?: string | null;
+};
+
+export interface ImportVendorBody {
+  name: string;
+  email?: string | null;
+  shippingDays?: number | null;
+  products: ImportVendorBodyProductsItem[];
+}
+
+export interface ImportVendorResult {
+  vendor: Vendor;
+  productsCreated: number;
+}
+
 export interface CreateProductBody {
   name: string;
   packSize?: string | null;

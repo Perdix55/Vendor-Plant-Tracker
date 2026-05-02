@@ -38,6 +38,21 @@ export const CreateVendorBody = zod.object({
 });
 
 /**
+ * @summary Import a new vendor with products from a spreadsheet
+ */
+export const ImportVendorBody = zod.object({
+  name: zod.string(),
+  email: zod.string().nullish(),
+  shippingDays: zod.number().nullish(),
+  products: zod.array(
+    zod.object({
+      name: zod.string(),
+      packSize: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary Get a vendor by ID
  */
 export const GetVendorParams = zod.object({

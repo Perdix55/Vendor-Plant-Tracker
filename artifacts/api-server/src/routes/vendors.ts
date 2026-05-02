@@ -193,4 +193,41 @@ router.patch("/vendors/:vendorId/products/:productId", async (req, res) => {
   }
 });
 
+// POST /vendors/import
+router.post("/vendors/import", async (req, res) => {
+  try {
+    const { name, email, shippingDays, products } = req.body;
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ error: "name is required" });
+    }
+    if (!Array.isArray(products)) {
+      return res.status(400).json({ error: "products array is required" });
+    }
+
+    const inserted = await db
+      .insert(vendorsTable)
+      .values({ name: name.trim(), email: email ?? null, shippingDays: shippingDays ?? null })
+      .returning();
+    const vendor = inserted[0];
+
+    if (products.length > 0) {
+      await db.insert(productsTable).values(
+        products
+          .filter((p: any) => p.name && typeof p.name === "string" && p.name.trim())
+          .map((p: any) => ({
+            vendorId: vendor.id,
+            name: p.name.trim(),
+            packSize: p.packSize?.trim() || null,
+          }))
+      );
+    }
+
+    const v = await fetchVendorWithCount(vendor.id);
+    res.status(201).json({ vendor: v, productsCreated: products.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to import vendor");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;
