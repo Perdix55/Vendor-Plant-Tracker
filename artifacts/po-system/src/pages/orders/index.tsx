@@ -1,5 +1,5 @@
 import { useListOrders, OrderSummaryStatus } from "@workspace/api-client-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 
 export default function Orders() {
+  const [, navigate] = useLocation();
   const [statusFilter, setStatusFilter] = useState<OrderSummaryStatus | "all">("all");
   const { data: orders, isLoading } = useListOrders(
     statusFilter !== "all" ? { status: statusFilter } : undefined
@@ -144,12 +145,11 @@ export default function Orders() {
                 <TableHead>Items</TableHead>
                 <TableHead>Total Qty</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrders.map(order => (
-                <TableRow key={order.id} data-testid={`row-order-${order.id}`}>
+                <TableRow key={order.id} data-testid={`row-order-${order.id}`} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/orders/${order.id}`)}>
                   <TableCell className="font-medium text-foreground">#{order.id}</TableCell>
                   <TableCell className="font-medium">{order.vendorName}</TableCell>
                   <TableCell>
@@ -185,13 +185,6 @@ export default function Orders() {
                   <TableCell>{order.totalQuantity}</TableCell>
                   <TableCell>
                     <StatusBadge status={order.status} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link href={`/orders/${order.id}`}>
-                      <Button variant="ghost" size="sm" data-testid={`button-view-order-${order.id}`}>
-                        View Details
-                      </Button>
-                    </Link>
                   </TableCell>
                 </TableRow>
               ))}
