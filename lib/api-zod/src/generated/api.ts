@@ -22,6 +22,7 @@ export const ListVendorsResponseItem = zod.object({
   name: zod.string(),
   email: zod.string().nullish(),
   notes: zod.string().nullish(),
+  shippingDays: zod.number().nullish(),
   productCount: zod.number(),
   createdAt: zod.string(),
 });
@@ -48,6 +49,7 @@ export const GetVendorResponse = zod.object({
   name: zod.string(),
   email: zod.string().nullish(),
   notes: zod.string().nullish(),
+  shippingDays: zod.number().nullish(),
   productCount: zod.number(),
   createdAt: zod.string(),
 });
@@ -62,6 +64,7 @@ export const UpdateVendorParams = zod.object({
 export const UpdateVendorBody = zod.object({
   email: zod.string().nullish(),
   notes: zod.string().nullish(),
+  shippingDays: zod.number().nullish(),
 });
 
 export const UpdateVendorResponse = zod.object({
@@ -69,6 +72,7 @@ export const UpdateVendorResponse = zod.object({
   name: zod.string(),
   email: zod.string().nullish(),
   notes: zod.string().nullish(),
+  shippingDays: zod.number().nullish(),
   productCount: zod.number(),
   createdAt: zod.string(),
 });

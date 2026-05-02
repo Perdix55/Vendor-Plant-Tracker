@@ -32,6 +32,10 @@ function VendorEmailTab() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editEmail, setEditEmail] = useState("");
+
+  const [editingShippingId, setEditingShippingId] = useState<number | null>(null);
+  const [editShippingDays, setEditShippingDays] = useState<string>("");
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newVendorName, setNewVendorName] = useState("");
   const [newVendorEmail, setNewVendorEmail] = useState("");
@@ -57,9 +61,37 @@ function VendorEmailTab() {
     );
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, vendorId: number) => {
+  const handleEmailKeyDown = (e: React.KeyboardEvent, vendorId: number) => {
     if (e.key === "Enter") saveEmail(vendorId);
     if (e.key === "Escape") cancelEdit();
+  };
+
+  const startEditShipping = (id: number, current: number | null | undefined) => {
+    setEditingShippingId(id);
+    setEditShippingDays(current != null ? String(current) : "");
+  };
+  const cancelEditShipping = () => { setEditingShippingId(null); setEditShippingDays(""); };
+
+  const saveShippingDays = (vendorId: number) => {
+    const parsed = editShippingDays.trim() === "" ? null : parseInt(editShippingDays, 10);
+    if (parsed !== null && (isNaN(parsed) || parsed < 0)) return;
+    updateVendor.mutate(
+      { vendorId, data: { shippingDays: parsed } },
+      {
+        onSuccess: () => {
+          toast({ title: "Shipping days saved" });
+          queryClient.invalidateQueries({ queryKey: getListVendorsQueryKey() });
+          setEditingShippingId(null);
+          setEditShippingDays("");
+        },
+        onError: () => toast({ title: "Error", description: "Failed to save shipping days.", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleShippingKeyDown = (e: React.KeyboardEvent, vendorId: number) => {
+    if (e.key === "Enter") saveShippingDays(vendorId);
+    if (e.key === "Escape") cancelEditShipping();
   };
 
   const handleAddVendor = () => {
@@ -151,10 +183,11 @@ function VendorEmailTab() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-[220px]">Vendor</TableHead>
+                  <TableHead className="w-[200px]">Vendor</TableHead>
                   <TableHead>Email Address</TableHead>
-                  <TableHead className="w-[110px]">Status</TableHead>
-                  <TableHead className="w-[90px]" />
+                  <TableHead className="w-[100px]">Status</TableHead>
+                  <TableHead className="w-[160px]">Shipping Days</TableHead>
+                  <TableHead className="w-[80px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -168,7 +201,7 @@ function VendorEmailTab() {
                           value={editEmail}
                           autoFocus
                           onChange={(e) => setEditEmail(e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, vendor.id)}
+                          onKeyDown={(e) => handleEmailKeyDown(e, vendor.id)}
                           placeholder="vendor@example.com"
                           className="h-8 max-w-xs"
                           data-testid={`input-email-${vendor.id}`}
@@ -186,6 +219,40 @@ function VendorEmailTab() {
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-muted-foreground text-xs">Not set</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingShippingId === vendor.id ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            autoFocus
+                            value={editShippingDays}
+                            onChange={(e) => setEditShippingDays(e.target.value)}
+                            onKeyDown={(e) => handleShippingKeyDown(e, vendor.id)}
+                            placeholder="days"
+                            className="h-8 w-20 text-right"
+                            data-testid={`input-shipping-days-${vendor.id}`}
+                          />
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-green-700 hover:text-green-800 hover:bg-green-50" onClick={() => saveShippingDays(vendor.id)} disabled={updateVendor.isPending} data-testid={`button-save-shipping-${vendor.id}`}>
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={cancelEditShipping} data-testid={`button-cancel-shipping-${vendor.id}`}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startEditShipping(vendor.id, vendor.shippingDays)}
+                          className="flex items-center gap-1.5 text-sm group w-full"
+                          data-testid={`button-edit-shipping-${vendor.id}`}
+                        >
+                          <span className={vendor.shippingDays != null ? "font-medium" : "text-muted-foreground italic"}>
+                            {vendor.shippingDays != null ? `${vendor.shippingDays} day${vendor.shippingDays === 1 ? "" : "s"}` : "Not set"}
+                          </span>
+                          <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
                       )}
                     </TableCell>
                     <TableCell>

@@ -14,6 +14,7 @@ export interface Vendor {
   name: string;
   email?: string | null;
   notes?: string | null;
+  shippingDays?: number | null;
   productCount: number;
   createdAt: string;
 }
@@ -21,6 +22,7 @@ export interface Vendor {
 export interface UpdateVendorBody {
   email?: string | null;
   notes?: string | null;
+  shippingDays?: number | null;
 }
 
 export interface Product {

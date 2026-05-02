@@ -31,6 +31,7 @@ async function fetchVendorWithCount(vendorId: number) {
       name: vendorsTable.name,
       email: vendorsTable.email,
       notes: vendorsTable.notes,
+      shippingDays: vendorsTable.shippingDays,
       createdAt: vendorsTable.createdAt,
       productCount: count(productsTable.id),
     })
@@ -52,6 +53,7 @@ router.get("/vendors", async (req, res) => {
         name: vendorsTable.name,
         email: vendorsTable.email,
         notes: vendorsTable.notes,
+        shippingDays: vendorsTable.shippingDays,
         createdAt: vendorsTable.createdAt,
         productCount: count(productsTable.id),
       })
@@ -70,13 +72,13 @@ router.get("/vendors", async (req, res) => {
 // POST /vendors
 router.post("/vendors", async (req, res) => {
   try {
-    const { name, email, notes } = req.body;
+    const { name, email, notes, shippingDays } = req.body;
     if (!name || typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "name is required" });
     }
     const inserted = await db
       .insert(vendorsTable)
-      .values({ name: name.trim(), email: email ?? null, notes: notes ?? null })
+      .values({ name: name.trim(), email: email ?? null, notes: notes ?? null, shippingDays: shippingDays ?? null })
       .returning();
 
     const v = inserted[0];
@@ -104,11 +106,12 @@ router.get("/vendors/:vendorId", async (req, res) => {
 router.patch("/vendors/:vendorId", async (req, res) => {
   try {
     const vendorId = parseInt(req.params.vendorId, 10);
-    const { email, notes } = req.body;
+    const { email, notes, shippingDays } = req.body;
 
     const updateData: Partial<typeof vendorsTable.$inferInsert> = {};
     if (email !== undefined) updateData.email = email;
     if (notes !== undefined) updateData.notes = notes;
+    if (shippingDays !== undefined) updateData.shippingDays = shippingDays;
 
     await db.update(vendorsTable).set(updateData).where(eq(vendorsTable.id, vendorId));
 
