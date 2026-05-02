@@ -17,7 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Save, Search, Package } from "lucide-react";
+import { ArrowLeft, Save, Search, Package, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays } from "date-fns";
 
@@ -252,7 +253,16 @@ export default function NewOrder() {
                   <TableBody>
                     {filteredProducts.map(product => (
                       <TableRow key={product.id} className={quantities[product.id] > 0 ? "bg-primary/5" : ""}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {product.name}
+                            {product.isNew && (
+                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0 gap-0.5 hover:bg-amber-100">
+                                <Sparkles className="h-2.5 w-2.5" />New
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-muted-foreground text-sm">{product.packSize || "N/A"}</TableCell>
                         <TableCell className="text-right">
                           <Input 

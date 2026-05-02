@@ -49,6 +49,23 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Vendor"
+    post:
+      operationId: createVendor
+      tags: [vendors]
+      summary: Create a new vendor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVendorBody"
+      responses:
+        "201":
+          description: Created vendor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vendor"
 
   /vendors/{vendorId}:
     get:
@@ -112,6 +129,59 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a new product for a vendor
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductBody"
+      responses:
+        "201":
+          description: Created product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /vendors/{vendorId}/products/{productId}:
+    patch:
+      operationId: updateProduct
+      tags: [products]
+      summary: Update a product (name, packSize, isActive)
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductBody"
+      responses:
+        "200":
+          description: Updated product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
 
   /orders:
     get:
@@ -489,7 +559,45 @@ components:
           nullable: true
         isActive:
           type: boolean
-      required: [id, vendorId, name, isActive]
+        isNew:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, vendorId, name, isActive, isNew, createdAt]
+
+    CreateVendorBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [name]
+
+    CreateProductBody:
+      type: object
+      properties:
+        name:
+          type: string
+        packSize:
+          type: string
+          nullable: true
+      required: [name]
+
+    UpdateProductBody:
+      type: object
+      properties:
+        name:
+          type: string
+        packSize:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
 
     OrderSummary:
       type: object

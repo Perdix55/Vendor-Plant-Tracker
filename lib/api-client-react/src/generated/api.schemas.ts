@@ -29,6 +29,25 @@ export interface Product {
   name: string;
   packSize?: string | null;
   isActive: boolean;
+  isNew: boolean;
+  createdAt: string;
+}
+
+export interface CreateVendorBody {
+  name: string;
+  email?: string | null;
+  notes?: string | null;
+}
+
+export interface CreateProductBody {
+  name: string;
+  packSize?: string | null;
+}
+
+export interface UpdateProductBody {
+  name?: string;
+  packSize?: string | null;
+  isActive?: boolean;
 }
 
 export type OrderSummaryStatus =

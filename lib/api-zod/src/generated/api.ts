@@ -28,6 +28,15 @@ export const ListVendorsResponseItem = zod.object({
 export const ListVendorsResponse = zod.array(ListVendorsResponseItem);
 
 /**
+ * @summary Create a new vendor
+ */
+export const CreateVendorBody = zod.object({
+  name: zod.string(),
+  email: zod.string().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
  * @summary Get a vendor by ID
  */
 export const GetVendorParams = zod.object({
@@ -77,10 +86,48 @@ export const ListVendorProductsResponseItem = zod.object({
   name: zod.string(),
   packSize: zod.string().nullish(),
   isActive: zod.boolean(),
+  isNew: zod.boolean(),
+  createdAt: zod.string(),
 });
 export const ListVendorProductsResponse = zod.array(
   ListVendorProductsResponseItem,
 );
+
+/**
+ * @summary Create a new product for a vendor
+ */
+export const CreateProductParams = zod.object({
+  vendorId: zod.coerce.number(),
+});
+
+export const CreateProductBody = zod.object({
+  name: zod.string(),
+  packSize: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a product (name, packSize, isActive)
+ */
+export const UpdateProductParams = zod.object({
+  vendorId: zod.coerce.number(),
+  productId: zod.coerce.number(),
+});
+
+export const UpdateProductBody = zod.object({
+  name: zod.string().optional(),
+  packSize: zod.string().nullish(),
+  isActive: zod.boolean().optional(),
+});
+
+export const UpdateProductResponse = zod.object({
+  id: zod.number(),
+  vendorId: zod.number(),
+  name: zod.string(),
+  packSize: zod.string().nullish(),
+  isActive: zod.boolean(),
+  isNew: zod.boolean(),
+  createdAt: zod.string(),
+});
 
 /**
  * @summary List purchase orders
