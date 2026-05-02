@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import {
   useGetOrder,
@@ -31,6 +31,20 @@ export default function ReceiveOrder() {
 
   const [quantities, setQuantities] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (order && !initialized) {
+      const defaults: Record<number, string> = {};
+      for (const item of order.items ?? []) {
+        if (item.availability !== "unavailable") {
+          defaults[item.productId] = String(item.quantityConfirmed ?? item.quantityOrdered);
+        }
+      }
+      setQuantities(defaults);
+      setInitialized(true);
+    }
+  }, [order, initialized]);
 
   const handleQtyChange = (productId: number, val: string) => {
     setQuantities((prev) => ({ ...prev, [productId]: val }));
@@ -45,11 +59,15 @@ export default function ReceiveOrder() {
 
     const items = (order.items ?? [])
       .filter((item) => item.availability !== "unavailable")
-      .map((item) => ({
-        productId: item.productId,
-        quantityReceived: parseInt(quantities[item.productId] ?? "0") || 0,
-        notes: notes[item.productId] ?? null,
-      }))
+      .map((item) => {
+        const raw = quantities[item.productId];
+        const qty = raw !== undefined && raw !== "" ? parseInt(raw, 10) : 0;
+        return {
+          productId: item.productId,
+          quantityReceived: isNaN(qty) ? 0 : qty,
+          notes: notes[item.productId] ?? null,
+        };
+      })
       .filter((item) => item.quantityReceived > 0);
 
     if (items.length === 0) {
@@ -97,8 +115,7 @@ export default function ReceiveOrder() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Enter Received Quantities</CardTitle>
               <CardDescription>
-                For each item, enter how many units were actually received on this truck.
-                Leave blank or 0 to skip an item.
+                Quantities are pre-filled from vendor confirmations. Adjust any that differ from what actually arrived, or set to 0 to skip an item.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -132,7 +149,6 @@ export default function ReceiveOrder() {
                               type="number"
                               min="0"
                               className="w-24 mx-auto text-center h-8"
-                              placeholder="0"
                               value={quantities[item.productId] ?? ""}
                               onChange={(e) => handleQtyChange(item.productId, e.target.value)}
                               data-testid={`input-received-${item.productId}`}
