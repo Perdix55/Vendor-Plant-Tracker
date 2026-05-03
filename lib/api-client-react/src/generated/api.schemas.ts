@@ -294,6 +294,59 @@ export interface AppSettings {
   fromEmail?: string | null;
 }
 
+export interface SalesOrderLineItem {
+  id: number;
+  salesOrderId: number;
+  inventoryItemId: number;
+  productId: number;
+  vendorId: number;
+  productName: string;
+  vendorName: string;
+  packSize?: string | null;
+  quantity: number;
+  createdAt: string;
+}
+
+export interface SalesOrderSummary {
+  id: number;
+  customerName: string;
+  status: string;
+  notes?: string | null;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalesOrderDetail {
+  id: number;
+  customerName: string;
+  status: string;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: SalesOrderLineItem[];
+}
+
+export interface CreateSalesOrderBody {
+  customerName: string;
+  notes?: string | null;
+}
+
+export interface UpdateSalesOrderBody {
+  customerName?: string;
+  status?: string;
+  notes?: string | null;
+}
+
+export interface AddSalesOrderItemBody {
+  inventoryItemId: number;
+  quantity?: number;
+}
+
+export interface UpdateSalesOrderItemBody {
+  quantity: number;
+}
+
 export type ListOrdersParams = {
   vendorId?: number;
   status?: ListOrdersStatus;
@@ -319,4 +372,12 @@ export type ListInventoryTransactionsParams = {
   productId?: number;
   orderId?: number;
   limit?: number;
+};
+
+export type LookupInventoryByBarcodeParams = {
+  q: string;
+};
+
+export type ListSalesOrdersParams = {
+  status?: string;
 };

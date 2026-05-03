@@ -22,6 +22,10 @@ tags:
     description: Public vendor confirmation (token-based)
   - name: settings
     description: App-wide settings
+  - name: salesOrders
+    description: Sales orders (customer-facing)
+  - name: inventory
+    description: Inventory management
 
 paths:
   /healthz:
@@ -576,6 +580,192 @@ paths:
                 items:
                   $ref: "#/components/schemas/InventoryTransaction"
 
+  /inventory/lookup:
+    get:
+      operationId: lookupInventoryByBarcode
+      tags: [inventory]
+      summary: Look up an inventory item by barcode value (product name)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+
+  /sales-orders:
+    get:
+      operationId: listSalesOrders
+      tags: [salesOrders]
+      summary: List all sales orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sales orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SalesOrderSummary"
+    post:
+      operationId: createSalesOrder
+      tags: [salesOrders]
+      summary: Create a new sales order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSalesOrderBody"
+      responses:
+        "201":
+          description: Created sales order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderDetail"
+
+  /sales-orders/{salesOrderId}:
+    get:
+      operationId: getSalesOrder
+      tags: [salesOrders]
+      summary: Get a sales order with items
+      parameters:
+        - name: salesOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sales order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderDetail"
+    put:
+      operationId: updateSalesOrder
+      tags: [salesOrders]
+      summary: Update a sales order
+      parameters:
+        - name: salesOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSalesOrderBody"
+      responses:
+        "200":
+          description: Updated sales order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderDetail"
+    delete:
+      operationId: deleteSalesOrder
+      tags: [salesOrders]
+      summary: Delete a sales order
+      parameters:
+        - name: salesOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /sales-orders/{salesOrderId}/items:
+    post:
+      operationId: addSalesOrderItem
+      tags: [salesOrders]
+      summary: Add an item to a sales order
+      parameters:
+        - name: salesOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddSalesOrderItemBody"
+      responses:
+        "201":
+          description: Added item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderLineItem"
+
+  /sales-orders/{salesOrderId}/items/{itemId}:
+    put:
+      operationId: updateSalesOrderItem
+      tags: [salesOrders]
+      summary: Update quantity of a sales order item
+      parameters:
+        - name: salesOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSalesOrderItemBody"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalesOrderLineItem"
+    delete:
+      operationId: deleteSalesOrderItem
+      tags: [salesOrders]
+      summary: Remove an item from a sales order
+      parameters:
+        - name: salesOrderId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   /summary/dashboard:
     get:
       operationId: getDashboardSummary
@@ -1104,3 +1294,108 @@ components:
         fromEmail:
           type: string
           nullable: true
+
+    SalesOrderLineItem:
+      type: object
+      required: [id, salesOrderId, inventoryItemId, productId, vendorId, productName, vendorName, quantity, createdAt]
+      properties:
+        id:
+          type: integer
+        salesOrderId:
+          type: integer
+        inventoryItemId:
+          type: integer
+        productId:
+          type: integer
+        vendorId:
+          type: integer
+        productName:
+          type: string
+        vendorName:
+          type: string
+        packSize:
+          type: string
+          nullable: true
+        quantity:
+          type: integer
+        createdAt:
+          type: string
+
+    SalesOrderSummary:
+      type: object
+      required: [id, customerName, status, createdAt, updatedAt, itemCount]
+      properties:
+        id:
+          type: integer
+        customerName:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        itemCount:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    SalesOrderDetail:
+      type: object
+      required: [id, customerName, status, createdAt, updatedAt, items]
+      properties:
+        id:
+          type: integer
+        customerName:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalesOrderLineItem"
+
+    CreateSalesOrderBody:
+      type: object
+      required: [customerName]
+      properties:
+        customerName:
+          type: string
+        notes:
+          type: string
+          nullable: true
+
+    UpdateSalesOrderBody:
+      type: object
+      properties:
+        customerName:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+
+    AddSalesOrderItemBody:
+      type: object
+      required: [inventoryItemId]
+      properties:
+        inventoryItemId:
+          type: integer
+        quantity:
+          type: integer
+
+    UpdateSalesOrderItemBody:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer

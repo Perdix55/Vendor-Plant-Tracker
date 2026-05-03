@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, ShoppingCart, PlusCircle, Settings, PackageSearch } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingCart, PlusCircle, Settings, PackageSearch, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -23,6 +23,11 @@ const sidebarNavItems = [
     title: "Vendors",
     href: "/vendors",
     icon: Users,
+  },
+  {
+    title: "Sales Orders",
+    href: "/sales-orders",
+    icon: ShoppingBag,
   },
   {
     title: "Admin",

@@ -586,6 +586,171 @@ export const ListInventoryTransactionsResponse = zod.array(
 );
 
 /**
+ * @summary Look up an inventory item by barcode value (product name)
+ */
+export const LookupInventoryByBarcodeQueryParams = zod.object({
+  q: zod.coerce.string(),
+});
+
+export const LookupInventoryByBarcodeResponseItem = zod.object({
+  id: zod.number(),
+  productId: zod.number(),
+  vendorId: zod.number(),
+  productName: zod.string(),
+  packSize: zod.string().nullish(),
+  vendorName: zod.string(),
+  quantityOnHand: zod.number(),
+  updatedAt: zod.string(),
+});
+export const LookupInventoryByBarcodeResponse = zod.array(
+  LookupInventoryByBarcodeResponseItem,
+);
+
+/**
+ * @summary List all sales orders
+ */
+export const ListSalesOrdersQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+});
+
+export const ListSalesOrdersResponseItem = zod.object({
+  id: zod.number(),
+  customerName: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  itemCount: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListSalesOrdersResponse = zod.array(ListSalesOrdersResponseItem);
+
+/**
+ * @summary Create a new sales order
+ */
+export const CreateSalesOrderBody = zod.object({
+  customerName: zod.string(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a sales order with items
+ */
+export const GetSalesOrderParams = zod.object({
+  salesOrderId: zod.coerce.number(),
+});
+
+export const GetSalesOrderResponse = zod.object({
+  id: zod.number(),
+  customerName: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      salesOrderId: zod.number(),
+      inventoryItemId: zod.number(),
+      productId: zod.number(),
+      vendorId: zod.number(),
+      productName: zod.string(),
+      vendorName: zod.string(),
+      packSize: zod.string().nullish(),
+      quantity: zod.number(),
+      createdAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Update a sales order
+ */
+export const UpdateSalesOrderParams = zod.object({
+  salesOrderId: zod.coerce.number(),
+});
+
+export const UpdateSalesOrderBody = zod.object({
+  customerName: zod.string().optional(),
+  status: zod.string().optional(),
+  notes: zod.string().nullish(),
+});
+
+export const UpdateSalesOrderResponse = zod.object({
+  id: zod.number(),
+  customerName: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      salesOrderId: zod.number(),
+      inventoryItemId: zod.number(),
+      productId: zod.number(),
+      vendorId: zod.number(),
+      productName: zod.string(),
+      vendorName: zod.string(),
+      packSize: zod.string().nullish(),
+      quantity: zod.number(),
+      createdAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete a sales order
+ */
+export const DeleteSalesOrderParams = zod.object({
+  salesOrderId: zod.coerce.number(),
+});
+
+/**
+ * @summary Add an item to a sales order
+ */
+export const AddSalesOrderItemParams = zod.object({
+  salesOrderId: zod.coerce.number(),
+});
+
+export const AddSalesOrderItemBody = zod.object({
+  inventoryItemId: zod.number(),
+  quantity: zod.number().optional(),
+});
+
+/**
+ * @summary Update quantity of a sales order item
+ */
+export const UpdateSalesOrderItemParams = zod.object({
+  salesOrderId: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const UpdateSalesOrderItemBody = zod.object({
+  quantity: zod.number(),
+});
+
+export const UpdateSalesOrderItemResponse = zod.object({
+  id: zod.number(),
+  salesOrderId: zod.number(),
+  inventoryItemId: zod.number(),
+  productId: zod.number(),
+  vendorId: zod.number(),
+  productName: zod.string(),
+  vendorName: zod.string(),
+  packSize: zod.string().nullish(),
+  quantity: zod.number(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Remove an item from a sales order
+ */
+export const DeleteSalesOrderItemParams = zod.object({
+  salesOrderId: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+/**
  * @summary Get dashboard stats
  */
 export const GetDashboardSummaryResponse = zod.object({

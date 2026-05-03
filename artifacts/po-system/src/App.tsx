@@ -15,6 +15,9 @@ import ReceiveOrder from "@/pages/orders/receive";
 import Inventory from "@/pages/inventory/index";
 import AdminVendors from "@/pages/admin/index";
 import VendorConfirm from "@/pages/confirm/index";
+import ShopPage from "@/pages/shop/index";
+import SalesOrders from "@/pages/sales-orders/index";
+import SalesOrderDetail from "@/pages/sales-orders/detail";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +25,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/confirm/:token" component={VendorConfirm} />
+      <Route path="/shop" component={ShopPage} />
       <Route>
         <Layout>
           <Switch>
@@ -34,6 +38,8 @@ function Router() {
             <Route path="/orders/:id" component={OrderDetail} />
             <Route path="/inventory" component={Inventory} />
             <Route path="/admin" component={AdminVendors} />
+            <Route path="/sales-orders" component={SalesOrders} />
+            <Route path="/sales-orders/:id" component={SalesOrderDetail} />
             <Route component={NotFound} />
           </Switch>
         </Layout>

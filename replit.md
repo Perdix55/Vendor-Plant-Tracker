@@ -85,4 +85,7 @@ PostgreSQL via `DATABASE_URL`. Tables:
 - `/orders/:id` — Order detail, mark as sent, enter vendor confirmations, Receive Shipment button
 - `/orders/:id/receive` — Receive shipment form: enter per-item received quantities → adds to inventory
 - `/inventory` — Inventory dashboard: stock levels, summary cards, adjust dialog, history modal
-- `/admin` — Admin: manage vendor emails, shipping days, add/edit products
+- `/sales-orders` — Sales orders list with QR code button
+- `/sales-orders/:id` — Sales order detail: edit customer name, status, item quantities
+- `/shop` — Public customer page (no sidebar): name entry → camera barcode scanner → cart → submit
+- `/admin` — Admin: manage vendor emails, shipping days, add/edit products, settings
