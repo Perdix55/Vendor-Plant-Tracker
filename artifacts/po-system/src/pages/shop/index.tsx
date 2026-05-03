@@ -4,7 +4,7 @@ import { useAddSalesOrderItem, useCreateSalesOrder, useUpdateSalesOrderItem, use
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Trash2, ScanLine, Leaf, CheckCircle2, ShoppingCart, Keyboard } from "lucide-react";
+import { Minus, Plus, Trash2, Camera, CameraOff, Leaf, CheckCircle2, ShoppingCart, ScanLine } from "lucide-react";
 
 type CartItem = {
   id: number;
@@ -22,16 +22,18 @@ export default function ShopPage() {
   const [customerName, setCustomerName] = useState("");
   const [orderId, setOrderId] = useState<number | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [scanError, setScanError] = useState("");
-  const [manualBarcode, setManualBarcode] = useState("");
-  const [useManual, setUseManual] = useState(false);
-  const [scannerReady, setScannerReady] = useState(false);
-  const [lastScanned, setLastScanned] = useState("");
-  const [scanFeedback, setScanFeedback] = useState("");
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [scanFeedback, setScanFeedback] = useState<{ text: string; ok: boolean } | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [lastCameraScanned, setLastCameraScanned] = useState("");
+  const [isLooking, setIsLooking] = useState(false);
 
+  const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanControlsRef = useRef<{ stop: () => void } | null>(null);
-  const scanCooldownRef = useRef(false);
+  const cameraCooldownRef = useRef(false);
   const queryClient = useQueryClient();
 
   const createSalesOrder = useCreateSalesOrder();
@@ -39,66 +41,128 @@ export default function ShopPage() {
   const updateItem = useUpdateSalesOrderItem();
   const deleteItem = useDeleteSalesOrderItem();
 
-  const stopScanner = useCallback(() => {
+  // Keep the barcode input focused whenever it's the scan step
+  useEffect(() => {
+    if (step === "scan") {
+      const t = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  const stopCamera = useCallback(() => {
     if (scanControlsRef.current) {
       scanControlsRef.current.stop();
       scanControlsRef.current = null;
     }
+    setCameraReady(false);
   }, []);
 
   useEffect(() => {
-    return () => stopScanner();
-  }, [stopScanner]);
+    return () => stopCamera();
+  }, [stopCamera]);
 
-  const startScanner = useCallback(async () => {
-    if (!videoRef.current || useManual) return;
+  const startCamera = useCallback(async () => {
+    if (!videoRef.current) return;
+    setCameraError("");
+    setCameraReady(false);
     try {
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const reader = new BrowserMultiFormatReader();
-      setScannerReady(false);
       const controls = await reader.decodeFromVideoDevice(
         undefined,
         videoRef.current,
-        (result, _err) => {
-          if (result && !scanCooldownRef.current) {
+        (result) => {
+          if (result && !cameraCooldownRef.current) {
             const text = result.getText();
-            if (text !== lastScanned) {
-              scanCooldownRef.current = true;
+            if (text !== lastCameraScanned) {
+              cameraCooldownRef.current = true;
+              setLastCameraScanned(text);
               handleBarcodeFound(text);
-              setLastScanned(text);
-              setTimeout(() => {
-                scanCooldownRef.current = false;
-              }, 2000);
+              setTimeout(() => { cameraCooldownRef.current = false; }, 2000);
             }
           }
         }
       );
       scanControlsRef.current = controls;
-      setScannerReady(true);
-    } catch (err) {
-      setScanError("Camera not available. Use manual entry below.");
-      setUseManual(true);
+      setCameraReady(true);
+    } catch {
+      setCameraError("Camera not available or permission denied.");
+      setCameraOpen(false);
     }
-  }, [useManual, lastScanned]);
+  }, [lastCameraScanned]);
 
-  useEffect(() => {
-    if (step === "scan" && !useManual) {
-      startScanner();
+  const toggleCamera = () => {
+    if (cameraOpen) {
+      stopCamera();
+      setCameraOpen(false);
+    } else {
+      setCameraOpen(true);
+      setTimeout(startCamera, 150);
     }
-    return () => {
-      if (step !== "scan") stopScanner();
-    };
-  }, [step, useManual]);
+    // Re-focus the input after toggling
+    setTimeout(() => inputRef.current?.focus(), 300);
+  };
+
+  const showFeedback = (text: string, ok: boolean) => {
+    setScanFeedback({ text, ok });
+    setTimeout(() => setScanFeedback(null), 2500);
+  };
 
   const handleBarcodeFound = async (barcode: string) => {
-    if (!orderId) return;
-    setScanFeedback("Looking up...");
+    if (!orderId || !barcode.trim()) return;
+    setIsLooking(true);
     try {
-      const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode)}`);
-      const items: Array<{ id: number; productName: string; vendorName: string; packSize: string | null; quantityOnHand: number }> = await resp.json();
+      const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode.trim())}`);
+      const items: Array<{ id: number; productName: string; vendorName: string; packSize: string | null }> = await resp.json();
 
       if (!items.length) {
-        setScanFeedback(`Not found: "${barcode}"`);
+        showFeedback(`Not found: "${barcode}"`, false);
+        setIsLooking(false);
+        return;
+      }
+
+      const inv = items[0];
+      // Use functional state update to get latest cart
+      setCart((prev) => {
+        const existing = prev.find((c) => c.inventoryItemId === inv.id);
+        if (existing) {
+          const newQty = existing.quantity + 1;
+          updateItem.mutateAsync({ salesOrderId: orderId!, itemId: existing.id, data: { quantity: newQty } });
+          showFeedback(`+1 → ${inv.productName}`, true);
+          return prev.map((c) => (c.id === existing.id ? { ...c, quantity: newQty } : c));
+        } else {
+          addItem.mutateAsync({ salesOrderId: orderId!, data: { inventoryItemId: inv.id, quantity: 1 } }).then((added) => {
+            setCart((p) => p.some((c) => c.inventoryItemId === inv.id && c.id !== added.id)
+              ? p
+              : p.map((c) => c.inventoryItemId === inv.id && c.id === 0 ? { ...c, id: added.id } : c));
+          });
+          showFeedback(`Added: ${inv.productName}`, true);
+          return [
+            ...prev,
+            { id: 0, inventoryItemId: inv.id, productName: inv.productName, vendorName: inv.vendorName, packSize: inv.packSize, quantity: 1 },
+          ];
+        }
+      });
+    } catch {
+      showFeedback("Error looking up item", false);
+    }
+    setIsLooking(false);
+  };
+
+  // Simpler version using ref-stable cart for add
+  const handleBarcodeSubmit = async () => {
+    const barcode = barcodeInput.trim();
+    if (!barcode || !orderId) return;
+    setBarcodeInput("");
+    setIsLooking(true);
+    try {
+      const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode)}`);
+      const items: Array<{ id: number; productName: string; vendorName: string; packSize: string | null }> = await resp.json();
+
+      if (!items.length) {
+        showFeedback(`Not found: "${barcode}"`, false);
+        setIsLooking(false);
+        inputRef.current?.focus();
         return;
       }
 
@@ -107,43 +171,22 @@ export default function ShopPage() {
 
       if (existing) {
         const newQty = existing.quantity + 1;
-        await updateItem.mutateAsync({
-          salesOrderId: orderId,
-          itemId: existing.id,
-          data: { quantity: newQty },
-        });
-        setCart((prev) =>
-          prev.map((c) => (c.id === existing.id ? { ...c, quantity: newQty } : c))
-        );
-        setScanFeedback(`+1 ${inv.productName}`);
+        await updateItem.mutateAsync({ salesOrderId: orderId, itemId: existing.id, data: { quantity: newQty } });
+        setCart((prev) => prev.map((c) => (c.id === existing.id ? { ...c, quantity: newQty } : c)));
+        showFeedback(`+1 → ${inv.productName}`, true);
       } else {
-        const added = await addItem.mutateAsync({
-          salesOrderId: orderId,
-          data: { inventoryItemId: inv.id, quantity: 1 },
-        });
+        const added = await addItem.mutateAsync({ salesOrderId: orderId, data: { inventoryItemId: inv.id, quantity: 1 } });
         setCart((prev) => [
           ...prev,
-          {
-            id: added.id,
-            inventoryItemId: inv.id,
-            productName: inv.productName,
-            vendorName: inv.vendorName,
-            packSize: inv.packSize,
-            quantity: 1,
-          },
+          { id: added.id, inventoryItemId: inv.id, productName: inv.productName, vendorName: inv.vendorName, packSize: inv.packSize, quantity: 1 },
         ]);
-        setScanFeedback(`Added ${inv.productName}`);
+        showFeedback(`Added: ${inv.productName}`, true);
       }
     } catch {
-      setScanFeedback("Error looking up item");
+      showFeedback("Error looking up item", false);
     }
-    setTimeout(() => setScanFeedback(""), 2500);
-  };
-
-  const handleManualAdd = async () => {
-    if (!manualBarcode.trim()) return;
-    await handleBarcodeFound(manualBarcode.trim());
-    setManualBarcode("");
+    setIsLooking(false);
+    inputRef.current?.focus();
   };
 
   const handleQtyChange = async (item: CartItem, delta: number) => {
@@ -156,12 +199,14 @@ export default function ShopPage() {
       await updateItem.mutateAsync({ salesOrderId: orderId, itemId: item.id, data: { quantity: newQty } });
       setCart((prev) => prev.map((c) => (c.id === item.id ? { ...c, quantity: newQty } : c)));
     }
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const handleRemove = async (item: CartItem) => {
     if (!orderId) return;
     await deleteItem.mutateAsync({ salesOrderId: orderId, itemId: item.id });
     setCart((prev) => prev.filter((c) => c.id !== item.id));
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const handleStart = async () => {
@@ -171,27 +216,27 @@ export default function ShopPage() {
     setStep("scan");
   };
 
-  const handleFinish = async () => {
-    stopScanner();
+  const handleFinish = () => {
+    stopCamera();
     setStep("done");
     queryClient.invalidateQueries({ queryKey: ["listSalesOrders"] });
   };
 
+  // ── Name Step ──────────────────────────────────────────────────────────────
   if (step === "name") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-8 text-center">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex justify-center">
-              <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center">
+              <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
                 <Leaf className="h-8 w-8 text-primary-foreground" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Vickery Wholesale</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Vickery Wholesale</h1>
             <p className="text-muted-foreground text-sm">Enter your name to start an order</p>
           </div>
-
-          <div className="space-y-4">
+          <div className="space-y-3">
             <Input
               placeholder="Your name"
               value={customerName}
@@ -215,6 +260,7 @@ export default function ShopPage() {
     );
   }
 
+  // ── Done Step ──────────────────────────────────────────────────────────────
   if (step === "done") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -223,32 +269,22 @@ export default function ShopPage() {
           <div className="space-y-1">
             <h1 className="text-2xl font-bold">Order Submitted!</h1>
             <p className="text-muted-foreground">
-              Thank you, <span className="font-medium text-foreground">{customerName}</span>. Your order #{orderId} has been received.
+              Thank you, <span className="font-medium text-foreground">{customerName}</span>. Order #{orderId} has been received.
             </p>
           </div>
-
           <div className="rounded-lg border bg-card p-4 text-left space-y-2">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Order Summary</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Order Summary</p>
+            {cart.length === 0 && <p className="text-sm text-muted-foreground">No items</p>}
             {cart.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
                 <span>{item.productName}{item.packSize ? ` (${item.packSize})` : ""}</span>
-                <span className="font-medium">×{item.quantity}</span>
+                <span className="font-semibold">×{item.quantity}</span>
               </div>
             ))}
-            {cart.length === 0 && <p className="text-sm text-muted-foreground">No items</p>}
           </div>
-
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => {
-              setStep("name");
-              setCustomerName("");
-              setCart([]);
-              setOrderId(null);
-              setLastScanned("");
-            }}
-          >
+          <Button variant="outline" className="w-full" onClick={() => {
+            setStep("name"); setCustomerName(""); setCart([]); setOrderId(null); setLastCameraScanned("");
+          }}>
             Start a New Order
           </Button>
         </div>
@@ -256,9 +292,13 @@ export default function ShopPage() {
     );
   }
 
+  // ── Scan Step ──────────────────────────────────────────────────────────────
+  const totalUnits = cart.reduce((s, c) => s + c.quantity, 0);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
+      {/* Header */}
+      <div className="border-b bg-card px-4 py-3 flex items-center justify-between shrink-0">
         <div>
           <p className="font-semibold text-sm">{customerName}</p>
           <p className="text-xs text-muted-foreground">Order #{orderId}</p>
@@ -266,109 +306,125 @@ export default function ShopPage() {
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="gap-1">
             <ShoppingCart className="h-3 w-3" />
-            {cart.reduce((s, c) => s + c.quantity, 0)} items
+            {totalUnits}
           </Badge>
-          <Button size="sm" onClick={handleFinish} className="bg-green-700 hover:bg-green-800 text-white" data-testid="button-finish-order">
+          <Button
+            size="sm"
+            onClick={handleFinish}
+            className="bg-green-700 hover:bg-green-800 text-white"
+            data-testid="button-finish-order"
+          >
             Finish
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {!useManual ? (
-          <div className="relative bg-black" style={{ height: "40vh" }}>
-            <video ref={videoRef} className="w-full h-full object-cover" />
-            {!scannerReady && (
-              <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
-                Starting camera...
-              </div>
-            )}
-            {scannerReady && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="border-2 border-white rounded-lg w-48 h-24 opacity-60" />
-              </div>
-            )}
-            {scanFeedback && (
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                <div className="bg-black/80 text-white text-sm px-4 py-1.5 rounded-full">{scanFeedback}</div>
-              </div>
-            )}
-            <button
-              onClick={() => { stopScanner(); setUseManual(true); }}
-              className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
-            >
-              <Keyboard className="h-3 w-3" /> Manual
-            </button>
-            {scanError && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-white text-sm text-center px-4">{scanError}</p>
-              </div>
-            )}
+      {/* Barcode input — always visible, always primary */}
+      <div className="bg-card border-b px-4 py-4 space-y-3 shrink-0">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              ref={inputRef}
+              placeholder="Scan or type a barcode, then press Enter"
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBarcodeSubmit()}
+              className="pl-9 h-11 text-sm"
+              disabled={isLooking}
+              data-testid="input-barcode"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
           </div>
-        ) : (
-          <div className="bg-card border-b px-4 py-3 space-y-2">
-            <p className="text-sm font-medium flex items-center gap-1.5">
-              <ScanLine className="h-4 w-4 text-muted-foreground" />
-              Manual Barcode Entry
-            </p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Type or scan barcode..."
-                value={manualBarcode}
-                onChange={(e) => setManualBarcode(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleManualAdd()}
-                autoFocus
-                data-testid="input-manual-barcode"
-              />
-              <Button onClick={handleManualAdd} disabled={!manualBarcode.trim()}>Add</Button>
-            </div>
-            {scanFeedback && (
-              <p className="text-sm text-muted-foreground">{scanFeedback}</p>
-            )}
-            <button onClick={() => { setUseManual(false); setTimeout(startScanner, 100); }} className="text-xs text-primary underline">
-              Use Camera Instead
-            </button>
+          <Button
+            onClick={handleBarcodeSubmit}
+            disabled={!barcodeInput.trim() || isLooking}
+            className="h-11 px-4"
+            data-testid="button-add-barcode"
+          >
+            {isLooking ? "..." : "Add"}
+          </Button>
+          <Button
+            variant={cameraOpen ? "secondary" : "outline"}
+            size="icon"
+            className="h-11 w-11 shrink-0"
+            onClick={toggleCamera}
+            title={cameraOpen ? "Close camera" : "Open camera scanner"}
+          >
+            {cameraOpen ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {/* Scan feedback */}
+        {scanFeedback && (
+          <div className={`text-sm px-3 py-1.5 rounded-md font-medium ${scanFeedback.ok ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+            {scanFeedback.text}
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-          {cart.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm gap-2">
-              <ShoppingCart className="h-8 w-8 opacity-40" />
-              <p>Scan items to add them here</p>
-            </div>
-          ) : (
-            cart.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 rounded-lg border bg-card p-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.productName}</p>
-                  <p className="text-xs text-muted-foreground">{item.vendorName}{item.packSize ? ` • ${item.packSize}` : ""}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleQtyChange(item, -1)}
-                    className="h-7 w-7 rounded-full border flex items-center justify-center hover:bg-muted"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                  <button
-                    onClick={() => handleQtyChange(item, 1)}
-                    className="h-7 w-7 rounded-full border flex items-center justify-center hover:bg-muted"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => handleRemove(item)}
-                    className="ml-1 h-7 w-7 rounded-full flex items-center justify-center text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
+        {/* Camera error */}
+        {cameraError && (
+          <p className="text-sm text-destructive">{cameraError}</p>
+        )}
+
+        {/* Camera viewfinder */}
+        {cameraOpen && (
+          <div className="relative bg-black rounded-lg overflow-hidden" style={{ height: "220px" }}>
+            <video ref={videoRef} className="w-full h-full object-cover" />
+            {!cameraReady && !cameraError && (
+              <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+                Starting camera…
               </div>
-            ))
-          )}
-        </div>
+            )}
+            {cameraReady && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="border-2 border-white rounded-lg w-52 h-20 opacity-60" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Cart */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        {cart.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground text-sm gap-3">
+            <ShoppingCart className="h-10 w-10 opacity-25" />
+            <p>Scan a barcode above to add items</p>
+          </div>
+        ) : (
+          cart.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 rounded-lg border bg-card px-3 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{item.productName}</p>
+                <p className="text-xs text-muted-foreground">{item.vendorName}{item.packSize ? ` · ${item.packSize}` : ""}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => handleQtyChange(item, -1)}
+                  className="h-7 w-7 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="w-7 text-center text-sm font-semibold">{item.quantity}</span>
+                <button
+                  onClick={() => handleQtyChange(item, 1)}
+                  className="h-7 w-7 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={() => handleRemove(item)}
+                  className="ml-1 h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
