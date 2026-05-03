@@ -7,6 +7,7 @@ import {
   productsTable,
   inventoryItemsTable,
   inventoryTransactionsTable,
+  settingsTable,
 } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -485,10 +486,15 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
       orderId,
     });
 
+    const settingsRows = await db.select().from(settingsTable);
+    const fromEmailSetting = settingsRows.find(r => r.key === "fromEmail")?.value ?? null;
+
     const connectors = new ReplitConnectors();
+    const replyToLine = fromEmailSetting ? `Reply-To: ${fromEmailSetting}\r\n` : "";
     const emailB64 = Buffer.from(
       `To: ${order.vendorEmail}\r\n` +
       `Subject: Purchase Order Confirmation Request - ${order.vendorName} - Week of ${weekDateDisplay}\r\n` +
+      replyToLine +
       `MIME-Version: 1.0\r\n` +
       `Content-Type: text/html; charset=UTF-8\r\n` +
       `\r\n` +

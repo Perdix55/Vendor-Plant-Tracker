@@ -5,6 +5,7 @@ import ordersRouter from "./orders";
 import summaryRouter from "./summary";
 import vendorConfirmRouter from "./vendor-confirm";
 import inventoryRouter from "./inventory";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(ordersRouter);
 router.use(summaryRouter);
 router.use(vendorConfirmRouter);
 router.use(inventoryRouter);
+router.use(settingsRouter);
 
 export default router;

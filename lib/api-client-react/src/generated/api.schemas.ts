@@ -290,6 +290,10 @@ export interface VendorActivity {
   lastOrderDate?: string | null;
 }
 
+export interface AppSettings {
+  fromEmail?: string | null;
+}
+
 export type ListOrdersParams = {
   vendorId?: number;
   status?: ListOrdersStatus;

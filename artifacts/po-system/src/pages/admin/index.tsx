@@ -8,6 +8,8 @@ import {
   useListVendorProducts,
   useCreateProduct,
   useUpdateProduct,
+  useGetSettings,
+  useUpdateSettings,
   getListVendorsQueryKey,
   getListVendorProductsQueryKey,
 } from "@workspace/api-client-react";
@@ -23,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle } from "lucide-react";
+import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type ParsedProduct = { name: string; packSize: string };
@@ -808,6 +810,84 @@ function VendorProductsTab() {
   );
 }
 
+function SettingsTab() {
+  const { data: settings, isLoading } = useGetSettings();
+  const updateSettings = useUpdateSettings();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [fromEmail, setFromEmail] = useState<string>("");
+  const [initialized, setInitialized] = useState(false);
+
+  if (settings && !initialized) {
+    setFromEmail(settings.fromEmail ?? "");
+    setInitialized(true);
+  }
+
+  const handleSave = () => {
+    updateSettings.mutate(
+      { data: { fromEmail: fromEmail.trim() || null } },
+      {
+        onSuccess: () => {
+          toast({ title: "Settings saved", description: "Sending email address updated." });
+          queryClient.invalidateQueries({ queryKey: ["getSettings"] });
+        },
+        onError: () => toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" }),
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Email Settings</CardTitle>
+          </div>
+          <CardDescription>
+            Configure the email address used as the sender when PO confirmation emails are sent to vendors.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+              <div className="h-10 w-full bg-muted rounded animate-pulse" />
+            </div>
+          ) : (
+            <div className="space-y-4 max-w-md">
+              <div className="space-y-1.5">
+                <Label htmlFor="from-email">Sending Email Address</Label>
+                <Input
+                  id="from-email"
+                  type="email"
+                  placeholder="orders@yourcompany.com"
+                  value={fromEmail}
+                  onChange={(e) => setFromEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                  data-testid="input-from-email"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This address will appear in the "Reply-To" field on vendor emails. Leave blank to use the default Gmail account.
+                </p>
+              </div>
+              <Button
+                onClick={handleSave}
+                disabled={updateSettings.isPending}
+                data-testid="button-save-settings"
+              >
+                <Check className="mr-2 h-4 w-4" />
+                {updateSettings.isPending ? "Saving..." : "Save Settings"}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
@@ -826,12 +906,19 @@ export default function AdminPage() {
             <Package className="h-4 w-4" />
             Products
           </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-1.5">
+            <Settings className="h-4 w-4" />
+            Settings
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="vendors">
           <VendorEmailTab />
         </TabsContent>
         <TabsContent value="products">
           <VendorProductsTab />
+        </TabsContent>
+        <TabsContent value="settings">
+          <SettingsTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -631,3 +631,21 @@ export const GetVendorActivityResponseItem = zod.object({
 export const GetVendorActivityResponse = zod.array(
   GetVendorActivityResponseItem,
 );
+
+/**
+ * @summary Get app settings
+ */
+export const GetSettingsResponse = zod.object({
+  fromEmail: zod.string().nullish(),
+});
+
+/**
+ * @summary Update app settings
+ */
+export const UpdateSettingsBody = zod.object({
+  fromEmail: zod.string().nullish(),
+});
+
+export const UpdateSettingsResponse = zod.object({
+  fromEmail: zod.string().nullish(),
+});

@@ -20,6 +20,8 @@ tags:
     description: Dashboard summaries
   - name: vendorConfirm
     description: Public vendor confirmation (token-based)
+  - name: settings
+    description: App-wide settings
 
 paths:
   /healthz:
@@ -617,6 +619,36 @@ paths:
                 items:
                   $ref: "#/components/schemas/VendorActivity"
 
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get app settings
+      responses:
+        "200":
+          description: App settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSettings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update app settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppSettings"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSettings"
+
 components:
   schemas:
     HealthStatus:
@@ -1065,3 +1097,10 @@ components:
           type: string
           nullable: true
       required: [vendorId, vendorName, totalOrders]
+
+    AppSettings:
+      type: object
+      properties:
+        fromEmail:
+          type: string
+          nullable: true
