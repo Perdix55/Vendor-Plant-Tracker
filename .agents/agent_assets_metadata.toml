@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "29YCAx9-squIxKOqZU676"
+uri = "file://Vickery-PO-System-Training-Guide.md"
+type = "text"
+title = "Vickery PO System — Training Guide"
