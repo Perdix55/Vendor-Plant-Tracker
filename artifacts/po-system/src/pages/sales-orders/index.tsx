@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link } from "wouter";
-import { useListSalesOrders, useDeleteSalesOrder, getListSalesOrdersQueryKey } from "@workspace/api-client-react";
+import { useState, useRef } from "react";
+import { Link, useLocation } from "wouter";
+import { useListSalesOrders, useDeleteSalesOrder, useCreateSalesOrder, getListSalesOrdersQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { QrCode, Search, Trash2, ShoppingBag, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { QrCode, Search, Trash2, ShoppingBag, ExternalLink, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 // @ts-ignore
@@ -24,12 +25,30 @@ const statusColors: Record<string, string> = {
 export default function SalesOrdersPage() {
   const [search, setSearch] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [showNewOrder, setShowNewOrder] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
   const { data: orders, isLoading } = useListSalesOrders();
   const deleteOrder = useDeleteSalesOrder();
+  const createOrder = useCreateSalesOrder();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const shopUrl = `${window.location.origin}${import.meta.env.BASE_URL}shop`;
+
+  const handleNewOrder = async () => {
+    if (!newCustomerName.trim()) return;
+    try {
+      const order = await createOrder.mutateAsync({ data: { customerName: newCustomerName.trim() } });
+      queryClient.invalidateQueries({ queryKey: getListSalesOrdersQueryKey() });
+      setShowNewOrder(false);
+      setNewCustomerName("");
+      navigate(`/sales-orders/${order.id}`);
+    } catch {
+      toast({ title: "Failed to create order", variant: "destructive" });
+    }
+  };
 
   const filtered = (orders ?? []).filter((o) =>
     o.customerName.toLowerCase().includes(search.toLowerCase())
@@ -51,10 +70,16 @@ export default function SalesOrdersPage() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Sales Orders</h1>
           <p className="text-muted-foreground mt-1">Customer orders placed via barcode scanning.</p>
         </div>
-        <Button variant="outline" onClick={() => setShowQr(true)} className="gap-2">
-          <QrCode className="h-4 w-4" />
-          Customer QR Code
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setShowQr(true)} className="gap-2">
+            <QrCode className="h-4 w-4" />
+            Customer QR Code
+          </Button>
+          <Button onClick={() => { setShowNewOrder(true); setTimeout(() => nameInputRef.current?.focus(), 50); }} className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Order
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -146,6 +171,37 @@ export default function SalesOrdersPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showNewOrder} onOpenChange={(open) => { setShowNewOrder(open); if (!open) setNewCustomerName(""); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New Sales Order</DialogTitle>
+            <DialogDescription>Enter the customer's name to create an order. You can add items on the next screen.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-customer-name">Customer Name</Label>
+              <Input
+                id="new-customer-name"
+                ref={nameInputRef}
+                placeholder="e.g. John Smith"
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleNewOrder()}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNewOrder(false)}>Cancel</Button>
+              <Button
+                onClick={handleNewOrder}
+                disabled={!newCustomerName.trim() || createOrder.isPending}
+              >
+                {createOrder.isPending ? "Creating…" : "Create & Open"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showQr} onOpenChange={setShowQr}>
         <DialogContent className="sm:max-w-sm text-center">
