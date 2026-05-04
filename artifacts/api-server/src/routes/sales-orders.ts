@@ -7,7 +7,8 @@ import {
   productsTable,
   vendorsTable,
 } from "@workspace/db";
-import { eq, ilike, and, desc } from "drizzle-orm";
+import { eq, ilike, desc, sql } from "drizzle-orm";
+import { inventoryTransactionsTable } from "@workspace/db";
 
 const router = Router();
 
@@ -138,6 +139,14 @@ router.put("/sales-orders/:salesOrderId", async (req, res) => {
       notes?: string;
     };
 
+    // Fetch current order to detect status transition
+    const [current] = await db
+      .select({ status: salesOrdersTable.status })
+      .from(salesOrdersTable)
+      .where(eq(salesOrdersTable.id, id));
+
+    if (!current) return res.status(404).json({ error: "Sales order not found" });
+
     await db
       .update(salesOrdersTable)
       .set({
@@ -147,6 +156,37 @@ router.put("/sales-orders/:salesOrderId", async (req, res) => {
         updatedAt: new Date(),
       })
       .where(eq(salesOrdersTable.id, id));
+
+    // Deduct inventory when transitioning to "completed" (only once)
+    if (status === "completed" && current.status !== "completed") {
+      const items = await db
+        .select()
+        .from(salesOrderItemsTable)
+        .where(eq(salesOrderItemsTable.salesOrderId, id));
+
+      for (const item of items) {
+        // Decrement quantity on hand (floor at 0)
+        await db
+          .update(inventoryItemsTable)
+          .set({
+            quantityOnHand: sql`GREATEST(0, ${inventoryItemsTable.quantityOnHand} - ${item.quantity})`,
+            updatedAt: new Date(),
+          })
+          .where(eq(inventoryItemsTable.id, item.inventoryItemId));
+
+        // Record the transaction
+        await db.insert(inventoryTransactionsTable).values({
+          productId: item.productId,
+          vendorId: item.vendorId,
+          orderId: null,
+          type: "sale",
+          quantity: -item.quantity,
+          notes: `Sales order #${id} — ${item.productName}`,
+        });
+      }
+
+      req.log.info({ salesOrderId: id, itemCount: items.length }, "Inventory deducted for completed sales order");
+    }
 
     const order = await getSalesOrderWithItems(id);
     if (!order) return res.status(404).json({ error: "Sales order not found" });
