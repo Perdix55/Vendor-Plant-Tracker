@@ -5,7 +5,15 @@ import { useAddSalesOrderItem, useCreateSalesOrder, useUpdateSalesOrderItem, use
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Trash2, Camera, CameraOff, Leaf, CheckCircle2, ShoppingCart, ScanLine } from "lucide-react";
+import { Minus, Plus, Trash2, Camera, CameraOff, Leaf, CheckCircle2, ShoppingCart, ScanLine, Package } from "lucide-react";
+
+type InventorySuggestion = {
+  id: number;
+  productName: string;
+  vendorName: string;
+  packSize: string | null;
+  quantityOnHand: number;
+};
 
 type CartItem = {
   id: number;
@@ -29,13 +37,18 @@ export default function ShopPage() {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [isLooking, setIsLooking] = useState(false);
+  const [suggestions, setSuggestions] = useState<InventorySuggestion[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputWrapperRef = useRef<HTMLDivElement>(null);
   // Quagga needs a div container — it creates the video + canvas elements itself
   const cameraContainerRef = useRef<HTMLDivElement>(null);
   const quaggaRunning = useRef(false);
   const cooldownRef = useRef(false);
   const lastScannedRef = useRef("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keep a stable ref to orderId + cart so Quagga callbacks see current values
   const orderIdRef = useRef<number | null>(null);
   const cartRef = useRef<CartItem[]>([]);
@@ -56,6 +69,44 @@ export default function ShopPage() {
     const t = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(t);
   }, [step]);
+
+  // Debounced autocomplete fetch
+  useEffect(() => {
+    const q = barcodeInput.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(q)}`);
+        const rows: InventorySuggestion[] = await resp.json();
+        setSuggestions(rows.slice(0, 8));
+        setShowDropdown(rows.length > 0);
+        setHighlightedIndex(-1);
+      } catch {
+        // silently ignore
+      }
+    }, 280);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [barcodeInput]);
+
+  // Close dropdown when clicking outside the input wrapper
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (inputWrapperRef.current && !inputWrapperRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+        setHighlightedIndex(-1);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // ── Quagga camera controls ─────────────────────────────────────────────────
 
@@ -136,6 +187,23 @@ export default function ShopPage() {
     setTimeout(() => inputRef.current?.focus(), 350);
   };
 
+  // ── Autocomplete selection ─────────────────────────────────────────────────
+
+  const selectSuggestion = async (item: InventorySuggestion) => {
+    setShowDropdown(false);
+    setSuggestions([]);
+    setBarcodeInput("");
+    setHighlightedIndex(-1);
+    setIsLooking(true);
+    try {
+      await addOrUpdateCartItem(item);
+    } catch {
+      showFeedback("Error adding item", false);
+    }
+    setIsLooking(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
   // ── Barcode lookup & cart mutation ─────────────────────────────────────────
 
   const showFeedback = (text: string, ok: boolean) => {
@@ -143,22 +211,11 @@ export default function ShopPage() {
     setTimeout(() => setScanFeedback(null), 2500);
   };
 
-  const lookupAndAdd = async (barcode: string): Promise<void> => {
+  // Shared: add (or increment) an already-resolved inventory item in the cart
+  const addOrUpdateCartItem = async (inv: Pick<InventorySuggestion, "id" | "productName" | "vendorName" | "packSize">) => {
     const oid = orderIdRef.current;
-    if (!oid || !barcode.trim()) return;
-
-    const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode.trim())}`);
-    const items: Array<{ id: number; productName: string; vendorName: string; packSize: string | null }> = await resp.json();
-
-    if (!items.length) {
-      showFeedback(`Not found: "${barcode}"`, false);
-      return;
-    }
-
-    const inv = items[0];
-    const current = cartRef.current;
-    const existing = current.find((c) => c.inventoryItemId === inv.id);
-
+    if (!oid) return;
+    const existing = cartRef.current.find((c) => c.inventoryItemId === inv.id);
     if (existing) {
       const newQty = existing.quantity + 1;
       await updateItem.mutateAsync({ salesOrderId: oid, itemId: existing.id, data: { quantity: newQty } });
@@ -174,15 +231,31 @@ export default function ShopPage() {
     }
   };
 
-  // Called from Quagga callback (no async — fire and forget)
+  // Fetch by barcode string then add — used by camera + text-submit
+  const lookupAndAdd = async (barcode: string): Promise<void> => {
+    const oid = orderIdRef.current;
+    if (!oid || !barcode.trim()) return;
+    const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode.trim())}`);
+    const items: InventorySuggestion[] = await resp.json();
+    if (!items.length) { showFeedback(`Not found: "${barcode}"`, false); return; }
+    await addOrUpdateCartItem(items[0]);
+  };
+
+  // Called from Quagga callback (fire and forget)
   const handleBarcodeDetected = (barcode: string) => {
     lookupAndAdd(barcode).catch(() => showFeedback("Error looking up item", false));
   };
 
-  // Called from the text input
+  // Called when user presses Enter or the Add button
   const handleBarcodeSubmit = async () => {
+    // If a suggestion is highlighted, select it instead of doing a lookup
+    if (showDropdown && highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+      await selectSuggestion(suggestions[highlightedIndex]);
+      return;
+    }
     const barcode = barcodeInput.trim();
     if (!barcode || !orderId) return;
+    setShowDropdown(false);
     setBarcodeInput("");
     setIsLooking(true);
     try {
@@ -192,6 +265,30 @@ export default function ShopPage() {
     }
     setIsLooking(false);
     inputRef.current?.focus();
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown || suggestions.length === 0) {
+      if (e.key === "Enter") handleBarcodeSubmit();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
+        selectSuggestion(suggestions[highlightedIndex]);
+      } else {
+        handleBarcodeSubmit();
+      }
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+      setHighlightedIndex(-1);
+    }
   };
 
   // ── Cart item controls ─────────────────────────────────────────────────────
@@ -330,14 +427,16 @@ export default function ShopPage() {
       {/* Barcode input — always visible and focused */}
       <div className="bg-card border-b px-4 py-4 space-y-3 shrink-0">
         <div className="flex gap-2">
-          <div className="relative flex-1">
-            <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {/* Input + autocomplete dropdown */}
+          <div ref={inputWrapperRef} className="relative flex-1">
+            <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
             <Input
               ref={inputRef}
-              placeholder="Scan or type a barcode, then press Enter"
+              placeholder="Scan barcode or type product name…"
               value={barcodeInput}
-              onChange={(e) => setBarcodeInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleBarcodeSubmit()}
+              onChange={(e) => { setBarcodeInput(e.target.value); setShowDropdown(true); }}
+              onKeyDown={handleInputKeyDown}
+              onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
               className="pl-9 h-11 text-sm"
               disabled={isLooking}
               data-testid="input-barcode"
@@ -345,7 +444,31 @@ export default function ShopPage() {
               autoCorrect="off"
               spellCheck={false}
             />
+
+            {/* Autocomplete dropdown */}
+            {showDropdown && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border bg-popover shadow-lg overflow-hidden">
+                {suggestions.map((item, idx) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); selectSuggestion(item); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${idx === highlightedIndex ? "bg-accent" : "hover:bg-muted"}`}
+                  >
+                    <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate leading-tight">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {item.vendorName}{item.packSize ? ` · ${item.packSize}` : ""}
+                        {item.quantityOnHand != null ? ` · ${item.quantityOnHand} in stock` : ""}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
           <Button
             onClick={handleBarcodeSubmit}
             disabled={!barcodeInput.trim() || isLooking}
