@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import Quagga from "@ericblade/quagga2";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAddSalesOrderItem, useCreateSalesOrder, useUpdateSalesOrderItem, useDeleteSalesOrderItem } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -27,68 +28,101 @@ export default function ShopPage() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
-  const [lastCameraScanned, setLastCameraScanned] = useState("");
   const [isLooking, setIsLooking] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const scanControlsRef = useRef<{ stop: () => void } | null>(null);
-  const cameraCooldownRef = useRef(false);
-  const queryClient = useQueryClient();
+  // Quagga needs a div container — it creates the video + canvas elements itself
+  const cameraContainerRef = useRef<HTMLDivElement>(null);
+  const quaggaRunning = useRef(false);
+  const cooldownRef = useRef(false);
+  const lastScannedRef = useRef("");
+  // Keep a stable ref to orderId + cart so Quagga callbacks see current values
+  const orderIdRef = useRef<number | null>(null);
+  const cartRef = useRef<CartItem[]>([]);
 
+  const queryClient = useQueryClient();
   const createSalesOrder = useCreateSalesOrder();
   const addItem = useAddSalesOrderItem();
   const updateItem = useUpdateSalesOrderItem();
   const deleteItem = useDeleteSalesOrderItem();
 
-  // Keep the barcode input focused whenever it's the scan step
+  // Keep refs in sync
+  useEffect(() => { orderIdRef.current = orderId; }, [orderId]);
+  useEffect(() => { cartRef.current = cart; }, [cart]);
+
+  // Auto-focus text input when scan step opens
   useEffect(() => {
     if (step !== "scan") return;
     const t = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(t);
   }, [step]);
 
+  // ── Quagga camera controls ─────────────────────────────────────────────────
+
   const stopCamera = useCallback(() => {
-    if (scanControlsRef.current) {
-      scanControlsRef.current.stop();
-      scanControlsRef.current = null;
-    }
+    if (!quaggaRunning.current) return;
+    Quagga.offDetected();
+    Quagga.stop();
+    quaggaRunning.current = false;
     setCameraReady(false);
   }, []);
 
-  useEffect(() => {
-    return () => stopCamera();
-  }, [stopCamera]);
+  useEffect(() => () => { stopCamera(); }, [stopCamera]);
 
-  const startCamera = useCallback(async () => {
-    if (!videoRef.current) return;
+  const startCamera = useCallback(() => {
+    if (!cameraContainerRef.current || quaggaRunning.current) return;
     setCameraError("");
     setCameraReady(false);
-    try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      const controls = await reader.decodeFromVideoDevice(
-        undefined,
-        videoRef.current,
-        (result) => {
-          if (result && !cameraCooldownRef.current) {
-            const text = result.getText();
-            if (text !== lastCameraScanned) {
-              cameraCooldownRef.current = true;
-              setLastCameraScanned(text);
-              handleBarcodeFound(text);
-              setTimeout(() => { cameraCooldownRef.current = false; }, 2000);
-            }
-          }
+
+    Quagga.init(
+      {
+        inputStream: {
+          type: "LiveStream",
+          target: cameraContainerRef.current,
+          constraints: {
+            facingMode: "environment",   // rear camera on phones
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        },
+        decoder: {
+          readers: [
+            "code_128_reader",
+            "ean_reader",
+            "ean_8_reader",
+            "code_39_reader",
+            "upc_reader",
+          ],
+          // Require two consecutive identical reads to reduce false positives
+          multiple: false,
+        },
+        locate: true,
+        frequency: 10,   // decode attempts per second
+      },
+      (err) => {
+        if (err) {
+          setCameraError("Camera not available or permission denied.");
+          setCameraOpen(false);
+          return;
         }
-      );
-      scanControlsRef.current = controls;
-      setCameraReady(true);
-    } catch {
-      setCameraError("Camera not available or permission denied.");
-      setCameraOpen(false);
-    }
-  }, [lastCameraScanned]);
+        Quagga.start();
+        quaggaRunning.current = true;
+        setCameraReady(true);
+
+        Quagga.onDetected((result) => {
+          const code = result.codeResult.code;
+          if (!code) return;
+          if (cooldownRef.current) return;
+          if (code === lastScannedRef.current) return;
+
+          cooldownRef.current = true;
+          lastScannedRef.current = code;
+          handleBarcodeDetected(code);
+          setTimeout(() => { cooldownRef.current = false; }, 2000);
+        });
+      }
+    );
+  }, []);   // no deps — reads from refs
 
   const toggleCamera = () => {
     if (cameraOpen) {
@@ -96,97 +130,71 @@ export default function ShopPage() {
       setCameraOpen(false);
     } else {
       setCameraOpen(true);
-      setTimeout(startCamera, 150);
+      // DOM needs a tick to render the container before Quagga can attach
+      setTimeout(startCamera, 200);
     }
-    // Re-focus the input after toggling
-    setTimeout(() => inputRef.current?.focus(), 300);
+    setTimeout(() => inputRef.current?.focus(), 350);
   };
+
+  // ── Barcode lookup & cart mutation ─────────────────────────────────────────
 
   const showFeedback = (text: string, ok: boolean) => {
     setScanFeedback({ text, ok });
     setTimeout(() => setScanFeedback(null), 2500);
   };
 
-  const handleBarcodeFound = async (barcode: string) => {
-    if (!orderId || !barcode.trim()) return;
-    setIsLooking(true);
-    try {
-      const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode.trim())}`);
-      const items: Array<{ id: number; productName: string; vendorName: string; packSize: string | null }> = await resp.json();
+  const lookupAndAdd = async (barcode: string): Promise<void> => {
+    const oid = orderIdRef.current;
+    if (!oid || !barcode.trim()) return;
 
-      if (!items.length) {
-        showFeedback(`Not found: "${barcode}"`, false);
-        setIsLooking(false);
-        return;
-      }
+    const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode.trim())}`);
+    const items: Array<{ id: number; productName: string; vendorName: string; packSize: string | null }> = await resp.json();
 
-      const inv = items[0];
-      // Use functional state update to get latest cart
-      setCart((prev) => {
-        const existing = prev.find((c) => c.inventoryItemId === inv.id);
-        if (existing) {
-          const newQty = existing.quantity + 1;
-          updateItem.mutateAsync({ salesOrderId: orderId!, itemId: existing.id, data: { quantity: newQty } });
-          showFeedback(`+1 → ${inv.productName}`, true);
-          return prev.map((c) => (c.id === existing.id ? { ...c, quantity: newQty } : c));
-        } else {
-          addItem.mutateAsync({ salesOrderId: orderId!, data: { inventoryItemId: inv.id, quantity: 1 } }).then((added) => {
-            setCart((p) => p.some((c) => c.inventoryItemId === inv.id && c.id !== added.id)
-              ? p
-              : p.map((c) => c.inventoryItemId === inv.id && c.id === 0 ? { ...c, id: added.id } : c));
-          });
-          showFeedback(`Added: ${inv.productName}`, true);
-          return [
-            ...prev,
-            { id: 0, inventoryItemId: inv.id, productName: inv.productName, vendorName: inv.vendorName, packSize: inv.packSize, quantity: 1 },
-          ];
-        }
-      });
-    } catch {
-      showFeedback("Error looking up item", false);
+    if (!items.length) {
+      showFeedback(`Not found: "${barcode}"`, false);
+      return;
     }
-    setIsLooking(false);
+
+    const inv = items[0];
+    const current = cartRef.current;
+    const existing = current.find((c) => c.inventoryItemId === inv.id);
+
+    if (existing) {
+      const newQty = existing.quantity + 1;
+      await updateItem.mutateAsync({ salesOrderId: oid, itemId: existing.id, data: { quantity: newQty } });
+      setCart((prev) => prev.map((c) => (c.id === existing.id ? { ...c, quantity: newQty } : c)));
+      showFeedback(`+1 → ${inv.productName}`, true);
+    } else {
+      const added = await addItem.mutateAsync({ salesOrderId: oid, data: { inventoryItemId: inv.id, quantity: 1 } });
+      setCart((prev) => [
+        ...prev,
+        { id: added.id, inventoryItemId: inv.id, productName: inv.productName, vendorName: inv.vendorName, packSize: inv.packSize, quantity: 1 },
+      ]);
+      showFeedback(`Added: ${inv.productName}`, true);
+    }
   };
 
-  // Simpler version using ref-stable cart for add
+  // Called from Quagga callback (no async — fire and forget)
+  const handleBarcodeDetected = (barcode: string) => {
+    lookupAndAdd(barcode).catch(() => showFeedback("Error looking up item", false));
+  };
+
+  // Called from the text input
   const handleBarcodeSubmit = async () => {
     const barcode = barcodeInput.trim();
     if (!barcode || !orderId) return;
     setBarcodeInput("");
     setIsLooking(true);
     try {
-      const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode)}`);
-      const items: Array<{ id: number; productName: string; vendorName: string; packSize: string | null }> = await resp.json();
-
-      if (!items.length) {
-        showFeedback(`Not found: "${barcode}"`, false);
-        setIsLooking(false);
-        inputRef.current?.focus();
-        return;
-      }
-
-      const inv = items[0];
-      const existing = cart.find((c) => c.inventoryItemId === inv.id);
-
-      if (existing) {
-        const newQty = existing.quantity + 1;
-        await updateItem.mutateAsync({ salesOrderId: orderId, itemId: existing.id, data: { quantity: newQty } });
-        setCart((prev) => prev.map((c) => (c.id === existing.id ? { ...c, quantity: newQty } : c)));
-        showFeedback(`+1 → ${inv.productName}`, true);
-      } else {
-        const added = await addItem.mutateAsync({ salesOrderId: orderId, data: { inventoryItemId: inv.id, quantity: 1 } });
-        setCart((prev) => [
-          ...prev,
-          { id: added.id, inventoryItemId: inv.id, productName: inv.productName, vendorName: inv.vendorName, packSize: inv.packSize, quantity: 1 },
-        ]);
-        showFeedback(`Added: ${inv.productName}`, true);
-      }
+      await lookupAndAdd(barcode);
     } catch {
       showFeedback("Error looking up item", false);
     }
     setIsLooking(false);
     inputRef.current?.focus();
   };
+
+  // ── Cart item controls ─────────────────────────────────────────────────────
 
   const handleQtyChange = async (item: CartItem, delta: number) => {
     if (!orderId) return;
@@ -221,7 +229,7 @@ export default function ShopPage() {
     queryClient.invalidateQueries({ queryKey: ["listSalesOrders"] });
   };
 
-  // ── Name Step ──────────────────────────────────────────────────────────────
+  // ── Name step ──────────────────────────────────────────────────────────────
   if (step === "name") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -259,7 +267,7 @@ export default function ShopPage() {
     );
   }
 
-  // ── Done Step ──────────────────────────────────────────────────────────────
+  // ── Done step ──────────────────────────────────────────────────────────────
   if (step === "done") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -282,7 +290,8 @@ export default function ShopPage() {
             ))}
           </div>
           <Button variant="outline" className="w-full" onClick={() => {
-            setStep("name"); setCustomerName(""); setCart([]); setOrderId(null); setLastCameraScanned("");
+            setStep("name"); setCustomerName(""); setCart([]); setOrderId(null);
+            lastScannedRef.current = "";
           }}>
             Start a New Order
           </Button>
@@ -291,7 +300,7 @@ export default function ShopPage() {
     );
   }
 
-  // ── Scan Step ──────────────────────────────────────────────────────────────
+  // ── Scan step ──────────────────────────────────────────────────────────────
   const totalUnits = cart.reduce((s, c) => s + c.quantity, 0);
 
   return (
@@ -318,7 +327,7 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Barcode input — always visible, always primary */}
+      {/* Barcode input — always visible and focused */}
       <div className="bg-card border-b px-4 py-4 space-y-3 shrink-0">
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -343,43 +352,44 @@ export default function ShopPage() {
             className="h-11 px-4"
             data-testid="button-add-barcode"
           >
-            {isLooking ? "..." : "Add"}
+            {isLooking ? "…" : "Add"}
           </Button>
           <Button
             variant={cameraOpen ? "secondary" : "outline"}
             size="icon"
             className="h-11 w-11 shrink-0"
             onClick={toggleCamera}
-            title={cameraOpen ? "Close camera" : "Open camera scanner"}
+            title={cameraOpen ? "Close camera" : "Use camera to scan"}
           >
             {cameraOpen ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
           </Button>
         </div>
 
-        {/* Scan feedback */}
+        {/* Feedback banner */}
         {scanFeedback && (
           <div className={`text-sm px-3 py-1.5 rounded-md font-medium ${scanFeedback.ok ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
             {scanFeedback.text}
           </div>
         )}
+        {cameraError && <p className="text-sm text-destructive">{cameraError}</p>}
 
-        {/* Camera error */}
-        {cameraError && (
-          <p className="text-sm text-destructive">{cameraError}</p>
-        )}
-
-        {/* Camera viewfinder */}
+        {/* Quagga camera viewfinder */}
         {cameraOpen && (
-          <div className="relative bg-black rounded-lg overflow-hidden" style={{ height: "220px" }}>
-            <video ref={videoRef} className="w-full h-full object-cover" />
+          <div className="relative rounded-lg overflow-hidden bg-black" style={{ height: 240 }}>
+            {/* Quagga renders <video> + <canvas> inside this div */}
+            <div
+              ref={cameraContainerRef}
+              className="w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover [&_canvas]:absolute [&_canvas]:inset-0 [&_canvas]:w-full [&_canvas]:h-full"
+            />
             {!cameraReady && !cameraError && (
-              <div className="absolute inset-0 flex items-center justify-center text-white text-sm">
+              <div className="absolute inset-0 flex items-center justify-center text-white text-sm bg-black/60">
                 Starting camera…
               </div>
             )}
             {cameraReady && (
+              /* Aim guide overlay */
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="border-2 border-white rounded-lg w-52 h-20 opacity-60" />
+                <div className="border-2 border-white/80 rounded-lg w-56 h-20 shadow-lg" />
               </div>
             )}
           </div>
