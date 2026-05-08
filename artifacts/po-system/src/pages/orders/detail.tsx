@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import JsBarcode from "jsbarcode";
+import { buildPlantLabel, printZpl } from "@/lib/zebra-print";
 import { useRoute, useLocation, Link } from "wouter";
 import { 
   useGetOrder, 
@@ -64,29 +64,35 @@ export default function OrderDetail() {
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editingQty, setEditingQty] = useState<number>(1);
   const [labelQtys, setLabelQtys] = useState<Record<number, number>>({});
+  const [printingItemId, setPrintingItemId] = useState<number | null>(null);
 
-  const printBarcodeLabels = useCallback((productName: string, productId: number, packSize: string | null | undefined, qty: number) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast({ title: "Popup blocked", description: "Please allow popups to print labels.", variant: "destructive" });
-      return;
+  const printBarcodeLabels = useCallback(async (
+    productName: string,
+    productId: number,
+    vendorName: string,
+    packSize: string | null | undefined,
+    qty: number,
+    itemId: number,
+  ) => {
+    setPrintingItemId(itemId);
+    const zpl = buildPlantLabel({ productName, productId, vendorName, packSize, qty });
+    const result = await printZpl(zpl);
+    setPrintingItemId(null);
+
+    if (result.ok) {
+      toast({ title: `Sent ${qty} label${qty !== 1 ? "s" : ""} to Zebra printer` });
+    } else {
+      toast({
+        title:
+          result.reason === "not_installed"
+            ? "Zebra Browser Print not found"
+            : result.reason === "no_printer"
+            ? "No printer configured"
+            : "Print failed",
+        description: result.message,
+        variant: "destructive",
+      });
     }
-    const barcodeValue = String(productId).padStart(8, "0");
-    const tempSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    document.body.appendChild(tempSvg);
-    JsBarcode(tempSvg, barcodeValue, { format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 9, margin: 4 });
-    const svgHtml = tempSvg.outerHTML;
-    document.body.removeChild(tempSvg);
-    const labelHtml = `<div class="label">${svgHtml}<div class="product-name">${productName}</div>${packSize && packSize !== "N/A" ? `<div class="pack-size">Pack: ${packSize}</div>` : ""}</div>`;
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>Labels</title><style>
-      *{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif}
-      .grid{display:flex;flex-wrap:wrap;gap:6px;padding:6px}
-      .label{width:2.625in;border:1px solid #ddd;padding:4px 6px;display:flex;flex-direction:column;align-items:center;break-inside:avoid}
-      .label svg{max-width:100%}.product-name{font-size:8pt;font-weight:bold;text-align:center;margin-top:2px;word-break:break-word;max-width:2.4in}
-      .pack-size{font-size:7pt;color:#666;text-align:center}
-      @media print{@page{margin:.25in}}
-    </style></head><body onload="window.print();setTimeout(()=>window.close(),1000)"><div class="grid">${Array.from({ length: qty }).map(() => labelHtml).join("")}</div></body></html>`);
-    printWindow.document.close();
   }, [toast]);
 
   const startEditItem = (itemId: number, currentQty: number) => {
@@ -562,11 +568,14 @@ export default function OrderDetail() {
                                     size="sm"
                                     variant="outline"
                                     className="h-8 px-2"
+                                    disabled={printingItemId === item.id}
                                     onClick={() => printBarcodeLabels(
                                       item.productName,
                                       item.productId,
+                                      order.vendorName,
                                       item.packSize ? String(item.packSize) : null,
-                                      labelQtys[item.id] ?? (item.packSize ? parseInt(String(item.packSize)) || 1 : 1)
+                                      labelQtys[item.id] ?? (item.packSize ? parseInt(String(item.packSize)) || 1 : 1),
+                                      item.id,
                                     )}
                                   >
                                     <Printer className="h-3.5 w-3.5" />

@@ -43,10 +43,9 @@ export default function ShopPage() {
 
   // Keep the barcode input focused whenever it's the scan step
   useEffect(() => {
-    if (step === "scan") {
-      const t = setTimeout(() => inputRef.current?.focus(), 100);
-      return () => clearTimeout(t);
-    }
+    if (step !== "scan") return;
+    const t = setTimeout(() => inputRef.current?.focus(), 100);
+    return () => clearTimeout(t);
   }, [step]);
 
   const stopCamera = useCallback(() => {

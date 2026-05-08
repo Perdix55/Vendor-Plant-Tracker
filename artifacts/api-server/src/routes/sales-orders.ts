@@ -7,7 +7,7 @@ import {
   productsTable,
   vendorsTable,
 } from "@workspace/db";
-import { eq, ilike, desc, sql } from "drizzle-orm";
+import { eq, ilike, desc, sql, or } from "drizzle-orm";
 import { inventoryTransactionsTable } from "@workspace/db";
 
 const router = Router();
@@ -32,7 +32,14 @@ router.get("/inventory/lookup", async (req, res) => {
       .from(inventoryItemsTable)
       .innerJoin(productsTable, eq(productsTable.id, inventoryItemsTable.productId))
       .innerJoin(vendorsTable, eq(vendorsTable.id, inventoryItemsTable.vendorId))
-      .where(ilike(productsTable.name, `%${q}%`));
+      .where(
+        /^\d+$/.test(q)
+          ? or(
+              eq(inventoryItemsTable.productId, parseInt(q, 10)),
+              ilike(productsTable.name, `%${q}%`)
+            )
+          : ilike(productsTable.name, `%${q}%`)
+      );
 
     res.json(rows);
   } catch (err) {
