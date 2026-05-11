@@ -155,58 +155,42 @@ export function printLabelNative(opts: {
       ? `${vendorName}  |  Pack: ${packSize}`
       : vendorName;
 
-  // Render barcode to SVG using JsBarcode.
-  // height=62 becomes the visual *width* of the right column after 90° CW rotation (~0.65" on a 1" tall label).
-  // width=1 keeps the total bar span ≈95px ≈ 0.99" which fills the 1" label height.
+  // Render barcode to SVG — no rotation applied here.
+  // The Zebra GK420d feeds labels in portrait (1.25" wide × 2.25" tall), so we
+  // design the HTML page in portrait and let the printer output it at its natural
+  // orientation. The user reads the finished label in landscape (rotated 90°).
   const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   JsBarcode(svgEl, barcodeValue, {
     format: "CODE128",
-    width: 1,
-    height: 62,
+    width: 1.5,
+    height: 50,
     displayValue: true,
-    fontSize: 8,
-    margin: 2,
+    fontSize: 9,
+    margin: 4,
     background: "#ffffff",
     lineColor: "#000000",
   });
 
-  const bcW = parseFloat(svgEl.getAttribute("width")  ?? "100");
-  const bcH = parseFloat(svgEl.getAttribute("height") ?? "70");
-
-  // Pre-rotate the SVG 90° CW at the SVG level using a matrix transform.
-  // Resulting image size: width=bcH, height=bcW — so flexbox sees the correct portrait dimensions.
-  // matrix(0,1,-1,0, bcH,0) maps (x,y) → (−y+bcH, x): a 90° CW rotation about the origin, shifted right by bcH.
-  const rotSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  rotSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  rotSvg.setAttribute("width",   String(bcH));
-  rotSvg.setAttribute("height",  String(bcW));
-  rotSvg.setAttribute("viewBox", `0 0 ${bcH} ${bcW}`);
-  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  g.setAttribute("transform", `matrix(0,1,-1,0,${bcH},0)`);
-  Array.from(svgEl.childNodes).forEach(n => g.appendChild(n.cloneNode(true)));
-  rotSvg.appendChild(g);
-
-  const svgData = new XMLSerializer().serializeToString(rotSvg);
+  const svgData = new XMLSerializer().serializeToString(svgEl);
   const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`;
 
   const safeName = productName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeVendor = vendorLine.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // The pre-rotated SVG has intrinsic size bcH × bcW (portrait).
-  // Flexbox can size it naturally — no absolute positioning needed.
+  // Portrait layout: 1.25" wide × 2.25" tall — matches Zebra's feed direction.
+  // Text at top, barcode at bottom. The printer outputs this and the finished
+  // label is read in landscape (user rotates 90°).
   const labelHtml = Array.from(
     { length: qty },
     (_, i) => `
     <div class="label${i > 0 ? " break" : ""}">
-      <div class="text-area">
-        <div class="name">${safeName}</div>
-        <div class="vendor">${safeVendor}</div>
-      </div>
+      <div class="name">${safeName}</div>
+      <div class="vendor">${safeVendor}</div>
       <img src="${svgUrl}" class="barcode" alt="${barcodeValue}" />
     </div>`
   ).join("\n");
 
-  const win = window.open("", "_blank", "width=420,height=300,menubar=no,toolbar=no");
+  const win = window.open("", "_blank", "width=280,height=420,menubar=no,toolbar=no");
   if (!win) {
     alert("Pop-up blocked — please allow pop-ups for this site and try again.");
     return;
@@ -218,57 +202,52 @@ export function printLabelNative(opts: {
 <meta charset="utf-8" />
 <title>Print Labels — ${safeName}</title>
 <style>
-  @page { size: 2.25in 1.25in; margin: 0; }
+  @page { size: 1.25in 2.25in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 2.25in; background: #fff; font-family: Arial, Helvetica, sans-serif; }
+  body { width: 1.25in; background: #fff; font-family: Arial, Helvetica, sans-serif; }
   .label {
-    width: 2.25in;
-    height: 1.25in;
+    width: 1.25in;
+    height: 2.25in;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    padding: 3px 2px 3px 4px;
+    justify-content: space-between;
+    padding: 5px 4px 4px;
     overflow: hidden;
     background: #fff;
   }
   .label.break { page-break-before: always; }
-  .text-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
-    padding-right: 3px;
-    min-width: 0;
-  }
   .name {
-    font-size: 8.5pt;
+    font-size: 8pt;
     font-weight: bold;
-    line-height: 1.2;
+    text-align: center;
+    line-height: 1.25;
+    width: 100%;
     overflow: hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
   }
   .vendor {
     font-size: 6.5pt;
-    margin-top: 2px;
+    text-align: center;
+    width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: #333;
+    margin-top: 3px;
   }
   .barcode {
-    height: 0.92in;
-    width: auto;
-    flex-shrink: 0;
+    width: 1.15in;
+    height: auto;
     display: block;
+    margin-top: auto;
   }
   @media screen {
-    body { background: #e5e5e5; padding: 12px; }
-    .label { border: 1px solid #999; border-radius: 2px; margin-bottom: 10px; background: #fff; }
+    body { background: #e5e5e5; padding: 12px; width: auto; }
+    .label { border: 1px solid #999; border-radius: 2px; margin-bottom: 14px; background: #fff; display: inline-flex; }
     .instructions {
-      font-family: Arial, sans-serif;
       font-size: 12px;
       color: #444;
       background: #fffbe6;
@@ -277,6 +256,7 @@ export function printLabelNative(opts: {
       padding: 8px 12px;
       margin-bottom: 12px;
       line-height: 1.5;
+      max-width: 320px;
     }
     .print-btn {
       display: block;
@@ -297,9 +277,8 @@ export function printLabelNative(opts: {
 </head>
 <body>
 <div class="instructions">
-  <strong>Before printing:</strong> in the print dialog select your <strong>GK420d</strong> printer,
-  then under paper size choose <strong>2.25 × 1.25 inch</strong> label stock.
-  Disable headers &amp; footers if shown.
+  <strong>Before printing:</strong> select <strong>GK420d</strong>, paper size
+  <strong>1.25 × 2.25 in</strong> (portrait). Disable headers &amp; footers.
 </div>
 <button class="print-btn" onclick="window.print()">Print ${qty} label${qty !== 1 ? "s" : ""}</button>
 ${labelHtml}
