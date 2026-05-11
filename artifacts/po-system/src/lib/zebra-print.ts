@@ -156,38 +156,44 @@ export function printLabelNative(opts: {
       : vendorName;
 
   // Render barcode to SVG using JsBarcode.
-  // The barcode will be rotated 90° CW on the label.
-  // height=72 becomes the visual *width* after rotation (fits in right column of label).
+  // height=62 becomes the visual *width* of the right column after 90° CW rotation (~0.65" on a 1" tall label).
+  // width=1 keeps the total bar span ≈95px ≈ 0.99" which fills the 1" label height.
   const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   JsBarcode(svgEl, barcodeValue, {
     format: "CODE128",
-    width: 1.4,
-    height: 72,
+    width: 1,
+    height: 62,
     displayValue: true,
-    fontSize: 9,
+    fontSize: 8,
     margin: 2,
     background: "#ffffff",
     lineColor: "#000000",
   });
 
-  // Capture rendered dimensions so the rotation wrapper can be sized exactly.
-  const bcW = parseFloat(svgEl.getAttribute("width") ?? "120");
-  const bcH = parseFloat(svgEl.getAttribute("height") ?? "84");
-  // After rotate(90deg): visual width = bcH, visual height = bcW
-  const wrapW = Math.ceil(bcH);
-  const wrapH = Math.ceil(bcW);
-  // Offset to keep image centred inside the wrapper after CSS rotation
-  const imgLeft = Math.round((bcH - bcW) / 2);
-  const imgTop  = Math.round((bcW - bcH) / 2);
+  const bcW = parseFloat(svgEl.getAttribute("width")  ?? "100");
+  const bcH = parseFloat(svgEl.getAttribute("height") ?? "70");
 
-  const svgData = new XMLSerializer().serializeToString(svgEl);
+  // Pre-rotate the SVG 90° CW at the SVG level using a matrix transform.
+  // Resulting image size: width=bcH, height=bcW — so flexbox sees the correct portrait dimensions.
+  // matrix(0,1,-1,0, bcH,0) maps (x,y) → (−y+bcH, x): a 90° CW rotation about the origin, shifted right by bcH.
+  const rotSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  rotSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  rotSvg.setAttribute("width",   String(bcH));
+  rotSvg.setAttribute("height",  String(bcW));
+  rotSvg.setAttribute("viewBox", `0 0 ${bcH} ${bcW}`);
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("transform", `matrix(0,1,-1,0,${bcH},0)`);
+  Array.from(svgEl.childNodes).forEach(n => g.appendChild(n.cloneNode(true)));
+  rotSvg.appendChild(g);
+
+  const svgData = new XMLSerializer().serializeToString(rotSvg);
   const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`;
 
   const safeName = productName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeVendor = vendorLine.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // Label block HTML uses inline styles for the rotation wrapper so the exact
-  // pixel dimensions calculated above can be injected without a template step.
+  // The pre-rotated SVG has intrinsic size bcH × bcW (portrait).
+  // Flexbox can size it naturally — no absolute positioning needed.
   const labelHtml = Array.from(
     { length: qty },
     (_, i) => `
@@ -196,14 +202,11 @@ export function printLabelNative(opts: {
         <div class="name">${safeName}</div>
         <div class="vendor">${safeVendor}</div>
       </div>
-      <div class="barcode-col" style="width:${wrapW}px;height:${wrapH}px;position:relative;overflow:hidden;flex-shrink:0;">
-        <img src="${svgUrl}" alt="${barcodeValue}"
-          style="position:absolute;width:${bcW}px;height:${bcH}px;left:${imgLeft}px;top:${imgTop}px;transform:rotate(90deg);transform-origin:center center;" />
-      </div>
+      <img src="${svgUrl}" class="barcode" alt="${barcodeValue}" />
     </div>`
   ).join("\n");
 
-  const win = window.open("", "_blank", "width=500,height=400,menubar=no,toolbar=no");
+  const win = window.open("", "_blank", "width=420,height=300,menubar=no,toolbar=no");
   if (!win) {
     alert("Pop-up blocked — please allow pop-ups for this site and try again.");
     return;
@@ -213,19 +216,20 @@ export function printLabelNative(opts: {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Print Labels</title>
+<title>Print Labels — ${safeName}</title>
 <style>
-  @page { size: 2.25in 1.25in; margin: 0; }
+  @page { size: 2in 1in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 2.25in; background: #fff; }
+  body { width: 2in; background: #fff; font-family: Arial, Helvetica, sans-serif; }
   .label {
-    width: 2.25in;
-    height: 1.25in;
+    width: 2in;
+    height: 1in;
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 4px 3px 4px 5px;
+    padding: 3px 2px 3px 4px;
     overflow: hidden;
+    background: #fff;
   }
   .label.break { page-break-before: always; }
   .text-area {
@@ -234,11 +238,11 @@ export function printLabelNative(opts: {
     flex-direction: column;
     justify-content: center;
     overflow: hidden;
-    padding-right: 4px;
+    padding-right: 3px;
+    min-width: 0;
   }
   .name {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: bold;
     line-height: 1.2;
     overflow: hidden;
@@ -247,22 +251,68 @@ export function printLabelNative(opts: {
     -webkit-box-orient: vertical;
   }
   .vendor {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 7pt;
-    margin-top: 3px;
+    font-size: 6.5pt;
+    margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: #333;
+  }
+  .barcode {
+    height: 0.92in;
+    width: auto;
+    flex-shrink: 0;
+    display: block;
+  }
+  @media screen {
+    body { background: #e5e5e5; padding: 12px; }
+    .label { border: 1px solid #999; border-radius: 2px; margin-bottom: 10px; background: #fff; }
+    .instructions {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #444;
+      background: #fffbe6;
+      border: 1px solid #f0c36d;
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .print-btn {
+      display: block;
+      margin: 0 0 12px;
+      padding: 8px 20px;
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  }
+  @media print {
+    .instructions, .print-btn { display: none; }
   }
 </style>
 </head>
 <body>
+<div class="instructions">
+  <strong>Before printing:</strong> in the print dialog select your <strong>GK420d</strong> printer,
+  then under paper size choose <strong>2 × 1 inch</strong> label stock.
+  Disable headers &amp; footers if shown.
+</div>
+<button class="print-btn" onclick="window.print()">Print ${qty} label${qty !== 1 ? "s" : ""}</button>
 ${labelHtml}
 <script>
   window.onload = function() {
-    window.focus();
-    window.print();
-    setTimeout(function() { window.close(); }, 1500);
+    var imgs = document.querySelectorAll('img');
+    var loaded = 0;
+    function tryPrint() {
+      loaded++;
+      if (loaded >= imgs.length) { window.focus(); window.print(); }
+    }
+    if (imgs.length === 0) { window.focus(); window.print(); }
+    else { imgs.forEach(function(img) { if (img.complete) tryPrint(); else { img.onload = tryPrint; img.onerror = tryPrint; } }); }
   };
 <\/script>
 </body>
