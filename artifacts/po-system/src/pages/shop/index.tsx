@@ -137,14 +137,10 @@ export default function ShopPage() {
           },
         },
         decoder: {
-          readers: [
-            "code_128_reader",
-            "ean_reader",
-            "ean_8_reader",
-            "code_39_reader",
-            "upc_reader",
-          ],
-          // Require two consecutive identical reads to reduce false positives
+          // Only CODE128 — our labels always use CODE128.
+          // Enabling ean_reader / ean_8_reader causes them to grab 8-digit
+          // CODE128 barcodes first and return truncated / wrong values.
+          readers: ["code_128_reader"],
           multiple: false,
         },
         locate: true,
@@ -234,7 +230,8 @@ export default function ShopPage() {
   // Fetch by barcode string then add — used by camera + text-submit
   const lookupAndAdd = async (barcode: string): Promise<void> => {
     const oid = orderIdRef.current;
-    if (!oid || !barcode.trim()) return;
+    if (!barcode.trim()) return;
+    if (!oid) { showFeedback("No active order — please restart", false); return; }
     const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode.trim())}`);
     const items: InventorySuggestion[] = await resp.json();
     if (!items.length) { showFeedback(`Not found: "${barcode}"`, false); return; }
@@ -243,6 +240,8 @@ export default function ShopPage() {
 
   // Called from Quagga callback (fire and forget)
   const handleBarcodeDetected = (barcode: string) => {
+    // Show the raw value so it's visible on-device for debugging
+    showFeedback(`Scanning: ${barcode}`, true);
     lookupAndAdd(barcode).catch(() => showFeedback("Error looking up item", false));
   };
 
