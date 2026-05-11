@@ -6,11 +6,12 @@
  * to attached Zebra printers.
  *
  * Ports:
- *   https://localhost:9191  — used when this page is served over HTTPS
- *   http://localhost:9090   — fallback for HTTP contexts
+ *   https://localhost:9101  — used when this page is served over HTTPS
+ *   http://localhost:9100   — fallback for HTTP contexts
  *
  * Docs: https://www.zebra.com/us/en/software/printer-software/browser-print.html
  */
+import JsBarcode from "jsbarcode";
 
 const CANDIDATES = [
   "https://localhost:9101",
@@ -132,6 +133,119 @@ export function buildPlantLabel(opts: {
 export type PrintResult =
   | { ok: true }
   | { ok: false; reason: "not_installed" | "no_printer" | "send_failed" | "cert_error"; message: string };
+
+/**
+ * Render labels as HTML in a popup window and trigger the browser's
+ * native print dialog. Works with any printer selected in the OS —
+ * no Browser Print or cert setup required.
+ *
+ * Uses JsBarcode to generate a CODE128 SVG barcode inline.
+ */
+export function printLabelNative(opts: {
+  productName: string;
+  productId: number;
+  vendorName: string;
+  packSize?: string | null;
+  qty: number;
+}): void {
+  const { productName, productId, vendorName, packSize, qty } = opts;
+  const barcodeValue = String(productId).padStart(8, "0");
+  const vendorLine =
+    packSize && packSize !== "N/A"
+      ? `${vendorName}  |  Pack: ${packSize}`
+      : vendorName;
+
+  // Render barcode to SVG using JsBarcode
+  const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  JsBarcode(svgEl, barcodeValue, {
+    format: "CODE128",
+    width: 2,
+    height: 55,
+    displayValue: true,
+    fontSize: 11,
+    margin: 0,
+    background: "#ffffff",
+    lineColor: "#000000",
+  });
+  const svgData = new XMLSerializer().serializeToString(svgEl);
+  const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`;
+
+  const safeName = productName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeVendor = vendorLine.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // Build one label block per copy
+  const labelBlocks = Array.from(
+    { length: qty },
+    () => `
+    <div class="label">
+      <div class="name">${safeName}</div>
+      <div class="vendor">${safeVendor}</div>
+      <img src="${svgUrl}" class="barcode" alt="${barcodeValue}" />
+    </div>`
+  ).join("\n");
+
+  const win = window.open("", "_blank", "width=500,height=400,menubar=no,toolbar=no");
+  if (!win) {
+    alert("Pop-up blocked — please allow pop-ups for this site and try again.");
+    return;
+  }
+
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Print Labels</title>
+<style>
+  @page { size: 2.25in 1.25in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 2.25in; background: #fff; }
+  .label {
+    width: 2.25in;
+    height: 1.25in;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 4px 4px 2px;
+    page-break-after: always;
+    overflow: hidden;
+  }
+  .name {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 9pt;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.15;
+    max-height: 28px;
+    overflow: hidden;
+    width: 100%;
+  }
+  .vendor {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 7pt;
+    text-align: center;
+    margin-top: 2px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .barcode { width: 1.9in; height: auto; margin-top: 3px; }
+</style>
+</head>
+<body>
+${labelBlocks}
+<script>
+  window.onload = function() {
+    window.focus();
+    window.print();
+    setTimeout(function() { window.close(); }, 1500);
+  };
+<\/script>
+</body>
+</html>`);
+  win.document.close();
+}
 
 /**
  * High-level helper: discover Browser Print, find the default printer,

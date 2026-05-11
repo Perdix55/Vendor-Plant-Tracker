@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { buildPlantLabel, printZpl } from "@/lib/zebra-print";
+import { buildPlantLabel, printZpl, printLabelNative } from "@/lib/zebra-print";
 import { useRoute, useLocation, Link } from "wouter";
 import { 
   useGetOrder, 
@@ -81,38 +81,18 @@ export default function OrderDetail() {
 
     if (result.ok) {
       toast({ title: `Sent ${qty} label${qty !== 1 ? "s" : ""} to Zebra printer` });
-    } else if (result.reason === "cert_error") {
-      toast({
-        title: "Browser Print: certificate must be permanently trusted",
-        description: (
-          <span className="text-xs leading-relaxed space-y-1 block">
-            <span className="block">"Proceed anyway" in a tab isn't enough — the cert must be permanently trusted.</span>
-            <span className="block font-semibold mt-1">Mac:</span>
-            <span className="block">1. Open <strong>Keychain Access</strong> (Spotlight → "Keychain Access")</span>
-            <span className="block">2. In Chrome go to{" "}
-              <a href="https://localhost:9101" target="_blank" rel="noreferrer" className="underline">https://localhost:9101</a>
-              {" "}→ click "Not secure" → "Certificate is not valid" → drag the <strong>certificate icon</strong> to your Desktop
-            </span>
-            <span className="block">3. In Keychain Access: File → Import Items → select the cert → add to <strong>login</strong> keychain</span>
-            <span className="block">4. Find "localhost" in the list → double-click → expand <strong>Trust</strong> → set to <strong>Always Trust</strong> → close → enter your password</span>
-            <span className="block">5. Restart Chrome and try printing.</span>
-            <span className="block font-semibold mt-1">Windows:</span>
-            <span className="block">Run <code>certmgr.msc</code> → Trusted Root CAs → All Tasks → Import the exported cert → restart Chrome.</span>
-          </span>
-        ) as unknown as string,
-        variant: "destructive",
-        duration: 30000,
-      });
     } else {
+      // Browser Print unavailable for any reason — fall back to native browser print dialog
+      printLabelNative({ productName, productId, vendorName, packSize, qty });
       toast({
-        title:
-          result.reason === "not_installed"
-            ? "Zebra Browser Print not found"
-            : result.reason === "no_printer"
-            ? "No printer configured"
-            : "Print failed",
-        description: result.message,
-        variant: "destructive",
+        title: "Opening browser print dialog",
+        description:
+          result.reason === "cert_error"
+            ? "Browser Print certificate not trusted — using browser print instead. Select your Zebra printer in the dialog."
+            : result.reason === "not_installed"
+            ? "Zebra Browser Print not found — using browser print instead."
+            : "Browser Print unavailable — using browser print instead.",
+        duration: 6000,
       });
     }
   }, [toast]);
