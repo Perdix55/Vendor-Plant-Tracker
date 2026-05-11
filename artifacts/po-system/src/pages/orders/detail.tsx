@@ -86,14 +86,18 @@ export default function OrderDetail() {
         title: "Browser Print: certificate must be permanently trusted",
         description: (
           <span className="text-xs leading-relaxed space-y-1 block">
-            <span className="block">Clicking "Proceed anyway" in a tab is not enough — the cert must be added to your system trust store.</span>
-            <span className="block font-semibold mt-1">Windows steps:</span>
-            <span className="block">1. Go to{" "}
+            <span className="block">"Proceed anyway" in a tab isn't enough — the cert must be permanently trusted.</span>
+            <span className="block font-semibold mt-1">Mac:</span>
+            <span className="block">1. Open <strong>Keychain Access</strong> (Spotlight → "Keychain Access")</span>
+            <span className="block">2. In Chrome go to{" "}
               <a href="https://localhost:9101" target="_blank" rel="noreferrer" className="underline">https://localhost:9101</a>
-              {" "}→ click "Not secure" → "Certificate is not valid" → Details → Copy to File → save as <code>zebra.cer</code>
+              {" "}→ click "Not secure" → "Certificate is not valid" → drag the <strong>certificate icon</strong> to your Desktop
             </span>
-            <span className="block">2. Run <code>certmgr.msc</code> → Trusted Root Certification Authorities → Certificates → All Tasks → Import → select <code>zebra.cer</code></span>
-            <span className="block">3. Restart Chrome completely, then try printing again.</span>
+            <span className="block">3. In Keychain Access: File → Import Items → select the cert → add to <strong>login</strong> keychain</span>
+            <span className="block">4. Find "localhost" in the list → double-click → expand <strong>Trust</strong> → set to <strong>Always Trust</strong> → close → enter your password</span>
+            <span className="block">5. Restart Chrome and try printing.</span>
+            <span className="block font-semibold mt-1">Windows:</span>
+            <span className="block">Run <code>certmgr.msc</code> → Trusted Root CAs → All Tasks → Import the exported cert → restart Chrome.</span>
           </span>
         ) as unknown as string,
         variant: "destructive",
