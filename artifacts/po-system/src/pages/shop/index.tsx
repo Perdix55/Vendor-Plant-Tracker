@@ -240,8 +240,6 @@ export default function ShopPage() {
 
   // Called from Quagga callback (fire and forget)
   const handleBarcodeDetected = (barcode: string) => {
-    // Show the raw value so it's visible on-device for debugging
-    showFeedback(`Scanning: ${barcode}`, true);
     lookupAndAdd(barcode).catch(() => showFeedback("Error looking up item", false));
   };
 
