@@ -155,32 +155,51 @@ export function printLabelNative(opts: {
       ? `${vendorName}  |  Pack: ${packSize}`
       : vendorName;
 
-  // Render barcode to SVG using JsBarcode
+  // Render barcode to SVG using JsBarcode.
+  // The barcode will be rotated 90° CW on the label.
+  // height=72 becomes the visual *width* after rotation (fits in right column of label).
   const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   JsBarcode(svgEl, barcodeValue, {
     format: "CODE128",
-    width: 2,
-    height: 55,
+    width: 1.4,
+    height: 72,
     displayValue: true,
-    fontSize: 11,
-    margin: 0,
+    fontSize: 9,
+    margin: 2,
     background: "#ffffff",
     lineColor: "#000000",
   });
+
+  // Capture rendered dimensions so the rotation wrapper can be sized exactly.
+  const bcW = parseFloat(svgEl.getAttribute("width") ?? "120");
+  const bcH = parseFloat(svgEl.getAttribute("height") ?? "84");
+  // After rotate(90deg): visual width = bcH, visual height = bcW
+  const wrapW = Math.ceil(bcH);
+  const wrapH = Math.ceil(bcW);
+  // Offset to keep image centred inside the wrapper after CSS rotation
+  const imgLeft = Math.round((bcH - bcW) / 2);
+  const imgTop  = Math.round((bcW - bcH) / 2);
+
   const svgData = new XMLSerializer().serializeToString(svgEl);
   const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`;
 
   const safeName = productName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const safeVendor = vendorLine.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // Build one label block per copy
-  const labelBlocks = Array.from(
+  // Label block HTML uses inline styles for the rotation wrapper so the exact
+  // pixel dimensions calculated above can be injected without a template step.
+  const labelHtml = Array.from(
     { length: qty },
-    () => `
-    <div class="label">
-      <div class="name">${safeName}</div>
-      <div class="vendor">${safeVendor}</div>
-      <img src="${svgUrl}" class="barcode" alt="${barcodeValue}" />
+    (_, i) => `
+    <div class="label${i > 0 ? " break" : ""}">
+      <div class="text-area">
+        <div class="name">${safeName}</div>
+        <div class="vendor">${safeVendor}</div>
+      </div>
+      <div class="barcode-col" style="width:${wrapW}px;height:${wrapH}px;position:relative;overflow:hidden;flex-shrink:0;">
+        <img src="${svgUrl}" alt="${barcodeValue}"
+          style="position:absolute;width:${bcW}px;height:${bcH}px;left:${imgLeft}px;top:${imgTop}px;transform:rotate(90deg);transform-origin:center center;" />
+      </div>
     </div>`
   ).join("\n");
 
@@ -203,38 +222,42 @@ export function printLabelNative(opts: {
     width: 2.25in;
     height: 1.25in;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: flex-start;
-    padding: 4px 4px 2px;
-    page-break-after: always;
+    padding: 4px 3px 4px 5px;
     overflow: hidden;
+  }
+  .label.break { page-break-before: always; }
+  .text-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    padding-right: 4px;
   }
   .name {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 9pt;
     font-weight: bold;
-    text-align: center;
-    line-height: 1.15;
-    max-height: 28px;
+    line-height: 1.2;
     overflow: hidden;
-    width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
   }
   .vendor {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 7pt;
-    text-align: center;
-    margin-top: 2px;
-    width: 100%;
+    margin-top: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .barcode { width: 1.9in; height: auto; margin-top: 3px; }
 </style>
 </head>
 <body>
-${labelBlocks}
+${labelHtml}
 <script>
   window.onload = function() {
     window.focus();
