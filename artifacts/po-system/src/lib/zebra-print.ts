@@ -218,12 +218,12 @@ export function printLabelNative(opts: {
 <meta charset="utf-8" />
 <title>Print Labels — ${safeName}</title>
 <style>
-  @page { size: 2in 1in; margin: 0; }
+  @page { size: 2.25in 1.25in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { width: 2in; background: #fff; font-family: Arial, Helvetica, sans-serif; }
+  body { width: 2.25in; background: #fff; font-family: Arial, Helvetica, sans-serif; }
   .label {
-    width: 2in;
-    height: 1in;
+    width: 2.25in;
+    height: 1.25in;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -298,7 +298,7 @@ export function printLabelNative(opts: {
 <body>
 <div class="instructions">
   <strong>Before printing:</strong> in the print dialog select your <strong>GK420d</strong> printer,
-  then under paper size choose <strong>2 × 1 inch</strong> label stock.
+  then under paper size choose <strong>2.25 × 1.25 inch</strong> label stock.
   Disable headers &amp; footers if shown.
 </div>
 <button class="print-btn" onclick="window.print()">Print ${qty} label${qty !== 1 ? "s" : ""}</button>
