@@ -83,23 +83,21 @@ export default function OrderDetail() {
       toast({ title: `Sent ${qty} label${qty !== 1 ? "s" : ""} to Zebra printer` });
     } else if (result.reason === "cert_error") {
       toast({
-        title: "Browser Print: certificate not trusted",
+        title: "Browser Print: certificate must be permanently trusted",
         description: (
-          <span>
-            Open{" "}
-            <a
-              href="https://localhost:9191"
-              target="_blank"
-              rel="noreferrer"
-              className="underline font-medium"
-            >
-              https://localhost:9191
-            </a>{" "}
-            in a new tab, click <strong>Advanced → Proceed to localhost</strong>, then come back and print again.
+          <span className="text-xs leading-relaxed space-y-1 block">
+            <span className="block">Clicking "Proceed anyway" in a tab is not enough — the cert must be added to your system trust store.</span>
+            <span className="block font-semibold mt-1">Windows steps:</span>
+            <span className="block">1. Go to{" "}
+              <a href="https://localhost:9101" target="_blank" rel="noreferrer" className="underline">https://localhost:9101</a>
+              {" "}→ click "Not secure" → "Certificate is not valid" → Details → Copy to File → save as <code>zebra.cer</code>
+            </span>
+            <span className="block">2. Run <code>certmgr.msc</code> → Trusted Root Certification Authorities → Certificates → All Tasks → Import → select <code>zebra.cer</code></span>
+            <span className="block">3. Restart Chrome completely, then try printing again.</span>
           </span>
         ) as unknown as string,
         variant: "destructive",
-        duration: 15000,
+        duration: 30000,
       });
     } else {
       toast({

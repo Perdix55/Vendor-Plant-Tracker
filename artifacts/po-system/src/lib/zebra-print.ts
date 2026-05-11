@@ -146,9 +146,10 @@ export async function printZpl(zpl: string): Promise<PrintResult> {
       ok: false,
       reason: "cert_error",
       message:
-        "Your browser is blocking the connection to Zebra Browser Print because its " +
-        "local certificate hasn't been trusted yet. Open https://localhost:9191 in a new " +
-        "tab, click through the certificate warning (Advanced → Proceed), then come back and try again.",
+        "Browser Print's certificate must be permanently trusted in your system. " +
+        "Clicking 'Proceed anyway' in a tab is not enough — it must be added to your " +
+        "Trusted Root Certification Authorities (Windows: certmgr.msc, Mac: Keychain Access). " +
+        "See the instructions in the print error for the exact steps.",
     };
   }
   if (!base) {
