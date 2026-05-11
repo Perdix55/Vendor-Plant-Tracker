@@ -27,19 +27,26 @@ type ZebraDevice = {
   name?: string;
 };
 
-/** Probe each candidate URL; return the first that responds. */
-async function findBrowserPrint(): Promise<string | null> {
+/** Probe each candidate URL; return the first that responds, or "cert_blocked" if SSL trust is needed. */
+async function findBrowserPrint(): Promise<string | "cert_blocked" | null> {
+  let certBlocked = false;
   for (const base of CANDIDATES) {
     try {
       const r = await fetch(`${base}/available`, {
         signal: AbortSignal.timeout(2500),
       });
       if (r.ok) return base;
-    } catch {
-      // next candidate
+    } catch (e) {
+      // On HTTPS pages, browsers block https://localhost:9191 with a TypeError
+      // if the self-signed cert hasn't been trusted yet. Detect that case so
+      // we can show a targeted "trust the cert" instruction instead of the
+      // generic "not installed" message.
+      if (base.startsWith("https") && e instanceof TypeError) {
+        certBlocked = true;
+      }
     }
   }
-  return null;
+  return certBlocked ? "cert_blocked" : null;
 }
 
 /** Fetch the default printer device object from Browser Print. */
@@ -122,7 +129,7 @@ export function buildPlantLabel(opts: {
 
 export type PrintResult =
   | { ok: true }
-  | { ok: false; reason: "not_installed" | "no_printer" | "send_failed"; message: string };
+  | { ok: false; reason: "not_installed" | "no_printer" | "send_failed" | "cert_error"; message: string };
 
 /**
  * High-level helper: discover Browser Print, find the default printer,
@@ -132,6 +139,16 @@ export type PrintResult =
  */
 export async function printZpl(zpl: string): Promise<PrintResult> {
   const base = await findBrowserPrint();
+  if (base === "cert_blocked") {
+    return {
+      ok: false,
+      reason: "cert_error",
+      message:
+        "Your browser is blocking the connection to Zebra Browser Print because its " +
+        "local certificate hasn't been trusted yet. Open https://localhost:9191 in a new " +
+        "tab, click through the certificate warning (Advanced → Proceed), then come back and try again.",
+    };
+  }
   if (!base) {
     return {
       ok: false,

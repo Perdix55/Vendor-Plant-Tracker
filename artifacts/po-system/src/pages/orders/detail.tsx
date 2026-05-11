@@ -81,6 +81,26 @@ export default function OrderDetail() {
 
     if (result.ok) {
       toast({ title: `Sent ${qty} label${qty !== 1 ? "s" : ""} to Zebra printer` });
+    } else if (result.reason === "cert_error") {
+      toast({
+        title: "Browser Print: certificate not trusted",
+        description: (
+          <span>
+            Open{" "}
+            <a
+              href="https://localhost:9191"
+              target="_blank"
+              rel="noreferrer"
+              className="underline font-medium"
+            >
+              https://localhost:9191
+            </a>{" "}
+            in a new tab, click <strong>Advanced → Proceed to localhost</strong>, then come back and print again.
+          </span>
+        ) as unknown as string,
+        variant: "destructive",
+        duration: 15000,
+      });
     } else {
       toast({
         title:
