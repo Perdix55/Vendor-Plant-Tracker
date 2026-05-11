@@ -13,6 +13,8 @@
  */
 
 const CANDIDATES = [
+  "https://localhost:9101",
+  "http://localhost:9100",
   "https://localhost:9191",
   "http://localhost:9090",
 ];
