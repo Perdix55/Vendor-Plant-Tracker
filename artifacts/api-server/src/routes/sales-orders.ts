@@ -59,6 +59,7 @@ router.get("/sales-orders", async (req, res) => {
         customerName: salesOrdersTable.customerName,
         status: salesOrdersTable.status,
         notes: salesOrdersTable.notes,
+        neededBy: salesOrdersTable.neededBy,
         createdAt: salesOrdersTable.createdAt,
         updatedAt: salesOrdersTable.updatedAt,
       })
