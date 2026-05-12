@@ -46,6 +46,8 @@ export default function SalesOrderDetail() {
 
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [editingNeededBy, setEditingNeededBy] = useState(false);
+  const [neededByInput, setNeededByInput] = useState("");
   const [editingQty, setEditingQty] = useState<number | null>(null);
   const [qtyInput, setQtyInput] = useState("");
 
@@ -66,6 +68,13 @@ export default function SalesOrderDetail() {
     invalidate();
     setEditingName(false);
     toast({ title: "Name updated" });
+  };
+
+  const handleSaveNeededBy = async () => {
+    await updateOrder.mutateAsync({ salesOrderId, data: { neededBy: neededByInput || null } });
+    invalidate();
+    setEditingNeededBy(false);
+    toast({ title: "Date updated" });
   };
 
   const handleQtyChange = async (itemId: number, delta: number, current: number) => {
@@ -146,7 +155,7 @@ export default function SalesOrderDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Customer</CardDescription>
@@ -197,6 +206,48 @@ export default function SalesOrderDetail() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Needed By</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {editingNeededBy ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={neededByInput}
+                  onChange={(e) => setNeededByInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveNeededBy()}
+                  autoFocus
+                  className="h-8 text-sm"
+                />
+                <button onClick={handleSaveNeededBy} className="text-green-600 hover:text-green-700">
+                  <Check className="h-4 w-4" />
+                </button>
+                <button onClick={() => setEditingNeededBy(false)} className="text-muted-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                {order.neededBy ? (
+                  <p className="font-semibold text-lg text-orange-700">
+                    {format(new Date(order.neededBy + "T00:00:00"), "MMM d, yyyy")}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Not set</p>
+                )}
+                <button
+                  onClick={() => { setNeededByInput(order.neededBy ?? ""); setEditingNeededBy(true); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

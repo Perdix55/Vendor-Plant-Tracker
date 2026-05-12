@@ -27,6 +27,7 @@ export default function SalesOrdersPage() {
   const [showQr, setShowQr] = useState(false);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
+  const [newNeededBy, setNewNeededBy] = useState("");
   const { data: orders, isLoading } = useListSalesOrders();
   const deleteOrder = useDeleteSalesOrder();
   const createOrder = useCreateSalesOrder();
@@ -40,10 +41,16 @@ export default function SalesOrdersPage() {
   const handleNewOrder = async () => {
     if (!newCustomerName.trim()) return;
     try {
-      const order = await createOrder.mutateAsync({ data: { customerName: newCustomerName.trim() } });
+      const order = await createOrder.mutateAsync({
+        data: {
+          customerName: newCustomerName.trim(),
+          neededBy: newNeededBy || null,
+        },
+      });
       queryClient.invalidateQueries({ queryKey: getListSalesOrdersQueryKey() });
       setShowNewOrder(false);
       setNewCustomerName("");
+      setNewNeededBy("");
       navigate(`/sales-orders/${order.id}`);
     } catch {
       toast({ title: "Failed to create order", variant: "destructive" });
@@ -120,7 +127,8 @@ export default function SalesOrdersPage() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Items</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Needed By</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -151,8 +159,19 @@ export default function SalesOrdersPage() {
                     </TableCell>
                     <TableCell>
                       <Link href={`/sales-orders/${order.id}`} className="contents">
+                        {order.neededBy ? (
+                          <span className="text-sm font-medium text-orange-700">
+                            {format(new Date(order.neededBy + "T00:00:00"), "MMM d, yyyy")}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/sales-orders/${order.id}`} className="contents">
                         <span className="text-sm text-muted-foreground">
-                          {format(new Date(order.createdAt), "MMM d, yyyy h:mm a")}
+                          {format(new Date(order.createdAt), "MMM d, h:mm a")}
                         </span>
                       </Link>
                     </TableCell>
@@ -172,7 +191,7 @@ export default function SalesOrdersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={showNewOrder} onOpenChange={(open) => { setShowNewOrder(open); if (!open) setNewCustomerName(""); }}>
+      <Dialog open={showNewOrder} onOpenChange={(open) => { setShowNewOrder(open); if (!open) { setNewCustomerName(""); setNewNeededBy(""); } }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>New Sales Order</DialogTitle>
@@ -188,6 +207,15 @@ export default function SalesOrdersPage() {
                 value={newCustomerName}
                 onChange={(e) => setNewCustomerName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleNewOrder()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-needed-by">Needed By <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input
+                id="new-needed-by"
+                type="date"
+                value={newNeededBy}
+                onChange={(e) => setNewNeededBy(e.target.value)}
               />
             </div>
             <div className="flex justify-end gap-2">

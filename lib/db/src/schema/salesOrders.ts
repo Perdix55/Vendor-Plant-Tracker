@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { inventoryItemsTable } from "./inventory";
@@ -10,6 +10,7 @@ export const salesOrdersTable = pgTable("sales_orders", {
   customerName: text("customer_name").notNull(),
   status: text("status").notNull().default("open"),
   notes: text("notes"),
+  neededBy: date("needed_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

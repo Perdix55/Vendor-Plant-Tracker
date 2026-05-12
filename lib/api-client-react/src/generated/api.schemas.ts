@@ -312,6 +312,7 @@ export interface SalesOrderSummary {
   customerName: string;
   status: string;
   notes?: string | null;
+  neededBy?: string | null;
   itemCount: number;
   createdAt: string;
   updatedAt: string;
@@ -322,6 +323,7 @@ export interface SalesOrderDetail {
   customerName: string;
   status: string;
   notes?: string | null;
+  neededBy?: string | null;
   createdAt: string;
   updatedAt: string;
   items: SalesOrderLineItem[];
@@ -330,12 +332,14 @@ export interface SalesOrderDetail {
 export interface CreateSalesOrderBody {
   customerName: string;
   notes?: string | null;
+  neededBy?: string | null;
 }
 
 export interface UpdateSalesOrderBody {
   customerName?: string;
   status?: string;
   notes?: string | null;
+  neededBy?: string | null;
 }
 
 export interface AddSalesOrderItemBody {

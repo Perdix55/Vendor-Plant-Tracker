@@ -1334,6 +1334,10 @@ components:
         notes:
           type: string
           nullable: true
+        neededBy:
+          type: string
+          format: date
+          nullable: true
         itemCount:
           type: integer
         createdAt:
@@ -1354,6 +1358,10 @@ components:
         notes:
           type: string
           nullable: true
+        neededBy:
+          type: string
+          format: date
+          nullable: true
         createdAt:
           type: string
         updatedAt:
@@ -1372,6 +1380,10 @@ components:
         notes:
           type: string
           nullable: true
+        neededBy:
+          type: string
+          format: date
+          nullable: true
 
     UpdateSalesOrderBody:
       type: object
@@ -1382,6 +1394,10 @@ components:
           type: string
         notes:
           type: string
+          nullable: true
+        neededBy:
+          type: string
+          format: date
           nullable: true
 
     AddSalesOrderItemBody:

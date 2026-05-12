@@ -89,14 +89,14 @@ router.get("/sales-orders", async (req, res) => {
 // POST /sales-orders
 router.post("/sales-orders", async (req, res) => {
   try {
-    const { customerName, notes } = req.body as { customerName: string; notes?: string };
+    const { customerName, notes, neededBy } = req.body as { customerName: string; notes?: string; neededBy?: string | null };
     if (!customerName?.trim()) {
       return res.status(400).json({ error: "customerName is required" });
     }
 
     const [order] = await db
       .insert(salesOrdersTable)
-      .values({ customerName: customerName.trim(), notes })
+      .values({ customerName: customerName.trim(), notes, neededBy: neededBy ?? null })
       .returning();
 
     res.status(201).json({ ...order, items: [] });
@@ -140,10 +140,11 @@ router.get("/sales-orders/:salesOrderId", async (req, res) => {
 router.put("/sales-orders/:salesOrderId", async (req, res) => {
   const id = parseInt(req.params.salesOrderId, 10);
   try {
-    const { customerName, status, notes } = req.body as {
+    const { customerName, status, notes, neededBy } = req.body as {
       customerName?: string;
       status?: string;
       notes?: string;
+      neededBy?: string | null;
     };
 
     // Fetch current order to detect status transition
@@ -160,6 +161,7 @@ router.put("/sales-orders/:salesOrderId", async (req, res) => {
         ...(customerName !== undefined ? { customerName } : {}),
         ...(status !== undefined ? { status } : {}),
         ...(notes !== undefined ? { notes } : {}),
+        ...(neededBy !== undefined ? { neededBy: neededBy ?? null } : {}),
         updatedAt: new Date(),
       })
       .where(eq(salesOrdersTable.id, id));
