@@ -166,7 +166,7 @@ export function printLabelNative(opts: {
     height: 50,
     displayValue: true,
     fontSize: 9,
-    margin: 4,
+    margin: 1,
     background: "#ffffff",
     lineColor: "#000000",
   });
@@ -218,11 +218,12 @@ export function printLabelNative(opts: {
   }
   .label.break { page-break-before: always; }
   .name {
-    font-size: 8pt;
+    font-size: 10pt;
     font-weight: bold;
     text-align: center;
     line-height: 1.25;
     width: 100%;
+    margin-top: 0.125in;
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 4;
@@ -239,7 +240,7 @@ export function printLabelNative(opts: {
     margin-top: 3px;
   }
   .barcode {
-    width: 1.15in;
+    width: 1.2in;
     height: auto;
     display: block;
     margin-top: auto;
