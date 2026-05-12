@@ -109,21 +109,21 @@ export function buildPlantLabel(opts: {
       : vendorName
   );
 
-  // Layout on 456 × 254 dot canvas:
-  //   y= 12  Product name  (up to 2 lines, 24-pt, centred)
-  //   y= 72  Vendor + pack  (18-pt, centred, 1 line)
-  //   y= 98  CODE128 barcode (80 dots tall) with human-readable below
+  // Layout on 456 × 254 dot canvas (203 DPI, 2.25" × 1.25"):
+  //   y= 37  Product name  (up to 2 lines, 30-dot font, centred) — 0.125" lower than before
+  //   y=105  Vendor + pack  (18-dot font, centred, 1 line)
+  //   y=132  CODE128 barcode: BY3 (wider bars), centred at X=44, height=80
   //   PQ     print qty copies
 
   return [
     "^XA",
     "^PW456^LL254^MMT^PON",
-    // Product name – up to 2 centred lines
-    `^FO10,12^A0N,24,24^FB436,2,0,C^FD${nameLine}^FS`,
+    // Product name – up to 2 centred lines, font bumped from 24→30 dots (~2pt), moved down 0.125"
+    `^FO10,37^A0N,30,30^FB436,2,0,C^FD${nameLine}^FS`,
     // Vendor / pack size
-    `^FO10,72^A0N,18,18^FB436,1,0,C^FD${vendorLine}^FS`,
-    // Barcode centred horizontally (BY module=2, ratio=3, height=80)
-    `^FO115,98^BY2,3,80^BCN,80,Y,N,N^FD${barcodeValue}^FS`,
+    `^FO10,105^A0N,18,18^FB436,1,0,C^FD${vendorLine}^FS`,
+    // Barcode: module width 3 (was 2) → wider bars, centred (X=44 ≈ 0.22" each side vs 0.57" before)
+    `^FO44,132^BY3,3,80^BCN,80,Y,N,N^FD${barcodeValue}^FS`,
     // Print quantity
     `^PQ${qty},0,1,Y`,
     "^XZ",
