@@ -212,7 +212,7 @@ export function printLabelNative(opts: {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 4px 4px;
+    padding: 0 0 4px 0;
     overflow: hidden;
     background: #fff;
   }
@@ -223,6 +223,7 @@ export function printLabelNative(opts: {
     text-align: center;
     line-height: 1.25;
     width: 100%;
+    padding: 0 4px;
     margin-top: 0.125in;
     overflow: hidden;
     display: -webkit-box;
@@ -240,7 +241,7 @@ export function printLabelNative(opts: {
     margin-top: 3px;
   }
   .barcode {
-    width: 1.2in;
+    width: 100%;
     height: auto;
     display: block;
     margin-top: auto;
