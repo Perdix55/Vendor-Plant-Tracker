@@ -972,8 +972,13 @@ function UsersTab() {
 
   useEffect(() => {
     fetch("/api/users")
-      .then((r) => r.json())
-      .then((data) => { setUsers(data); setLoading(false); })
+      .then(async (r) => {
+        if (r.ok) {
+          const data = await r.json();
+          setUsers(Array.isArray(data) ? data : []);
+        }
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
