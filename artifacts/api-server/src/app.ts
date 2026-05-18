@@ -1,10 +1,19 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { Pool } from "pg";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
+// connect-pg-simple expects the session module; cast needed due to TS overload mismatch
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PgSession = ConnectPgSimple(session as any);
+const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+
 const app: Express = express();
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -25,9 +34,23 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(
+  session({
+    store: new PgSession({ pool: pgPool, createTableIfMissing: true }),
+    secret: process.env.SESSION_SECRET ?? "dev-secret-change-me",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
+  }),
+);
 
 app.use("/api", router);
 

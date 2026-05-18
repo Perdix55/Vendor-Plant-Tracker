@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import {
   useListVendors,
@@ -25,8 +25,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings } from "lucide-react";
+import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/contexts/auth-context";
+import type { SafeUser } from "@/contexts/auth-context";
 
 type ParsedProduct = { name: string; packSize: string };
 
@@ -948,6 +951,316 @@ function SettingsTab() {
   );
 }
 
+function UsersTab() {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<SafeUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
+  const [resetUserId, setResetUserId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [saving, setSaving] = useState<number | null>(null);
+  const { toast } = useToast();
+
+  const [newEmail, setNewEmail] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [newIsAdmin, setNewIsAdmin] = useState(false);
+  const [newCanOrders, setNewCanOrders] = useState(true);
+  const [newCanInventory, setNewCanInventory] = useState(true);
+  const [newCanVendors, setNewCanVendors] = useState(true);
+  const [newCanSalesOrders, setNewCanSalesOrders] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((r) => r.json())
+      .then((data) => { setUsers(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const updateUser = async (userId: number, fields: Partial<SafeUser>) => {
+    setSaving(userId);
+    const r = await fetch(`/api/users/${userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    setSaving(null);
+    if (r.ok) {
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, ...fields } : u)));
+    } else {
+      toast({ title: "Error", description: "Failed to update user.", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (userId: number) => {
+    const r = await fetch(`/api/users/${userId}`, { method: "DELETE" });
+    if (r.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      toast({ title: "User removed" });
+    } else {
+      const data = await r.json().catch(() => ({}));
+      toast({ title: "Error", description: data.error || "Failed to delete user.", variant: "destructive" });
+    }
+  };
+
+  const handleAddUser = async () => {
+    if (!newEmail || !newPwd) return;
+    const r = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: newEmail,
+        password: newPwd,
+        name: newName || null,
+        isAdmin: newIsAdmin,
+        canOrders: newIsAdmin || newCanOrders,
+        canInventory: newIsAdmin || newCanInventory,
+        canVendors: newIsAdmin || newCanVendors,
+        canSalesOrders: newIsAdmin || newCanSalesOrders,
+      }),
+    });
+    if (r.ok) {
+      const u = await r.json();
+      setUsers((prev) => [...prev, u].sort((a, b) => a.email.localeCompare(b.email)));
+      toast({ title: "User added" });
+      setAddOpen(false);
+      setNewEmail(""); setNewName(""); setNewPwd(""); setNewIsAdmin(false);
+      setNewCanOrders(true); setNewCanInventory(true); setNewCanVendors(true); setNewCanSalesOrders(true);
+    } else {
+      const data = await r.json().catch(() => ({}));
+      toast({ title: "Error", description: data.error || "Failed to add user.", variant: "destructive" });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUserId || !newPassword) return;
+    const r = await fetch(`/api/users/${resetUserId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: newPassword }),
+    });
+    if (r.ok) {
+      toast({ title: "Password updated" });
+      setResetUserId(null);
+      setNewPassword("");
+    } else {
+      toast({ title: "Error", description: "Failed to reset password.", variant: "destructive" });
+    }
+  };
+
+  const PermCheck = ({
+    userId,
+    field,
+    value,
+    disabled,
+  }: {
+    userId: number;
+    field: keyof SafeUser;
+    value: boolean;
+    disabled?: boolean;
+  }) => (
+    <Checkbox
+      checked={value}
+      disabled={disabled || saving === userId}
+      onCheckedChange={(checked) => updateUser(userId, { [field]: checked === true })}
+      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+    />
+  );
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">User Access</CardTitle>
+            </div>
+            <Dialog open={addOpen} onOpenChange={setAddOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1.5" data-testid="button-add-user">
+                  <Plus className="h-4 w-4" />
+                  Add User
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New User</DialogTitle>
+                  <DialogDescription>Create a login and set which sections this user can access.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="add-user-name">Name <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                      <Input id="add-user-name" placeholder="Jane Smith" value={newName} onChange={(e) => setNewName(e.target.value)} data-testid="input-add-user-name" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="add-user-email">Email <span className="text-destructive">*</span></Label>
+                      <Input id="add-user-email" type="email" placeholder="jane@example.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} data-testid="input-add-user-email" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-user-password">Password <span className="text-destructive">*</span></Label>
+                    <Input id="add-user-password" type="password" placeholder="••••••••" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} data-testid="input-add-user-password" />
+                  </div>
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="add-is-admin"
+                        checked={newIsAdmin}
+                        onCheckedChange={(v) => setNewIsAdmin(v === true)}
+                        data-testid="checkbox-add-is-admin"
+                      />
+                      <div>
+                        <Label htmlFor="add-is-admin" className="font-medium flex items-center gap-1.5 cursor-pointer">
+                          <ShieldAlert className="h-3.5 w-3.5 text-primary" />
+                          Administrator
+                        </Label>
+                        <p className="text-xs text-muted-foreground">Full access to all sections including Admin</p>
+                      </div>
+                    </div>
+                    {!newIsAdmin && (
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t">
+                        {[
+                          { id: "add-can-orders", label: "Purchase Orders", val: newCanOrders, set: setNewCanOrders },
+                          { id: "add-can-inventory", label: "Inventory", val: newCanInventory, set: setNewCanInventory },
+                          { id: "add-can-vendors", label: "Vendors", val: newCanVendors, set: setNewCanVendors },
+                          { id: "add-can-sales", label: "Sales Orders", val: newCanSalesOrders, set: setNewCanSalesOrders },
+                        ].map(({ id, label, val, set }) => (
+                          <div key={id} className="flex items-center gap-2">
+                            <Checkbox id={id} checked={val} onCheckedChange={(v) => set(v === true)} />
+                            <Label htmlFor={id} className="text-sm cursor-pointer">{label}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+                  <Button onClick={handleAddUser} disabled={!newEmail || !newPwd} data-testid="button-confirm-add-user">
+                    Add User
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <CardDescription>
+            Control which sections each user can access. Admins have full access to everything.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead className="w-[220px]">User</TableHead>
+                  <TableHead className="text-center w-[80px]">Admin</TableHead>
+                  <TableHead className="text-center w-[100px]">Orders</TableHead>
+                  <TableHead className="text-center w-[100px]">Inventory</TableHead>
+                  <TableHead className="text-center w-[80px]">Vendors</TableHead>
+                  <TableHead className="text-center w-[100px]">Sales Orders</TableHead>
+                  <TableHead className="w-[90px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((u) => (
+                  <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
+                    <TableCell>
+                      <div>
+                        {u.name && <p className="font-medium text-sm">{u.name}</p>}
+                        <p className={u.name ? "text-xs text-muted-foreground" : "text-sm font-medium"}>{u.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <PermCheck userId={u.id} field="isAdmin" value={u.isAdmin} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <PermCheck userId={u.id} field="canOrders" value={u.isAdmin || u.canOrders} disabled={u.isAdmin} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <PermCheck userId={u.id} field="canInventory" value={u.isAdmin || u.canInventory} disabled={u.isAdmin} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <PermCheck userId={u.id} field="canVendors" value={u.isAdmin || u.canVendors} disabled={u.isAdmin} />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <PermCheck userId={u.id} field="canSalesOrders" value={u.isAdmin || u.canSalesOrders} disabled={u.isAdmin} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => { setResetUserId(u.id); setNewPassword(""); }}
+                          title="Reset password"
+                          data-testid={`button-reset-password-${u.id}`}
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(u.id)}
+                          disabled={u.id === currentUser?.id}
+                          title={u.id === currentUser?.id ? "Cannot delete your own account" : "Delete user"}
+                          data-testid={`button-delete-user-${u.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {users.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No users found.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={resetUserId !== null} onOpenChange={(v) => !v && setResetUserId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {users.find((u) => u.id === resetUserId)?.email ?? "this user"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label htmlFor="reset-password">New Password</Label>
+            <Input
+              id="reset-password"
+              type="password"
+              placeholder="••••••••"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoFocus
+              data-testid="input-reset-password"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetUserId(null)}>Cancel</Button>
+            <Button onClick={handleResetPassword} disabled={!newPassword} data-testid="button-confirm-reset-password">
+              Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
@@ -966,6 +1279,10 @@ export default function AdminPage() {
             <Package className="h-4 w-4" />
             Products
           </TabsTrigger>
+          <TabsTrigger value="users" className="gap-1.5">
+            <UserCog className="h-4 w-4" />
+            Users
+          </TabsTrigger>
           <TabsTrigger value="settings" className="gap-1.5">
             <Settings className="h-4 w-4" />
             Settings
@@ -976,6 +1293,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="products">
           <VendorProductsTab />
+        </TabsContent>
+        <TabsContent value="users">
+          <UsersTab />
         </TabsContent>
         <TabsContent value="settings">
           <SettingsTab />

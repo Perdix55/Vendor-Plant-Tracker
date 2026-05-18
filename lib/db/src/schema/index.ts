@@ -5,3 +5,4 @@ export * from "./orderItems";
 export * from "./inventory";
 export * from "./settings";
 export * from "./salesOrders";
+export * from "./users";
