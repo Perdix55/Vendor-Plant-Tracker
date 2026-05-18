@@ -56,7 +56,12 @@ export default function VendorDetail() {
       ) : vendor ? (
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground" data-testid="text-vendor-name">{vendor.name}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground" data-testid="text-vendor-name">{vendor.name}</h1>
+              {vendor.sourceLocation && (
+                <Badge variant="outline" className="text-sm">{vendor.sourceLocation}</Badge>
+              )}
+            </div>
             {vendor.notes && <p className="text-muted-foreground mt-2 max-w-2xl">{vendor.notes}</p>}
           </div>
           <Link href={`/orders/new?vendorId=${vendor.id}`}>

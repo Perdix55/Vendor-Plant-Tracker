@@ -32,6 +32,7 @@ async function fetchVendorWithCount(vendorId: number) {
       email: vendorsTable.email,
       notes: vendorsTable.notes,
       shippingDays: vendorsTable.shippingDays,
+      sourceLocation: vendorsTable.sourceLocation,
       createdAt: vendorsTable.createdAt,
       productCount: count(productsTable.id),
     })
@@ -54,6 +55,7 @@ router.get("/vendors", async (req, res) => {
         email: vendorsTable.email,
         notes: vendorsTable.notes,
         shippingDays: vendorsTable.shippingDays,
+        sourceLocation: vendorsTable.sourceLocation,
         createdAt: vendorsTable.createdAt,
         productCount: count(productsTable.id),
       })
@@ -72,13 +74,13 @@ router.get("/vendors", async (req, res) => {
 // POST /vendors
 router.post("/vendors", async (req, res) => {
   try {
-    const { name, email, notes, shippingDays } = req.body;
+    const { name, email, notes, shippingDays, sourceLocation } = req.body;
     if (!name || typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "name is required" });
     }
     const inserted = await db
       .insert(vendorsTable)
-      .values({ name: name.trim(), email: email ?? null, notes: notes ?? null, shippingDays: shippingDays ?? null })
+      .values({ name: name.trim(), email: email ?? null, notes: notes ?? null, shippingDays: shippingDays ?? null, sourceLocation: sourceLocation ?? "Florida" })
       .returning();
 
     const v = inserted[0];
@@ -106,12 +108,13 @@ router.get("/vendors/:vendorId", async (req, res) => {
 router.patch("/vendors/:vendorId", async (req, res) => {
   try {
     const vendorId = parseInt(req.params.vendorId, 10);
-    const { email, notes, shippingDays } = req.body;
+    const { email, notes, shippingDays, sourceLocation } = req.body;
 
     const updateData: Partial<typeof vendorsTable.$inferInsert> = {};
     if (email !== undefined) updateData.email = email;
     if (notes !== undefined) updateData.notes = notes;
     if (shippingDays !== undefined) updateData.shippingDays = shippingDays;
+    if (sourceLocation !== undefined) updateData.sourceLocation = sourceLocation;
 
     await db.update(vendorsTable).set(updateData).where(eq(vendorsTable.id, vendorId));
 
@@ -196,7 +199,7 @@ router.patch("/vendors/:vendorId/products/:productId", async (req, res) => {
 // POST /vendors/import
 router.post("/vendors/import", async (req, res) => {
   try {
-    const { name, email, shippingDays, products } = req.body;
+    const { name, email, shippingDays, sourceLocation, products } = req.body;
     if (!name || typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "name is required" });
     }
@@ -206,7 +209,7 @@ router.post("/vendors/import", async (req, res) => {
 
     const inserted = await db
       .insert(vendorsTable)
-      .values({ name: name.trim(), email: email ?? null, shippingDays: shippingDays ?? null })
+      .values({ name: name.trim(), email: email ?? null, shippingDays: shippingDays ?? null, sourceLocation: sourceLocation ?? "Florida" })
       .returning();
     const vendor = inserted[0];
 

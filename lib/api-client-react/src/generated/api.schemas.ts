@@ -15,6 +15,7 @@ export interface Vendor {
   email?: string | null;
   notes?: string | null;
   shippingDays?: number | null;
+  sourceLocation?: string | null;
   productCount: number;
   createdAt: string;
 }
@@ -23,6 +24,7 @@ export interface UpdateVendorBody {
   email?: string | null;
   notes?: string | null;
   shippingDays?: number | null;
+  sourceLocation?: string | null;
 }
 
 export interface Product {
@@ -39,6 +41,7 @@ export interface CreateVendorBody {
   name: string;
   email?: string | null;
   notes?: string | null;
+  sourceLocation?: string | null;
 }
 
 export type ImportVendorBodyProductsItem = {
@@ -50,6 +53,7 @@ export interface ImportVendorBody {
   name: string;
   email?: string | null;
   shippingDays?: number | null;
+  sourceLocation?: string | null;
   products: ImportVendorBodyProductsItem[];
 }
 

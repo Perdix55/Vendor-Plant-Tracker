@@ -864,6 +864,9 @@ components:
         shippingDays:
           type: integer
           nullable: true
+        sourceLocation:
+          type: string
+          nullable: true
         productCount:
           type: integer
         createdAt:
@@ -881,6 +884,9 @@ components:
           nullable: true
         shippingDays:
           type: integer
+          nullable: true
+        sourceLocation:
+          type: string
           nullable: true
 
     Product:
@@ -914,6 +920,9 @@ components:
         notes:
           type: string
           nullable: true
+        sourceLocation:
+          type: string
+          nullable: true
       required: [name]
 
     ImportVendorBody:
@@ -926,6 +935,9 @@ components:
           nullable: true
         shippingDays:
           type: integer
+          nullable: true
+        sourceLocation:
+          type: string
           nullable: true
         products:
           type: array

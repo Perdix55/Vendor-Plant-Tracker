@@ -53,10 +53,15 @@ export default function Vendors() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="mt-auto">
-                  <div className="flex items-center gap-2 mt-4">
+                  <div className="flex items-center gap-2 mt-4 flex-wrap">
                     <Badge variant="secondary" className="bg-secondary/50">
                       {vendor.productCount} Products
                     </Badge>
+                    {vendor.sourceLocation && (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        {vendor.sourceLocation}
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>

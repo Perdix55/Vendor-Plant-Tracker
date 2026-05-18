@@ -74,6 +74,7 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
   const [vendorName, setVendorName] = useState("");
   const [vendorEmail, setVendorEmail] = useState("");
   const [vendorShippingDays, setVendorShippingDays] = useState("");
+  const [vendorSourceLocation, setVendorSourceLocation] = useState("Florida");
   const [products, setProducts] = useState<ParsedProduct[]>([]);
   const [fileName, setFileName] = useState("");
   const [parseError, setParseError] = useState("");
@@ -82,7 +83,7 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
 
   const reset = () => {
-    setVendorName(""); setVendorEmail(""); setVendorShippingDays("");
+    setVendorName(""); setVendorEmail(""); setVendorShippingDays(""); setVendorSourceLocation("Florida");
     setProducts([]); setFileName(""); setParseError("");
     if (fileRef.current) fileRef.current.value = "";
   };
@@ -120,6 +121,7 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
           name: vendorName.trim(),
           email: vendorEmail.trim() || null,
           shippingDays: shippingDays ?? undefined,
+          sourceLocation: vendorSourceLocation,
           products: products.map((p) => ({ name: p.name, packSize: p.packSize || null })),
         },
       },
@@ -216,8 +218,8 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-1 space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
               <Label htmlFor="import-vendor-name">Vendor Name <span className="text-destructive">*</span></Label>
               <Input
                 id="import-vendor-name"
@@ -227,7 +229,7 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
                 data-testid="input-import-vendor-name"
               />
             </div>
-            <div className="sm:col-span-1 space-y-1.5">
+            <div className="space-y-1.5">
               <Label htmlFor="import-vendor-email">Email <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input
                 id="import-vendor-email"
@@ -238,7 +240,7 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
                 data-testid="input-import-vendor-email"
               />
             </div>
-            <div className="sm:col-span-1 space-y-1.5">
+            <div className="space-y-1.5">
               <Label htmlFor="import-shipping-days">Shipping Days <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Input
                 id="import-shipping-days"
@@ -249,6 +251,19 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
                 onChange={(e) => setVendorShippingDays(e.target.value)}
                 data-testid="input-import-shipping-days"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="import-source-location">Source Location</Label>
+              <Select value={vendorSourceLocation} onValueChange={setVendorSourceLocation}>
+                <SelectTrigger id="import-source-location" data-testid="select-import-source-location">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Florida">Florida</SelectItem>
+                  <SelectItem value="California">California</SelectItem>
+                  <SelectItem value="Canada">Canada</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -284,6 +299,7 @@ function VendorEmailTab() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newVendorName, setNewVendorName] = useState("");
   const [newVendorEmail, setNewVendorEmail] = useState("");
+  const [newVendorLocation, setNewVendorLocation] = useState("Florida");
 
   const startEdit = (id: number, currentEmail: string | null | undefined) => {
     setEditingId(id);
@@ -339,10 +355,23 @@ function VendorEmailTab() {
     if (e.key === "Escape") cancelEditShipping();
   };
 
+  const saveLocation = (vendorId: number, location: string) => {
+    updateVendor.mutate(
+      { vendorId, data: { sourceLocation: location } },
+      {
+        onSuccess: () => {
+          toast({ title: "Location saved" });
+          queryClient.invalidateQueries({ queryKey: getListVendorsQueryKey() });
+        },
+        onError: () => toast({ title: "Error", description: "Failed to save location.", variant: "destructive" }),
+      }
+    );
+  };
+
   const handleAddVendor = () => {
     if (!newVendorName.trim()) return;
     createVendor.mutate(
-      { data: { name: newVendorName.trim(), email: newVendorEmail.trim() || null } },
+      { data: { name: newVendorName.trim(), email: newVendorEmail.trim() || null, sourceLocation: newVendorLocation } },
       {
         onSuccess: () => {
           toast({ title: "Vendor added", description: `${newVendorName.trim()} has been added.` });
@@ -350,6 +379,7 @@ function VendorEmailTab() {
           setAddDialogOpen(false);
           setNewVendorName("");
           setNewVendorEmail("");
+          setNewVendorLocation("Florida");
         },
         onError: () => toast({ title: "Error", description: "Failed to add vendor.", variant: "destructive" }),
       }
@@ -403,6 +433,19 @@ function VendorEmailTab() {
                       data-testid="input-new-vendor-email"
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="new-vendor-location">Source Location</Label>
+                    <Select value={newVendorLocation} onValueChange={setNewVendorLocation}>
+                      <SelectTrigger id="new-vendor-location" data-testid="select-new-vendor-location">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Florida">Florida</SelectItem>
+                        <SelectItem value="California">California</SelectItem>
+                        <SelectItem value="Canada">Canada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancel</Button>
@@ -431,10 +474,11 @@ function VendorEmailTab() {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-[200px]">Vendor</TableHead>
+                  <TableHead className="w-[180px]">Vendor</TableHead>
                   <TableHead>Email Address</TableHead>
                   <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="w-[160px]">Shipping Days</TableHead>
+                  <TableHead className="w-[150px]">Shipping Days</TableHead>
+                  <TableHead className="w-[150px]">Source</TableHead>
                   <TableHead className="w-[80px]" />
                 </TableRow>
               </TableHeader>
@@ -502,6 +546,22 @@ function VendorEmailTab() {
                           <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={vendor.sourceLocation ?? "Florida"}
+                        onValueChange={(val) => saveLocation(vendor.id, val)}
+                        data-testid={`select-location-${vendor.id}`}
+                      >
+                        <SelectTrigger className="h-8 w-[130px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Florida">Florida</SelectItem>
+                          <SelectItem value="California">California</SelectItem>
+                          <SelectItem value="Canada">Canada</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       {editingId === vendor.id ? (
