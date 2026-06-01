@@ -1,1 +1,79 @@
+name: Regenerate pnpm Lockfile
 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  regenerate-lockfile:
+    name: Regenerate pnpm-lock.yaml
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect pnpm version
+        id: pnpm-version
+        run: |
+          VERSION=$(node -e "
+            try {
+              const pkg = require('./package.json');
+              const pm = pkg.packageManager || '';
+              const match = pm.match(/pnpm@([\d.]+)/);
+              console.log(match ? match[1] : '9');
+            } catch { console.log('9'); }
+          ")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected pnpm version: $VERSION"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ steps.pnpm-version.outputs.version }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Regenerate pnpm-lock.yaml
+        run: pnpm install --no-frozen-lockfile --ignore-scripts --prefer-offline
+
+      - name: Check for lockfile changes
+        id: check-changes
+        run: |
+          if git diff --quiet pnpm-lock.yaml; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Lockfile was not modified."
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Lockfile was updated."
+          fi
+
+      - name: Commit updated lockfile
+        if: steps.check-changes.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "fix: regenerate pnpm-lock.yaml to match pnpm-workspace.yaml overrides [skip ci]"
+          git push origin main
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.check-changes.outputs.changed }}" == "true" ]; then
+            echo "### Lockfile regenerated and pushed to main" >> $GITHUB_STEP_SUMMARY
+            echo "Railway will automatically trigger a new deployment." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### No changes - lockfile was already in sync" >> $GITHUB_STEP_SUMMARY
+          fi
