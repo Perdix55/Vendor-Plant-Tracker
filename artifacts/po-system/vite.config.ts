@@ -4,14 +4,8 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-// PORT is only available at runtime on Railway, not during build.
-// Fall back to 3000 for local dev and build time.
 const rawPort = process.env.PORT;
-const port = rawPort && !Number.isNaN(Number(rawPort)) && Number(rawPort) > 0
-  ? Number(rawPort)
-  : 3000;
-
-// BASE_PATH is optional — default to "/" if not set.
+const port = rawPort ? Number(rawPort) : 5173;
 const basePath = process.env.BASE_PATH || "/";
 
 export default defineConfig({
