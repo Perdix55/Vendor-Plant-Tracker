@@ -315,6 +315,12 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
   const [emailSaved, setEmailSaved] = useState(false);
   const [history, setHistory] = useState<PriceImportRecord[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number } | null>(null);
+  const [uploadError, setUploadError] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const updateVendor = useUpdateVendor();
   const queryClient = useQueryClient();
@@ -336,6 +342,9 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
       setResult(null);
       setImportError("");
       setUrl("");
+      setUploadFile(null);
+      setUploadResult(null);
+      setUploadError("");
       loadHistory();
     }
   };
@@ -379,6 +388,46 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
       setImportError("Network error — check the URL and try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (f: File | null) => {
+    if (!f) return;
+    if (!f.name.toLowerCase().endsWith(".pdf")) {
+      setUploadError("Only PDF files are supported.");
+      return;
+    }
+    setUploadFile(f);
+    setUploadResult(null);
+    setUploadError("");
+  };
+
+  const handleFileImport = async () => {
+    if (!uploadFile) return;
+    setUploadLoading(true);
+    setUploadResult(null);
+    setUploadError("");
+    try {
+      const form = new FormData();
+      form.append("file", uploadFile);
+      const r = await fetch(`/api/vendors/${vendor.id}/price-import/upload`, {
+        method: "POST",
+        body: form,
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setUploadError(data.error ?? "Import failed");
+      } else {
+        setUploadResult(data);
+        setUploadFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        loadHistory();
+        toast({ title: "Import complete", description: `Updated ${data.productsUpdated} products, added ${data.productsAdded} new.` });
+      }
+    } catch {
+      setUploadError("Network error — please try again.");
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -472,6 +521,70 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
             {importError && (
               <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">
                 <strong>Error:</strong> {importError}
+              </div>
+            )}
+          </div>
+
+          {/* Upload PDF directly */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Upload PDF Directly</Label>
+            <p className="text-xs text-muted-foreground">
+              For vendors that send price lists as PDF attachments rather than links.
+            </p>
+            <div
+              className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors cursor-pointer
+                ${dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-muted-foreground/40 hover:bg-muted/30"}
+                ${uploadFile ? "bg-muted/20" : ""}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                handleFileSelect(e.dataTransfer.files[0] ?? null);
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+              />
+              {uploadFile ? (
+                <>
+                  <Upload className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium text-foreground">{uploadFile.name}</span>
+                  <span className="text-xs text-muted-foreground">{(uploadFile.size / 1024).toFixed(0)} KB — click to change</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Drop a PDF here or <span className="text-primary font-medium">click to browse</span></span>
+                </>
+              )}
+            </div>
+            <Button
+              onClick={handleFileImport}
+              disabled={uploadLoading || !uploadFile}
+              size="sm"
+              className="w-full"
+            >
+              {uploadLoading ? "Importing…" : "Import PDF"}
+            </Button>
+            {uploadResult && (
+              <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-0.5">
+                <div className="font-medium text-green-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" /> Import successful
+                </div>
+                <div className="text-xs text-green-700">
+                  Found <strong>{uploadResult.itemsFound}</strong> items · Updated <strong>{uploadResult.productsUpdated}</strong> products · Added <strong>{uploadResult.productsAdded}</strong> new · <strong>{uploadResult.unmatched}</strong> unmatched
+                </div>
+              </div>
+            )}
+            {uploadError && (
+              <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">
+                <strong>Error:</strong> {uploadError}
               </div>
             )}
           </div>

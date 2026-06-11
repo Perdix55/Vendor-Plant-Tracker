@@ -83,6 +83,67 @@ export async function runPriceImport(opts: {
   return result;
 }
 
+/**
+ * Import prices from an already-downloaded PDF buffer (e.g. a file upload).
+ * Behaves identically to runPriceImport but skips the HTTP fetch step.
+ */
+export async function runPriceImportFromBuffer(opts: {
+  vendorId: number;
+  buffer: Buffer;
+  filename?: string;
+  triggeredBy: "manual";
+  addNewProducts?: boolean;
+}): Promise<ImportResult> {
+  const { vendorId, buffer, filename = "upload.pdf", triggeredBy, addNewProducts = true } = opts;
+  const result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [] };
+
+  try {
+    // Validate PDF magic bytes (%PDF)
+    if (buffer.length < 4 || buffer[0] !== 0x25 || buffer[1] !== 0x50 || buffer[2] !== 0x44 || buffer[3] !== 0x46) {
+      throw new Error("Uploaded file does not appear to be a PDF (missing %PDF header).");
+    }
+
+    const text = await extractPdfText(buffer);
+    const items = parsePriceListText(text);
+    result.items = items;
+
+    if (items.length > 0) {
+      const dbResult = await upsertProductPrices(vendorId, items, addNewProducts);
+      result.productsUpdated = dbResult.updated;
+      result.productsAdded = dbResult.added;
+      result.unmatched = dbResult.unmatched;
+    }
+
+    await db.insert(priceListImportsTable).values({
+      vendorId,
+      triggeredBy,
+      sourceUrl: `upload:${filename}`,
+      emailFrom: null,
+      emailSubject: null,
+      productsUpdated: result.productsUpdated,
+      productsAdded: result.productsAdded,
+      status: "success",
+      rawPreview: JSON.stringify(items.slice(0, 10)),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await db.insert(priceListImportsTable).values({
+      vendorId,
+      triggeredBy,
+      sourceUrl: `upload:${filename}`,
+      emailFrom: null,
+      emailSubject: null,
+      productsUpdated: 0,
+      productsAdded: 0,
+      status: "error",
+      errorMessage: message,
+    });
+    throw err;
+  }
+
+  return result;
+}
+
 async function fetchUrlBinary(url: string): Promise<{ buffer: Buffer; contentType: string; finalUrl: string }> {
   // Convert Google Drive share/view URLs to direct download URLs
   const fetchUrl = toGoogleDriveDownloadUrl(url) ?? url;

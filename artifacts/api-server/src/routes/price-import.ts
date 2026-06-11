@@ -1,7 +1,20 @@
 import { Router } from "express";
+import multer from "multer";
 import { db, vendorsTable, priceListImportsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { runPriceImport, extractPriceListUrl } from "../services/price-import";
+import { runPriceImport, runPriceImportFromBuffer, extractPriceListUrl } from "../services/price-import";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === "application/pdf" || file.originalname.toLowerCase().endsWith(".pdf")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF files are accepted."));
+    }
+  },
+});
 
 const router = Router();
 
@@ -35,6 +48,41 @@ router.post("/vendors/:id/price-import", async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Import failed";
     req.log.error({ err, vendorId, url }, "Price import failed");
+    res.status(500).json({ error: message });
+  }
+});
+
+/** Upload a PDF file directly to import prices */
+router.post("/vendors/:id/price-import/upload", upload.single("file"), async (req, res) => {
+  const vendorId = parseInt(req.params.id as string, 10);
+  if (isNaN(vendorId)) {
+    res.status(400).json({ error: "Invalid vendor ID" });
+    return;
+  }
+  if (!req.file) {
+    res.status(400).json({ error: "No file uploaded. Send a PDF as multipart field 'file'." });
+    return;
+  }
+  const { addNewProducts } = req.body as { addNewProducts?: string };
+  try {
+    const result = await runPriceImportFromBuffer({
+      vendorId,
+      buffer: req.file.buffer,
+      filename: req.file.originalname,
+      triggeredBy: "manual",
+      addNewProducts: addNewProducts !== "false",
+    });
+    res.json({
+      ok: true,
+      productsUpdated: result.productsUpdated,
+      productsAdded: result.productsAdded,
+      itemsFound: result.items.length,
+      unmatched: result.unmatched.length,
+      preview: result.items.slice(0, 10),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Import failed";
+    req.log.error({ err, vendorId }, "PDF upload import failed");
     res.status(500).json({ error: message });
   }
 });
