@@ -24,6 +24,12 @@ export const ListVendorsResponseItem = zod.object({
   notes: zod.string().nullish(),
   shippingDays: zod.number().nullish(),
   sourceLocation: zod.string().nullish(),
+  priceListEmail: zod
+    .string()
+    .nullish()
+    .describe(
+      "Email address that this vendor sends price list newsletters from",
+    ),
   productCount: zod.number(),
   createdAt: zod.string(),
 });
@@ -69,6 +75,12 @@ export const GetVendorResponse = zod.object({
   notes: zod.string().nullish(),
   shippingDays: zod.number().nullish(),
   sourceLocation: zod.string().nullish(),
+  priceListEmail: zod
+    .string()
+    .nullish()
+    .describe(
+      "Email address that this vendor sends price list newsletters from",
+    ),
   productCount: zod.number(),
   createdAt: zod.string(),
 });
@@ -85,6 +97,7 @@ export const UpdateVendorBody = zod.object({
   notes: zod.string().nullish(),
   shippingDays: zod.number().nullish(),
   sourceLocation: zod.string().nullish(),
+  priceListEmail: zod.string().nullish(),
 });
 
 export const UpdateVendorResponse = zod.object({
@@ -94,6 +107,12 @@ export const UpdateVendorResponse = zod.object({
   notes: zod.string().nullish(),
   shippingDays: zod.number().nullish(),
   sourceLocation: zod.string().nullish(),
+  priceListEmail: zod
+    .string()
+    .nullish()
+    .describe(
+      "Email address that this vendor sends price list newsletters from",
+    ),
   productCount: zod.number(),
   createdAt: zod.string(),
 });
@@ -110,6 +129,10 @@ export const ListVendorProductsResponseItem = zod.object({
   vendorId: zod.number(),
   name: zod.string(),
   packSize: zod.string().nullish(),
+  cost: zod
+    .string()
+    .nullish()
+    .describe("Unit cost in dollars (stored as numeric string)"),
   isActive: zod.boolean(),
   isNew: zod.boolean(),
   createdAt: zod.string(),
@@ -149,6 +172,10 @@ export const UpdateProductResponse = zod.object({
   vendorId: zod.number(),
   name: zod.string(),
   packSize: zod.string().nullish(),
+  cost: zod
+    .string()
+    .nullish()
+    .describe("Unit cost in dollars (stored as numeric string)"),
   isActive: zod.boolean(),
   isNew: zod.boolean(),
   createdAt: zod.string(),

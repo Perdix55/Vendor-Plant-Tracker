@@ -18,6 +18,7 @@ function mapProduct(p: typeof productsTable.$inferSelect) {
     vendorId: p.vendorId,
     name: p.name,
     packSize: p.packSize,
+    cost: p.cost ?? null,
     isActive: p.isActive,
     isNew: isNewProduct(p.createdAt),
     createdAt: p.createdAt.toISOString(),
@@ -33,6 +34,7 @@ async function fetchVendorWithCount(vendorId: number) {
       notes: vendorsTable.notes,
       shippingDays: vendorsTable.shippingDays,
       sourceLocation: vendorsTable.sourceLocation,
+      priceListEmail: vendorsTable.priceListEmail,
       createdAt: vendorsTable.createdAt,
       productCount: count(productsTable.id),
     })
@@ -56,6 +58,7 @@ router.get("/vendors", async (req, res) => {
         notes: vendorsTable.notes,
         shippingDays: vendorsTable.shippingDays,
         sourceLocation: vendorsTable.sourceLocation,
+        priceListEmail: vendorsTable.priceListEmail,
         createdAt: vendorsTable.createdAt,
         productCount: count(productsTable.id),
       })
@@ -108,13 +111,14 @@ router.get("/vendors/:vendorId", async (req, res) => {
 router.patch("/vendors/:vendorId", async (req, res) => {
   try {
     const vendorId = parseInt(req.params.vendorId, 10);
-    const { email, notes, shippingDays, sourceLocation } = req.body;
+    const { email, notes, shippingDays, sourceLocation, priceListEmail } = req.body;
 
     const updateData: Partial<typeof vendorsTable.$inferInsert> = {};
     if (email !== undefined) updateData.email = email;
     if (notes !== undefined) updateData.notes = notes;
     if (shippingDays !== undefined) updateData.shippingDays = shippingDays;
     if (sourceLocation !== undefined) updateData.sourceLocation = sourceLocation;
+    if (priceListEmail !== undefined) updateData.priceListEmail = priceListEmail;
 
     await db.update(vendorsTable).set(updateData).where(eq(vendorsTable.id, vendorId));
 

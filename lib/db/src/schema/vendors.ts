@@ -9,6 +9,7 @@ export const vendorsTable = pgTable("vendors", {
   notes: text("notes"),
   shippingDays: integer("shipping_days"),
   sourceLocation: text("source_location").default("Florida"),
+  priceListEmail: text("price_list_email"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -16,6 +16,8 @@ export interface Vendor {
   notes?: string | null;
   shippingDays?: number | null;
   sourceLocation?: string | null;
+  /** Email address that this vendor sends price list newsletters from */
+  priceListEmail?: string | null;
   productCount: number;
   createdAt: string;
 }
@@ -25,6 +27,7 @@ export interface UpdateVendorBody {
   notes?: string | null;
   shippingDays?: number | null;
   sourceLocation?: string | null;
+  priceListEmail?: string | null;
 }
 
 export interface Product {
@@ -32,6 +35,8 @@ export interface Product {
   vendorId: number;
   name: string;
   packSize?: string | null;
+  /** Unit cost in dollars (stored as numeric string) */
+  cost?: string | null;
   isActive: boolean;
   isNew: boolean;
   createdAt: string;

@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert } from "lucide-react";
+import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert, ArrowDownToLine, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/auth-context";
@@ -281,6 +281,242 @@ function ImportVendorDialog({ onSuccess }: { onSuccess: () => void }) {
             {importVendor.isPending ? "Importing..." : `Import ${products.length > 0 ? `${products.length} Products` : ""}`}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type PriceImportRecord = {
+  id: number;
+  triggeredBy: string;
+  sourceUrl: string | null;
+  emailFrom: string | null;
+  productsUpdated: number;
+  productsAdded: number;
+  status: string;
+  errorMessage: string | null;
+  importedAt: string;
+};
+
+type PriceImportDialogVendor = {
+  id: number;
+  name: string;
+  priceListEmail?: string | null;
+};
+
+function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number } | null>(null);
+  const [importError, setImportError] = useState("");
+  const [priceListEmail, setPriceListEmail] = useState(vendor.priceListEmail ?? "");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailSaved, setEmailSaved] = useState(false);
+  const [history, setHistory] = useState<PriceImportRecord[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const { toast } = useToast();
+  const updateVendor = useUpdateVendor();
+  const queryClient = useQueryClient();
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const r = await fetch(`/api/vendors/${vendor.id}/price-imports`);
+      if (r.ok) setHistory(await r.json());
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    if (v) {
+      setPriceListEmail(vendor.priceListEmail ?? "");
+      setResult(null);
+      setImportError("");
+      setUrl("");
+      loadHistory();
+    }
+  };
+
+  const handleSaveEmail = () => {
+    setSavingEmail(true);
+    updateVendor.mutate(
+      { vendorId: vendor.id, data: { priceListEmail: priceListEmail.trim() || null } },
+      {
+        onSuccess: () => {
+          setEmailSaved(true);
+          queryClient.invalidateQueries({ queryKey: getListVendorsQueryKey() });
+          setTimeout(() => setEmailSaved(false), 2000);
+        },
+        onError: () => toast({ title: "Error", description: "Failed to save email.", variant: "destructive" }),
+        onSettled: () => setSavingEmail(false),
+      }
+    );
+  };
+
+  const handleImport = async () => {
+    if (!url.trim()) return;
+    setLoading(true);
+    setResult(null);
+    setImportError("");
+    try {
+      const r = await fetch(`/api/vendors/${vendor.id}/price-import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setImportError(data.error ?? "Import failed");
+      } else {
+        setResult(data);
+        loadHistory();
+        toast({ title: "Import complete", description: `Updated ${data.productsUpdated} products, added ${data.productsAdded} new.` });
+      }
+    } catch {
+      setImportError("Network error — check the URL and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const webhookUrl = `${window.location.origin}/api/webhooks/price-list`;
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-muted-foreground hover:text-primary"
+          title="Price List Import"
+          data-testid={`button-price-import-${vendor.id}`}
+        >
+          <ArrowDownToLine className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Price List Import — {vendor.name}</DialogTitle>
+          <DialogDescription>
+            Import product costs from a vendor email newsletter or paste a price list URL directly.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5 py-1 max-h-[72vh] overflow-y-auto pr-1">
+          {/* Price list sender email */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Vendor's Price List Sender Email</Label>
+            <p className="text-xs text-muted-foreground">
+              The "from" address this vendor uses for price list emails. Used to match inbound emails to this vendor automatically.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="newsletter@vendor.com"
+                value={priceListEmail}
+                onChange={(e) => setPriceListEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveEmail()}
+                className="flex-1"
+              />
+              <Button onClick={handleSaveEmail} disabled={savingEmail} variant="outline" size="sm" className="shrink-0">
+                {emailSaved ? <><Check className="h-4 w-4 text-green-600 mr-1" />Saved</> : savingEmail ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Webhook URL */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Inbound Email Webhook</Label>
+            <p className="text-xs text-muted-foreground">
+              Use Zapier "Gmail → Webhooks" to forward price list emails here automatically. POST <code className="bg-muted px-1 rounded">{"{ from, subject, html, text }"}</code> as JSON.
+            </p>
+            <div
+              className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-xs font-mono break-all cursor-pointer hover:bg-muted transition-colors"
+              title="Click to copy"
+              onClick={() => { navigator.clipboard.writeText(webhookUrl); toast({ title: "Copied to clipboard" }); }}
+            >
+              {webhookUrl}
+            </div>
+          </div>
+
+          {/* Manual URL import */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Import from URL</Label>
+            <p className="text-xs text-muted-foreground">
+              Paste the Mailchimp archive link or any price list URL from this vendor's email.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://us.list-manage.com/…"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleImport()}
+                className="flex-1 text-sm font-mono"
+              />
+              <Button onClick={handleImport} disabled={loading || !url.trim()} size="sm" className="shrink-0">
+                {loading ? "Importing…" : "Import"}
+              </Button>
+            </div>
+            {result && (
+              <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-0.5">
+                <div className="font-medium text-green-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" /> Import successful
+                </div>
+                <div className="text-xs text-green-700">
+                  Found <strong>{result.itemsFound}</strong> items · Updated <strong>{result.productsUpdated}</strong> products · Added <strong>{result.productsAdded}</strong> new · <strong>{result.unmatched}</strong> unmatched
+                </div>
+              </div>
+            )}
+            {importError && (
+              <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">
+                <strong>Error:</strong> {importError}
+              </div>
+            )}
+          </div>
+
+          {/* Import history */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Import History</Label>
+            {loadingHistory ? (
+              <div className="space-y-2">{[1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            ) : history.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic py-2">No imports yet for this vendor.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {history.slice(0, 10).map((h) => (
+                  <div
+                    key={h.id}
+                    className={`flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${h.status === "success" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
+                  >
+                    {h.status === "success"
+                      ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600 mt-0.5 shrink-0" />
+                      : <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-muted-foreground">{new Date(h.importedAt).toLocaleString()}</span>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1">{h.triggeredBy}</Badge>
+                      </div>
+                      {h.status === "success" ? (
+                        <div className="text-foreground mt-0.5">
+                          Updated {h.productsUpdated} · Added {h.productsAdded}
+                          {h.sourceUrl && (
+                            <span className="ml-2 text-muted-foreground">
+                              ↗ {(() => { try { return new URL(h.sourceUrl).hostname; } catch { return h.sourceUrl; } })()}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-red-700 mt-0.5 truncate">{h.errorMessage}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -577,9 +813,12 @@ function VendorEmailTab() {
                           </Button>
                         </div>
                       ) : (
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => startEdit(vendor.id, vendor.email)} data-testid={`button-edit-email-${vendor.id}`}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => startEdit(vendor.id, vendor.email)} data-testid={`button-edit-email-${vendor.id}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <PriceImportDialog vendor={vendor} />
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>

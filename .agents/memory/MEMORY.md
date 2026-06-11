@@ -1,0 +1,2 @@
+- [PDF price import](pdf-price-import.md) — pdfjs-dist (external) used for PDF text extraction; Andersen Farms sends PDFs via Mailchimp tracking URLs that redirect to PDF
+- [esbuild externals](esbuild-externals.md) — pdfjs-dist and pdf-parse must be in build.mjs external array; pdf-parse v2 has no default ESM export (use pdfjs-dist directly)

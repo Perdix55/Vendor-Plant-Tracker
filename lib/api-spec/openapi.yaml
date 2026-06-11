@@ -867,6 +867,10 @@ components:
         sourceLocation:
           type: string
           nullable: true
+        priceListEmail:
+          type: string
+          nullable: true
+          description: Email address that this vendor sends price list newsletters from
         productCount:
           type: integer
         createdAt:
@@ -888,6 +892,9 @@ components:
         sourceLocation:
           type: string
           nullable: true
+        priceListEmail:
+          type: string
+          nullable: true
 
     Product:
       type: object
@@ -901,6 +908,10 @@ components:
         packSize:
           type: string
           nullable: true
+        cost:
+          type: string
+          nullable: true
+          description: Unit cost in dollars (stored as numeric string)
         isActive:
           type: boolean
         isNew:
