@@ -108,14 +108,28 @@ router.post("/webhooks/price-list", async (req, res) => {
     return;
   }
 
-  // Find vendor by price list email
+  // Find vendor by price list email — also check original sender in forwarded emails
   const vendors = await db.select().from(vendorsTable);
-  const vendor = vendors.find(
-    (v) => v.priceListEmail && v.priceListEmail.toLowerCase().trim() === fromEmail,
-  );
+
+  // Helper: check if an email address matches a vendor's priceListEmail
+  const findVendorByEmail = (email: string) =>
+    vendors.find((v) => v.priceListEmail && v.priceListEmail.toLowerCase().trim() === email.toLowerCase().trim());
+
+  let vendor = findVendorByEmail(fromEmail);
+
+  // If not matched directly, try to extract the original sender from a forwarded message body.
+  // Gmail forwarded emails include a header block like:
+  //   "---------- Forwarded message ---------\nFrom: Name <email@domain.com>"
+  // or in HTML: <div>From: <a href="mailto:...">Name</a></div>
+  if (!vendor) {
+    const originalSender = extractOriginalSender(html, text);
+    if (originalSender) {
+      vendor = findVendorByEmail(originalSender);
+      req.log.info({ fromEmail, originalSender }, "Webhook: matched vendor via forwarded-message original sender");
+    }
+  }
 
   if (!vendor) {
-    // Not a known vendor — still return 200 so the caller doesn't retry
     req.log.warn({ fromEmail }, "Webhook: no vendor matched price list email");
     res.json({ ok: true, message: "No matching vendor found for sender" });
     return;
@@ -157,5 +171,39 @@ router.post("/webhooks/price-list", async (req, res) => {
     res.status(500).json({ error: "Import failed" });
   }
 });
+
+/**
+ * Extract the original sender's email address from a Gmail-forwarded message.
+ * Gmail inserts a header block in both plain text and HTML:
+ *   Plain: "---------- Forwarded message ---------\nFrom: Name <email@domain.com>"
+ *   HTML:  contains "From:" followed by an email address near the forward divider
+ */
+function extractOriginalSender(html: string, text: string): string | null {
+  // Plain text: look for "From: Name <email>" or "From: email" after a forwarded header
+  const plainPatterns = [
+    /Forwarded message[\s\S]{0,200}?From:\s+[^<\n]*<([^\s>@]+@[^\s>]+)>/i,
+    /Forwarded message[\s\S]{0,200}?From:\s+([^\s@\n<]+@[^\s@\n>]+)/i,
+    /Original Message[\s\S]{0,200}?From:\s+[^<\n]*<([^\s>@]+@[^\s>]+)>/i,
+    /Original Message[\s\S]{0,200}?From:\s+([^\s@\n<]+@[^\s@\n>]+)/i,
+  ];
+  for (const pat of plainPatterns) {
+    const m = text.match(pat);
+    if (m) return m[1].trim().toLowerCase();
+  }
+
+  // HTML: look for mailto: links or email patterns near "Forwarded message" text
+  const htmlEmailPattern = /mailto:([^\s"'>@]+@[^\s"'>]+)/gi;
+  const forwardIdx = html.toLowerCase().indexOf("forwarded message");
+  if (forwardIdx !== -1) {
+    const nearby = html.slice(forwardIdx, forwardIdx + 1000);
+    const m = nearby.match(/mailto:([^\s"'>@]+@[^\s"'>]+)/i);
+    if (m) return m[1].trim().toLowerCase();
+  }
+
+  // Fallback: any mailto: in the email body that's not the logged-in user
+  const allMailto = [...html.matchAll(htmlEmailPattern)].map((m) => m[1].toLowerCase());
+  const candidate = allMailto.find((e) => !e.includes("gmail.com") && e.includes("@"));
+  return candidate ?? null;
+}
 
 export default router;
