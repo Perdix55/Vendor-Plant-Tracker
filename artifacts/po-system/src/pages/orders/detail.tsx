@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { buildPlantLabel, printZpl, printLabelNative } from "@/lib/zebra-print";
 import { useRoute, useLocation, Link } from "wouter";
 import { 
@@ -9,11 +9,14 @@ import {
   useSendOrderEmail,
   useUpdateOrderItem,
   useDeleteOrderItem,
+  useAddOrderItem,
+  useListVendorProducts,
   useListInventoryTransactions,
   getListInventoryTransactionsQueryKey,
   getGetOrderQueryKey,
   getListOrdersQueryKey,
   getGetDashboardSummaryQueryKey,
+  getListVendorProductsQueryKey,
   OrderSummaryStatus,
   ConfirmOrderBodyItemsItemAvailability
 } from "@workspace/api-client-react";
@@ -28,7 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X, PackageCheck, Printer } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X, PackageCheck, Printer, Plus, Search, Package, ChevronUp, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -65,6 +68,60 @@ export default function OrderDetail() {
   const [editingQty, setEditingQty] = useState<number>(1);
   const [labelQtys, setLabelQtys] = useState<Record<number, number>>({});
   const [printingItemId, setPrintingItemId] = useState<number | null>(null);
+
+  const [showAddProducts, setShowAddProducts] = useState(false);
+  const [addSearch, setAddSearch] = useState("");
+  const [addQuantities, setAddQuantities] = useState<Record<number, number>>({});
+
+  const addOrderItem = useAddOrderItem();
+
+  const vendorId = order?.vendorId ?? 0;
+  const { data: vendorProducts } = useListVendorProducts(vendorId, {
+    query: { enabled: showAddProducts && !!vendorId, queryKey: getListVendorProductsQueryKey(vendorId) }
+  });
+
+  const existingProductIds = useMemo(
+    () => new Set((order?.items ?? []).map(i => i.productId)),
+    [order?.items]
+  );
+
+  const filteredAddProducts = useMemo(() => {
+    if (!vendorProducts) return [];
+    const active = vendorProducts.filter(p => p.isActive && !existingProductIds.has(p.id));
+    if (!addSearch) return active;
+    const lower = addSearch.toLowerCase();
+    return active.filter(p => p.name.toLowerCase().includes(lower) || (p.packSize ?? "").toLowerCase().includes(lower));
+  }, [vendorProducts, existingProductIds, addSearch]);
+
+  const addTotalItems = Object.keys(addQuantities).filter(id => (addQuantities[parseInt(id)] ?? 0) > 0).length;
+
+  const handleAddQtyChange = (productId: number, val: string) => {
+    const qty = parseInt(val, 10);
+    setAddQuantities(prev => {
+      const next = { ...prev };
+      if (isNaN(qty) || qty <= 0) delete next[productId];
+      else next[productId] = qty;
+      return next;
+    });
+  };
+
+  const handleAddProducts = async () => {
+    const toAdd = Object.entries(addQuantities).filter(([, qty]) => qty > 0);
+    if (!toAdd.length) return;
+    try {
+      for (const [idStr, qty] of toAdd) {
+        await addOrderItem.mutateAsync({ orderId, data: { productId: parseInt(idStr), quantityOrdered: qty } });
+      }
+      toast({ title: `Added ${toAdd.length} item${toAdd.length !== 1 ? "s" : ""} to order` });
+      setAddQuantities({});
+      setAddSearch("");
+      setShowAddProducts(false);
+      queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
+      queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+    } catch {
+      toast({ title: "Error", description: "Failed to add some items.", variant: "destructive" });
+    }
+  };
 
   const printBarcodeLabels = useCallback(async (
     productName: string,
@@ -427,10 +484,26 @@ export default function OrderDetail() {
 
           <Card>
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                Order Items
-                <Badge variant="secondary" className="ml-2 font-normal">{order.items.length}</Badge>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  Order Items
+                  <Badge variant="secondary" className="ml-2 font-normal">{order.items.length}</Badge>
+                </CardTitle>
+                {order.status === "draft" && (
+                  <Button
+                    variant={showAddProducts ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => { setShowAddProducts(v => !v); setAddQuantities({}); setAddSearch(""); }}
+                    data-testid="button-toggle-add-products"
+                  >
+                    {showAddProducts ? (
+                      <><ChevronUp className="mr-1.5 h-4 w-4" />Hide Catalog</>
+                    ) : (
+                      <><Plus className="mr-1.5 h-4 w-4" />Add Products</>
+                    )}
+                  </Button>
+                )}
+              </div>
               {isConfirming && (
                 <CardDescription className="text-amber-700 dark:text-amber-500 flex items-center gap-1 mt-1 font-medium bg-amber-50 dark:bg-amber-900/20 p-2 rounded-md inline-flex w-fit">
                   <Info className="h-4 w-4" />
@@ -661,6 +734,105 @@ export default function OrderDetail() {
                   })}
                 </TableBody>
               </Table>
+
+              {showAddProducts && (
+                <div className="border-t bg-muted/20">
+                  <div className="flex items-center justify-between px-6 py-3 border-b bg-background">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      Add from {order.vendorName} catalog
+                      {filteredAddProducts.length > 0 && !addSearch && (
+                        <span className="text-muted-foreground font-normal">· {filteredAddProducts.length} available</span>
+                      )}
+                    </div>
+                    <div className="relative w-56">
+                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Search catalog..."
+                        className="pl-8 h-8 text-sm"
+                        value={addSearch}
+                        onChange={(e) => setAddSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {!vendorProducts ? (
+                    <div className="p-6 space-y-3">
+                      {[1,2,3,4].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                    </div>
+                  ) : filteredAddProducts.length === 0 ? (
+                    <div className="py-10 text-center text-muted-foreground text-sm">
+                      {addSearch ? "No products match your search." : "All catalog products are already on this order."}
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader className="bg-muted/30">
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead className="w-[140px]">Pack Size</TableHead>
+                          <TableHead className="w-[120px] text-right">Quantity</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAddProducts.map(product => (
+                          <TableRow
+                            key={product.id}
+                            className={(addQuantities[product.id] ?? 0) > 0 ? "bg-primary/5" : ""}
+                          >
+                            <TableCell className="font-medium">
+                              <div className="flex items-center gap-2">
+                                {product.name}
+                                {product.isNew && (
+                                  <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0 gap-0.5 hover:bg-amber-100">
+                                    <Sparkles className="h-2.5 w-2.5" />New
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">{product.packSize || "N/A"}</TableCell>
+                            <TableCell className="text-right">
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                className="w-20 ml-auto text-right h-8"
+                                value={addQuantities[product.id] || ""}
+                                onChange={(e) => handleAddQtyChange(product.id, e.target.value)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+
+                  <div className="flex items-center justify-between px-6 py-3 border-t bg-background">
+                    <span className="text-sm text-muted-foreground">
+                      {addTotalItems > 0 ? `${addTotalItems} product${addTotalItems !== 1 ? "s" : ""} selected` : "Enter quantities above"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setShowAddProducts(false); setAddQuantities({}); setAddSearch(""); }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={addTotalItems === 0 || addOrderItem.isPending}
+                        onClick={handleAddProducts}
+                        data-testid="button-add-products-confirm"
+                      >
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />
+                        {addOrderItem.isPending ? "Adding..." : `Add ${addTotalItems > 0 ? addTotalItems : ""} Item${addTotalItems !== 1 ? "s" : ""}`}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
