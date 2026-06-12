@@ -43,6 +43,7 @@ router.post("/vendors/:id/price-import", async (req, res) => {
       productsAdded: result.productsAdded,
       itemsFound: result.items.length,
       unmatched: result.unmatched.length,
+      noPrices: result.noPrices ?? false,
       preview: result.items.slice(0, 10),
     });
   } catch (err) {
@@ -78,6 +79,7 @@ router.post("/vendors/:id/price-import/upload", upload.single("file"), async (re
       productsAdded: result.productsAdded,
       itemsFound: result.items.length,
       unmatched: result.unmatched.length,
+      noPrices: result.noPrices ?? false,
       preview: result.items.slice(0, 10),
     });
   } catch (err) {

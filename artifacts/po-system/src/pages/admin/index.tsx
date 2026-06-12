@@ -308,7 +308,7 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number } | null>(null);
+  const [result, setResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number; noPrices?: boolean } | null>(null);
   const [importError, setImportError] = useState("");
   const [priceListEmail, setPriceListEmail] = useState(vendor.priceListEmail ?? "");
   const [savingEmail, setSavingEmail] = useState(false);
@@ -317,7 +317,7 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number } | null>(null);
+  const [uploadResult, setUploadResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number; noPrices?: boolean } | null>(null);
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -508,13 +508,23 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
                 {loading ? "Importing…" : "Import"}
               </Button>
             </div>
-            {result && (
+            {result && !result.noPrices && (
               <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-0.5">
                 <div className="font-medium text-green-800 flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4" /> Import successful
                 </div>
                 <div className="text-xs text-green-700">
                   Found <strong>{result.itemsFound}</strong> items · Updated <strong>{result.productsUpdated}</strong> products · Added <strong>{result.productsAdded}</strong> new · <strong>{result.unmatched}</strong> unmatched
+                </div>
+              </div>
+            )}
+            {result?.noPrices && (
+              <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm space-y-0.5">
+                <div className="font-medium text-blue-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" /> Catalog imported (no prices)
+                </div>
+                <div className="text-xs text-blue-700">
+                  Found <strong>{result.itemsFound}</strong> products · Added <strong>{result.productsAdded}</strong> new to catalog · No price column in this file — existing costs unchanged.
                 </div>
               </div>
             )}
@@ -572,13 +582,23 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
             >
               {uploadLoading ? "Importing…" : "Import PDF"}
             </Button>
-            {uploadResult && (
+            {uploadResult && !uploadResult.noPrices && (
               <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-0.5">
                 <div className="font-medium text-green-800 flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4" /> Import successful
                 </div>
                 <div className="text-xs text-green-700">
                   Found <strong>{uploadResult.itemsFound}</strong> items · Updated <strong>{uploadResult.productsUpdated}</strong> products · Added <strong>{uploadResult.productsAdded}</strong> new · <strong>{uploadResult.unmatched}</strong> unmatched
+                </div>
+              </div>
+            )}
+            {uploadResult?.noPrices && (
+              <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm space-y-0.5">
+                <div className="font-medium text-blue-800 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" /> Catalog imported (no prices)
+                </div>
+                <div className="text-xs text-blue-700">
+                  Found <strong>{uploadResult.itemsFound}</strong> products · Added <strong>{uploadResult.productsAdded}</strong> new to catalog · No price column in this file — existing costs unchanged.
                 </div>
               </div>
             )}

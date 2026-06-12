@@ -9,11 +9,18 @@ export type ParsedItem = {
   rawLine?: string;
 };
 
+/** A product entry discovered from a no-price availability list (no cost column). */
+export type CatalogItem = {
+  name: string;
+};
+
 export type ImportResult = {
   items: ParsedItem[];
   productsUpdated: number;
   productsAdded: number;
   unmatched: ParsedItem[];
+  /** True when the source had no prices — products were added to catalog only, costs untouched. */
+  noPrices?: boolean;
 };
 
 export async function runPriceImport(opts: {
@@ -26,31 +33,28 @@ export async function runPriceImport(opts: {
 }): Promise<ImportResult> {
   const { vendorId, url, triggeredBy, emailFrom, emailSubject, addNewProducts = true } = opts;
 
-  let result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [] };
+  const result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [] };
 
   try {
     const { buffer, contentType, finalUrl } = await fetchUrlBinary(url);
-    let items: ParsedItem[];
 
     if (isPdf(contentType, finalUrl)) {
       const text = await extractPdfText(buffer);
-      items = parsePriceListText(text);
+      await applyPdfResult(text, vendorId, addNewProducts, result);
     } else if (isHtml(contentType)) {
       const html = buffer.toString("utf-8");
-      items = parseHtmlForPrices(html);
+      const items = parseHtmlForPrices(html);
+      result.items = items;
+      if (items.length > 0) {
+        const dbResult = await upsertProductPrices(vendorId, items, addNewProducts);
+        result.productsUpdated = dbResult.updated;
+        result.productsAdded = dbResult.added;
+        result.unmatched = dbResult.unmatched;
+      }
     } else {
       throw new Error(
         `Unsupported content type: ${contentType}. Expected HTML or PDF. URL resolved to: ${finalUrl}`,
       );
-    }
-
-    result.items = items;
-
-    if (items.length > 0) {
-      const dbResult = await upsertProductPrices(vendorId, items, addNewProducts);
-      result.productsUpdated = dbResult.updated;
-      result.productsAdded = dbResult.added;
-      result.unmatched = dbResult.unmatched;
     }
 
     await db.insert(priceListImportsTable).values({
@@ -62,7 +66,7 @@ export async function runPriceImport(opts: {
       productsUpdated: result.productsUpdated,
       productsAdded: result.productsAdded,
       status: "success",
-      rawPreview: JSON.stringify(items.slice(0, 10)),
+      rawPreview: JSON.stringify(result.items.slice(0, 10)),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -104,15 +108,7 @@ export async function runPriceImportFromBuffer(opts: {
     }
 
     const text = await extractPdfText(buffer);
-    const items = parsePriceListText(text);
-    result.items = items;
-
-    if (items.length > 0) {
-      const dbResult = await upsertProductPrices(vendorId, items, addNewProducts);
-      result.productsUpdated = dbResult.updated;
-      result.productsAdded = dbResult.added;
-      result.unmatched = dbResult.unmatched;
-    }
+    await applyPdfResult(text, vendorId, addNewProducts, result);
 
     await db.insert(priceListImportsTable).values({
       vendorId,
@@ -123,7 +119,7 @@ export async function runPriceImportFromBuffer(opts: {
       productsUpdated: result.productsUpdated,
       productsAdded: result.productsAdded,
       status: "success",
-      rawPreview: JSON.stringify(items.slice(0, 10)),
+      rawPreview: JSON.stringify(result.items.slice(0, 10)),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -142,6 +138,37 @@ export async function runPriceImportFromBuffer(opts: {
   }
 
   return result;
+}
+
+/**
+ * Auto-detects PDF format (priced vs. availability-only) and populates `result`.
+ * - If the text contains dollar prices → use price parser + upsertProductPrices.
+ * - Otherwise → use availability parser + upsertProductCatalog (costs untouched).
+ */
+async function applyPdfResult(
+  text: string,
+  vendorId: number,
+  addNew: boolean,
+  result: ImportResult,
+): Promise<void> {
+  const priceItems = parsePriceListText(text);
+  if (priceItems.length > 0) {
+    result.items = priceItems;
+    const dbResult = await upsertProductPrices(vendorId, priceItems, addNew);
+    result.productsUpdated = dbResult.updated;
+    result.productsAdded = dbResult.added;
+    result.unmatched = dbResult.unmatched;
+  } else {
+    // No prices found — try availability list format (Plants in Design style)
+    const catalogItems = parseAvailabilityText(text);
+    if (catalogItems.length > 0) {
+      result.noPrices = true;
+      const dbResult = await upsertProductCatalog(vendorId, catalogItems, addNew);
+      result.productsAdded = dbResult.added;
+      // Represent catalog items as ParsedItem with cost=0 for history/preview
+      result.items = catalogItems.map((c) => ({ name: c.name, cost: 0 }));
+    }
+  }
 }
 
 async function fetchUrlBinary(url: string): Promise<{ buffer: Buffer; contentType: string; finalUrl: string }> {
@@ -214,7 +241,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     const pageText = (textContent.items as Array<{ str?: string }>)
       .map((item) => item.str ?? "")
       .join(" ");
-    fullText += pageText + "\n";
+    fullText += pageText + "  \n";
   }
   return fullText;
 }
@@ -524,6 +551,85 @@ export function extractPriceListUrl(html: string, text: string): string | null {
   return null;
 }
 
+/**
+ * Parses the "Plants in Design" availability-list format:
+ *   Name | Stage (LTD/MED-GOOD/SOLD OUT/…) | Pack qty | Notes
+ * There are no dollar prices — this builds a product catalog only.
+ */
+function parseAvailabilityText(text: string): CatalogItem[] {
+  // Split on 2+ spaces + availability stage + 2+ spaces + number
+  // Also split on "   -   " (discontinued entries like "Aglaonema Etta Rose   -")
+  const STAGE_SPLIT_RE =
+    /\s{2,}(?:LTD|MEDIUM|MED-GOOD|SOLD\s+OUT|GOOD|LOW\s*\/\s*MED)\s{2,}\d+|\s{2,}-\s+/g;
+
+  // Chunks that are NOT part of a product name
+  const COLOR_LABEL_RE =
+    /^(?:WHITE|YELLOW(?:\s+ORANGE|\s+RED\s+CONE)?|RED(?:\/WHITE|\s+ORANGE)?|ORANGE|GREEN|PURPLE|BURGUNDY|PINK|Blue|Purple|Pink|Red|Green)\s*$/i;
+  const POT_SIZE_HEADER_RE = /^\d+(?:\.\d+)?"\s+POT\s+SIZE/i;
+  const META_RE =
+    /^(?:NEW\s+ITEM|Email|Sales@|Updated|COLOR(?!\w)|Plant\s+Name|STAGE(?!\w)|PK(?!\w)|BOXES|PACKAGING|\d{5,}|20\d{2}|Office:|Fax:)/i;
+
+  const parts = text.split(STAGE_SPLIT_RE);
+  const seen = new Set<string>();
+  const items: CatalogItem[] = [];
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const segment = parts[i];
+    const chunks = segment
+      .split(/\s{2,}/)
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    // Filter meta/header/color chunks — these are never part of a product name
+    const nameChunks = chunks.filter(
+      (c) =>
+        !COLOR_LABEL_RE.test(c) &&
+        !POT_SIZE_HEADER_RE.test(c) &&
+        !META_RE.test(c) &&
+        c !== "-",
+    );
+
+    if (nameChunks.length === 0) continue;
+
+    // Find the last chunk that begins with a pot-size indicator (e.g. "6"" or "10"")
+    // That chunk is the start of the product name; join it with all subsequent chunks.
+    let sizeIdx = -1;
+    for (let j = nameChunks.length - 1; j >= 0; j--) {
+      if (/^\d+(?:\.\d+)?"/.test(nameChunks[j])) {
+        sizeIdx = j;
+        break;
+      }
+    }
+
+    let name: string;
+    if (sizeIdx >= 0) {
+      // Join from the size-prefix chunk to end, collapse internal whitespace
+      name = nameChunks
+        .slice(sizeIdx)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+    } else {
+      // No pot-size prefix (e.g. "Aglaonema Etta Rose") — take the last chunk
+      const last = nameChunks[nameChunks.length - 1];
+      if (!last || last.length < 3 || /^[a-z]/.test(last) || /https?:|@/.test(last)) continue;
+      name = last.trim();
+    }
+
+    // Final sanity checks
+    if (!name || name.length < 3 || name.length > 120) continue;
+    if (/https?:|@|\*{2,}/.test(name)) continue;
+
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      items.push({ name });
+    }
+  }
+
+  return items;
+}
+
 async function upsertProductPrices(
   vendorId: number,
   items: ParsedItem[],
@@ -568,4 +674,51 @@ async function upsertProductPrices(
   }
 
   return { updated, added, unmatched };
+}
+
+/**
+ * Upsert products from a no-price catalog import.
+ * Existing products are left untouched (costs preserved).
+ * New products are inserted with cost = NULL.
+ */
+async function upsertProductCatalog(
+  vendorId: number,
+  items: CatalogItem[],
+  addNew: boolean,
+): Promise<{ added: number; existing: number }> {
+  const existing = await db
+    .select({ id: productsTable.id, name: productsTable.name })
+    .from(productsTable)
+    .where(eq(productsTable.vendorId, vendorId));
+
+  let added = 0;
+  let existingCount = 0;
+
+  for (const item of items) {
+    const nameLower = item.name.toLowerCase();
+
+    // Exact match (case-insensitive)
+    let match = existing.find((p) => p.name.toLowerCase() === nameLower);
+
+    // Fuzzy: one name contains the other (minimum 4 chars)
+    if (!match && nameLower.length >= 4) {
+      match = existing.find((p) => {
+        const pl = p.name.toLowerCase();
+        return pl.includes(nameLower) || nameLower.includes(pl);
+      });
+    }
+
+    if (match) {
+      existingCount++;
+    } else if (addNew) {
+      const [inserted] = await db
+        .insert(productsTable)
+        .values({ vendorId, name: item.name })
+        .returning({ id: productsTable.id, name: productsTable.name });
+      existing.push(inserted);
+      added++;
+    }
+  }
+
+  return { added, existing: existingCount };
 }
