@@ -39,8 +39,7 @@ export async function runPriceImport(opts: {
     const { buffer, contentType, finalUrl } = await fetchUrlBinary(url);
 
     if (isPdf(contentType, finalUrl)) {
-      const text = await extractPdfText(buffer);
-      await applyPdfResult(text, vendorId, addNewProducts, result);
+      await applyPdfResult(buffer, vendorId, addNewProducts, result);
     } else if (isHtml(contentType)) {
       const html = buffer.toString("utf-8");
       const items = parseHtmlForPrices(html);
@@ -107,8 +106,7 @@ export async function runPriceImportFromBuffer(opts: {
       throw new Error("Uploaded file does not appear to be a PDF (missing %PDF header).");
     }
 
-    const text = await extractPdfText(buffer);
-    await applyPdfResult(text, vendorId, addNewProducts, result);
+    await applyPdfResult(buffer, vendorId, addNewProducts, result);
 
     await db.insert(priceListImportsTable).values({
       vendorId,
@@ -141,16 +139,34 @@ export async function runPriceImportFromBuffer(opts: {
 }
 
 /**
- * Auto-detects PDF format (priced vs. availability-only) and populates `result`.
- * - If the text contains dollar prices → use price parser + upsertProductPrices.
- * - Otherwise → use availability parser + upsertProductCatalog (costs untouched).
+ * Auto-detects PDF format and populates `result`.
+ * Priority order:
+ *  1. Column-format (Northland Floral style) — position-based parser
+ *  2. Text-based price parser (Castleton Gardens, Andersen Farms style)
+ *  3. Availability-list parser (Plants in Design style — no prices)
  */
 async function applyPdfResult(
-  text: string,
+  buffer: Buffer,
   vendorId: number,
   addNew: boolean,
   result: ImportResult,
 ): Promise<void> {
+  // 1. Try column-format parser first (structured PDFs with fixed-width columns)
+  const pdfItems = await extractPdfItems(buffer);
+  if (isColumnFormat(pdfItems)) {
+    const priceItems = parseColumnPdf(pdfItems);
+    if (priceItems.length > 0) {
+      result.items = priceItems;
+      const dbResult = await upsertProductPrices(vendorId, priceItems, addNew);
+      result.productsUpdated = dbResult.updated;
+      result.productsAdded = dbResult.added;
+      result.unmatched = dbResult.unmatched;
+      return;
+    }
+  }
+
+  // 2 & 3. Fall back to text-based parsers
+  const text = await extractPdfText(buffer);
   const priceItems = parsePriceListText(text);
   if (priceItems.length > 0) {
     result.items = priceItems;
@@ -227,6 +243,113 @@ function isPdf(contentType: string, url: string): boolean {
 
 function isHtml(contentType: string): boolean {
   return contentType.includes("text/html") || contentType.includes("application/xhtml");
+}
+
+/** A single text item from a PDF page, with x/y position. */
+interface PdfItem {
+  str: string;
+  x: number;
+  y: number;
+  page: number;
+}
+
+/**
+ * Extract all text items from a PDF with their (x, y) page coordinates.
+ * Used for column-format PDFs where position matters more than reading order.
+ */
+async function extractPdfItems(buffer: Buffer): Promise<PdfItem[]> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await (pdfjs as typeof pdfjs).getDocument({ data: new Uint8Array(buffer) }).promise;
+  const items: PdfItem[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const tc = await page.getTextContent();
+    for (const item of tc.items as Array<{ str?: string; transform?: number[] }>) {
+      const s = item.str?.trim();
+      if (!s || !item.transform) continue;
+      items.push({
+        str: s,
+        x: Math.round(item.transform[4]),
+        y: Math.round(item.transform[5]),
+        page: i,
+      });
+    }
+  }
+  return items;
+}
+
+/**
+ * Detect a structured column-format PDF (e.g. Northland Floral).
+ * These PDFs have $ signs as standalone text items in a fixed price column (~x=488–512),
+ * separate from the numeric price value which appears to the right (~x=512–540).
+ */
+function isColumnFormat(items: PdfItem[]): boolean {
+  return items.filter((i) => i.str === "$" && i.x >= 488 && i.x <= 512).length >= 3;
+}
+
+/**
+ * Parse a column-format price PDF (Northland Floral style) using x/y position grouping.
+ *
+ * Column layout (approximate x positions):
+ *   x < 108     : item code (ignored for matching purposes)
+ *   108–472     : product name (may span multiple text items if pot size is split)
+ *   474–476     : pack quantity (ignored)
+ *   ~497        : $ sign
+ *   ~516–520    : price amount
+ *
+ * Strategy: group all text items by (page, y) into rows, then for each row
+ * that has a $ in the price column and a numeric value to its right, assemble
+ * the product name from items in the name column.
+ */
+function parseColumnPdf(items: PdfItem[]): ParsedItem[] {
+  // Group items by (page, rounded_y). Rows are ~11–12px apart; rounding to 4px
+  // gives ±2px tolerance which handles the ±1px jitter seen across columns.
+  const rowMap = new Map<string, PdfItem[]>();
+  for (const item of items) {
+    const yKey = Math.round(item.y / 4) * 4;
+    const key = `${item.page}:${yKey}`;
+    if (!rowMap.has(key)) rowMap.set(key, []);
+    rowMap.get(key)!.push(item);
+  }
+
+  const result: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  for (const [, rowItems] of rowMap) {
+    rowItems.sort((a, b) => a.x - b.x);
+
+    // Every product row has a standalone $ in the price column
+    if (!rowItems.some((i) => i.str === "$" && i.x >= 488 && i.x <= 512)) continue;
+
+    // And a decimal/integer price to the right of the $ column
+    const priceItem = rowItems.find(
+      (i) => /^\d{1,4}(?:\.\d{1,2})?$/.test(i.str) && i.x >= 505 && i.x <= 545,
+    );
+    if (!priceItem) continue;
+
+    const price = parseFloat(priceItem.str);
+    if (isNaN(price) || price < 0.5 || price > 1500) continue;
+
+    // Product name: concatenate all items in the name column (left of pack column)
+    const nameItems = rowItems.filter((i) => i.x >= 108 && i.x <= 472);
+    if (!nameItems.length) continue;
+
+    const name = nameItems
+      .map((i) => i.str)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!name || !isValidPlantName(name)) continue;
+
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({ name, cost: price, rawLine: `${name} $${price.toFixed(2)}` });
+    }
+  }
+
+  return result;
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
