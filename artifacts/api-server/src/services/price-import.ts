@@ -279,31 +279,72 @@ async function extractPdfItems(buffer: Buffer): Promise<PdfItem[]> {
 }
 
 /**
- * Detect a structured column-format PDF (e.g. Northland Floral).
- * These PDFs have $ signs as standalone text items in a fixed price column (~x=488–512),
- * separate from the numeric price value which appears to the right (~x=512–540).
+ * Detect a structured column-format PDF where the $ sign is a standalone text item
+ * (separate from the price number), such as Northland Floral and Carter Road Tropical.
+ * Returns true when 3+ standalone "$" items cluster around a common x position.
  */
 function isColumnFormat(items: PdfItem[]): boolean {
-  return items.filter((i) => i.str === "$" && i.x >= 488 && i.x <= 512).length >= 3;
+  const dollarItems = items.filter((i) => i.str === "$");
+  if (dollarItems.length < 3) return false;
+  // Bucket by 20px and find the largest cluster
+  const xBuckets = new Map<number, number>();
+  for (const item of dollarItems) {
+    const bucket = Math.round(item.x / 20) * 20;
+    xBuckets.set(bucket, (xBuckets.get(bucket) ?? 0) + 1);
+  }
+  return Math.max(...xBuckets.values()) >= 3;
 }
 
 /**
- * Parse a column-format price PDF (Northland Floral style) using x/y position grouping.
+ * Find the dominant x position of standalone "$" items in a column-format PDF.
+ * Uses 20px bucketing then returns the exact median x within that bucket.
+ */
+function detectDollarColumnX(items: PdfItem[]): number {
+  const dollarItems = items.filter((i) => i.str === "$");
+  const xBuckets = new Map<number, number[]>();
+  for (const item of dollarItems) {
+    const bucket = Math.round(item.x / 20) * 20;
+    if (!xBuckets.has(bucket)) xBuckets.set(bucket, []);
+    xBuckets.get(bucket)!.push(item.x);
+  }
+  let bestBucket = 0;
+  let bestCount = 0;
+  for (const [bucket, xs] of xBuckets) {
+    if (xs.length > bestCount) {
+      bestCount = xs.length;
+      bestBucket = bucket;
+    }
+  }
+  const xs = xBuckets.get(bestBucket) ?? [];
+  return xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : bestBucket;
+}
+
+/**
+ * Parse a column-format price PDF using x/y position grouping.
+ * Works for any vendor that renders the $ sign as a standalone text item
+ * separate from the numeric price (Northland Floral, Carter Road Tropical, etc.).
  *
- * Column layout (approximate x positions):
- *   x < 108     : item code (ignored for matching purposes)
- *   108–472     : product name (may span multiple text items if pot size is split)
- *   474–476     : pack quantity (ignored)
- *   ~497        : $ sign
- *   ~516–520    : price amount
+ * Column positions are derived automatically from the dominant $ column:
+ *   left margin (x < ~90)     : pot size (e.g. "8"", "10"") — prepended to product name
+ *   name column (x ≥ ~90)     : product name + form type (e.g. "Ficus BENJAMINA BRAID")
+ *   $ column   (auto-detected): price currency indicator
+ *   price column ($ + 15–50px): numeric price value
  *
- * Strategy: group all text items by (page, y) into rows, then for each row
- * that has a $ in the price column and a numeric value to its right, assemble
- * the product name from items in the name column.
+ * Items in the "spec" column between name and $ (pack quantities, form codes) are
+ * included in the name when they fall within nameMaxX, helping distinguish variants
+ * like "Ficus BENJAMINA BRAID" from "Ficus BENJAMINA STANDARD".
  */
 function parseColumnPdf(items: PdfItem[]): ParsedItem[] {
-  // Group items by (page, rounded_y). Rows are ~11–12px apart; rounding to 4px
-  // gives ±2px tolerance which handles the ±1px jitter seen across columns.
+  const dollarX = detectDollarColumnX(items);
+
+  // Derive column boundaries relative to the $ position
+  const nameMinX = 90; // pot sizes are left of this; item codes too (but filtered separately)
+  const nameMaxX = dollarX - 40; // includes form type (HB, BRAID, 3PPP) but not pack qty column
+  const priceMinX = dollarX + 15;
+  const priceMaxX = dollarX + 55;
+
+  // Group items by (page, rounded_y). Rows are typically 11–12px apart;
+  // rounding to 4px gives ±2px tolerance handling the ±1px jitter between columns.
   const rowMap = new Map<string, PdfItem[]>();
   for (const item of items) {
     const yKey = Math.round(item.y / 4) * 4;
@@ -318,27 +359,46 @@ function parseColumnPdf(items: PdfItem[]): ParsedItem[] {
   for (const [, rowItems] of rowMap) {
     rowItems.sort((a, b) => a.x - b.x);
 
-    // Every product row has a standalone $ in the price column
-    if (!rowItems.some((i) => i.str === "$" && i.x >= 488 && i.x <= 512)) continue;
+    // Every product row has a standalone $ near the detected column
+    if (!rowItems.some((i) => i.str === "$" && Math.abs(i.x - dollarX) <= 15)) continue;
 
     // And a decimal/integer price to the right of the $ column
     const priceItem = rowItems.find(
-      (i) => /^\d{1,4}(?:\.\d{1,2})?$/.test(i.str) && i.x >= 505 && i.x <= 545,
+      (i) => /^\d{1,4}(?:\.\d{1,2})?$/.test(i.str) && i.x >= priceMinX && i.x <= priceMaxX,
     );
     if (!priceItem) continue;
 
     const price = parseFloat(priceItem.str);
     if (isNaN(price) || price < 0.5 || price > 1500) continue;
 
-    // Product name: concatenate all items in the name column (left of pack column)
-    const nameItems = rowItems.filter((i) => i.x >= 108 && i.x <= 472);
+    // Pot size: items in the left margin matching "8"", "10"", "4.5"", etc.
+    const potItems = rowItems.filter(
+      (i) => i.x < nameMinX && /^\d+(?:\.\d+)?"$/.test(i.str),
+    );
+
+    // Product name + form: items in the name column (between left margin and $ column)
+    const nameItems = rowItems.filter((i) => i.x >= nameMinX && i.x <= nameMaxX);
     if (!nameItems.length) continue;
 
-    const name = nameItems
+    const potPart = potItems.map((i) => i.str).join(" ").trim();
+    const namePart = nameItems
       .map((i) => i.str)
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
+    const rawName = potPart ? `${potPart} ${namePart}` : namePart;
+
+    // Remove duplicate tokens (spec column sometimes repeats a word already in the plant name)
+    const tokens = rawName.split(/\s+/);
+    const seenTokens = new Set<string>();
+    const name = tokens
+      .filter((t) => {
+        const k = t.toLowerCase();
+        if (seenTokens.has(k)) return false;
+        seenTokens.add(k);
+        return true;
+      })
+      .join(" ");
 
     if (!name || !isValidPlantName(name)) continue;
 
@@ -561,8 +621,9 @@ function isHardStop(chunk: string): boolean {
 
 function isValidPlantName(name: string): boolean {
   if (!name || name.length < 2) return false;
-  // Starts with a digit → size note or quantity
-  if (/^\d/.test(name)) return false;
+  // Allow pot-size-prefixed names like "8" Cactus - RIC RAC" or "2.5" Kalanchoe..."
+  // but reject bare digit strings (size specs, quantities, pack counts)
+  if (/^\d/.test(name) && !/^\d+(?:\.\d+)?"/.test(name)) return false;
   // Starts with Unicode fraction → measurement
   if (/^[\u00bc-\u00be\u2150-\u215f]/.test(name)) return false;
   // Starts with a dash/en-dash → size range or separator
