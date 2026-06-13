@@ -247,6 +247,7 @@ export default function NewOrder() {
                     <TableRow>
                       <TableHead>Product</TableHead>
                       <TableHead className="w-[120px]">Pack Size</TableHead>
+                      <TableHead className="w-[90px] text-right">Price</TableHead>
                       <TableHead className="w-[120px] text-right">Quantity</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -263,7 +264,10 @@ export default function NewOrder() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{product.packSize || "N/A"}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{product.packSize || "—"}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-sm">
+                          {product.cost ? `$${parseFloat(product.cost).toFixed(2)}` : <span className="text-muted-foreground text-xs">—</span>}
+                        </TableCell>
                         <TableCell className="text-right">
                           <Input 
                             type="number" 
