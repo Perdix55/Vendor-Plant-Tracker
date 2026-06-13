@@ -26,7 +26,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert, ArrowDownToLine, CheckCircle2, XCircle } from "lucide-react";
+import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert, ArrowDownToLine, CheckCircle2, XCircle, BarChart2, Loader2, Copy, ChevronDown, ChevronUp, Lightbulb } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/auth-context";
@@ -1739,6 +1740,200 @@ function UsersTab() {
   );
 }
 
+const EXAMPLE_PROMPTS = [
+  "Total order value by vendor this month",
+  "Products with the lowest inventory on hand",
+  "Orders placed in the last 30 days with their status",
+  "Top 10 most ordered products by total quantity",
+  "Vendor order history — confirmed vs ordered quantity",
+  "All products that have never been ordered",
+  "Inventory received per vendor in the last 60 days",
+];
+
+type ReportResult = {
+  title: string;
+  description: string;
+  sql: string;
+  columns: string[];
+  rows: unknown[][];
+};
+
+function AIReportsTab() {
+  const { toast } = useToast();
+  const [prompt, setPrompt] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ReportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showSql, setShowSql] = useState(false);
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setShowSql(false);
+    try {
+      const resp = await fetch("/api/reports/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt.trim() }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        setError(data.error ?? "Failed to generate report.");
+      } else {
+        setResult(data as ReportResult);
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCell = (val: unknown): string => {
+    if (val === null || val === undefined) return "—";
+    if (typeof val === "number") return val.toLocaleString();
+    if (typeof val === "boolean") return val ? "Yes" : "No";
+    const s = String(val);
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return new Date(s).toLocaleDateString();
+    return s;
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <BarChart2 className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">AI Reports</CardTitle>
+          </div>
+          <CardDescription>
+            Describe any report in plain English and get a live data table instantly.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Textarea
+              placeholder="e.g. Show me total orders by vendor this month, sorted by value"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
+              className="min-h-[80px] resize-none"
+              data-testid="input-report-prompt"
+            />
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex flex-wrap gap-1.5">
+                {EXAMPLE_PROMPTS.slice(0, 4).map((ex) => (
+                  <button
+                    key={ex}
+                    onClick={() => setPrompt(ex)}
+                    className="text-xs px-2 py-1 rounded-md border border-dashed border-muted-foreground/40 text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
+                  >
+                    {ex}
+                  </button>
+                ))}
+              </div>
+              <Button
+                onClick={handleGenerate}
+                disabled={!prompt.trim() || loading}
+                className="gap-2 shrink-0"
+                data-testid="button-generate-report"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart2 className="h-4 w-4" />}
+                {loading ? "Generating…" : "Generate Report"}
+              </Button>
+            </div>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive flex gap-2 items-start">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {result && (
+            <div className="space-y-3 pt-1">
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <div>
+                  <h3 className="font-semibold text-base">{result.title}</h3>
+                  {result.description && (
+                    <p className="text-sm text-muted-foreground mt-0.5">{result.description}</p>
+                  )}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs h-8"
+                    onClick={() => setShowSql((v) => !v)}
+                  >
+                    {showSql ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    SQL
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs h-8"
+                    onClick={() => { navigator.clipboard.writeText(result.sql); toast({ title: "SQL copied" }); }}
+                  >
+                    <Copy className="h-3 w-3" />
+                    Copy SQL
+                  </Button>
+                </div>
+              </div>
+
+              {showSql && (
+                <pre className="rounded-md bg-muted px-4 py-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap border">
+                  {result.sql}
+                </pre>
+              )}
+
+              {result.rows.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 py-10 text-center text-sm text-muted-foreground">
+                  <Lightbulb className="h-6 w-6 mx-auto mb-2 opacity-40" />
+                  No rows returned. Try a different query.
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          {result.columns.map((col) => (
+                            <TableHead key={col} className="text-xs font-semibold whitespace-nowrap">
+                              {col.replace(/_/g, " ")}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {result.rows.map((row, ri) => (
+                          <TableRow key={ri}>
+                            {(row as unknown[]).map((cell, ci) => (
+                              <TableCell key={ci} className="text-sm tabular-nums whitespace-nowrap">
+                                {formatCell(cell)}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div className="border-t px-4 py-2 text-xs text-muted-foreground bg-muted/30">
+                    {result.rows.length} row{result.rows.length !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
@@ -1765,6 +1960,10 @@ export default function AdminPage() {
             <Settings className="h-4 w-4" />
             Settings
           </TabsTrigger>
+          <TabsTrigger value="reports" className="gap-1.5">
+            <BarChart2 className="h-4 w-4" />
+            AI Reports
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="vendors">
           <VendorEmailTab />
@@ -1777,6 +1976,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="settings">
           <SettingsTab />
+        </TabsContent>
+        <TabsContent value="reports">
+          <AIReportsTab />
         </TabsContent>
       </Tabs>
     </div>
