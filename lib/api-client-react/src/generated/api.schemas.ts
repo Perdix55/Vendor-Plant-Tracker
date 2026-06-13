@@ -121,12 +121,16 @@ export interface InventoryAdjustBody {
 export interface CreateProductBody {
   name: string;
   packSize?: string | null;
+  /** Unit cost in dollars */
+  cost?: number | null;
 }
 
 export interface UpdateProductBody {
   name?: string;
   packSize?: string | null;
   isActive?: boolean;
+  /** Unit cost in dollars */
+  cost?: number | null;
 }
 
 export type OrderSummaryStatus =

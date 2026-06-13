@@ -1018,14 +1018,17 @@ function VendorProductsTab() {
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPackSize, setNewPackSize] = useState("");
+  const [newCost, setNewCost] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editPackSize, setEditPackSize] = useState("");
+  const [editCost, setEditCost] = useState("");
 
   const handleAddProduct = () => {
     if (!newName.trim() || !selectedVendorId) return;
+    const costNum = newCost.trim() ? parseFloat(newCost.trim()) : null;
     createProduct.mutate(
-      { vendorId: selectedVendorId, data: { name: newName.trim(), packSize: newPackSize.trim() || null } },
+      { vendorId: selectedVendorId, data: { name: newName.trim(), packSize: newPackSize.trim() || null, cost: isNaN(costNum!) ? null : costNum } },
       {
         onSuccess: () => {
           toast({ title: "Product added", description: `${newName.trim()} added successfully.` });
@@ -1034,6 +1037,7 @@ function VendorProductsTab() {
           setAddOpen(false);
           setNewName("");
           setNewPackSize("");
+          setNewCost("");
         },
         onError: () => toast({ title: "Error", description: "Failed to add product.", variant: "destructive" }),
       }
@@ -1053,16 +1057,18 @@ function VendorProductsTab() {
     );
   };
 
-  const startEditProduct = (id: number, name: string, packSize: string | null | undefined) => {
+  const startEditProduct = (id: number, name: string, packSize: string | null | undefined, cost: string | null | undefined) => {
     setEditingId(id);
     setEditName(name);
     setEditPackSize(packSize ?? "");
+    setEditCost(cost != null ? String(parseFloat(cost)) : "");
   };
 
   const saveEditProduct = (productId: number) => {
     if (!selectedVendorId || !editName.trim()) return;
+    const costNum = editCost.trim() ? parseFloat(editCost.trim()) : null;
     updateProduct.mutate(
-      { vendorId: selectedVendorId, productId, data: { name: editName.trim(), packSize: editPackSize.trim() || null } },
+      { vendorId: selectedVendorId, productId, data: { name: editName.trim(), packSize: editPackSize.trim() || null, cost: isNaN(costNum!) ? null : costNum } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey(selectedVendorId) });
@@ -1154,6 +1160,24 @@ function VendorProductsTab() {
                           data-testid="input-new-product-packsize"
                         />
                       </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="new-product-cost">Price <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                          <Input
+                            id="new-product-cost"
+                            placeholder="0.00"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={newCost}
+                            onChange={(e) => setNewCost(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleAddProduct()}
+                            className="pl-7"
+                            data-testid="input-new-product-cost"
+                          />
+                        </div>
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
@@ -1202,6 +1226,7 @@ function VendorProductsTab() {
                 <TableRow>
                   <TableHead className="pl-6">Product Name</TableHead>
                   <TableHead className="w-[120px]">Pack Size</TableHead>
+                  <TableHead className="w-[100px]">Price</TableHead>
                   <TableHead className="w-[100px]">Status</TableHead>
                   <TableHead className="w-[80px]">Active</TableHead>
                   <TableHead className="w-[90px]" />
@@ -1210,7 +1235,7 @@ function VendorProductsTab() {
               <TableBody>
                 {(products ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No products yet. Click "Add Product" to get started.
                     </TableCell>
                   </TableRow>
@@ -1252,6 +1277,25 @@ function VendorProductsTab() {
                       )}
                     </TableCell>
                     <TableCell>
+                      {editingId === product.id ? (
+                        <Input
+                          value={editCost}
+                          placeholder="0.00"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          onChange={(e) => setEditCost(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") saveEditProduct(product.id); if (e.key === "Escape") setEditingId(null); }}
+                          className="h-8 w-24"
+                          data-testid={`input-edit-product-cost-${product.id}`}
+                        />
+                      ) : (
+                        <span className="text-sm font-medium tabular-nums">
+                          {product.cost != null ? `$${parseFloat(product.cost).toFixed(2)}` : <span className="text-muted-foreground font-normal">—</span>}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       {product.isActive ? (
                         <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 text-xs">Active</Badge>
                       ) : (
@@ -1282,7 +1326,7 @@ function VendorProductsTab() {
                         </div>
                       ) : (
                         <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => startEditProduct(product.id, product.name, product.packSize)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => startEditProduct(product.id, product.name, product.packSize, product.cost)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteProduct(product.id, product.name)} disabled={deleteProduct.isPending}>

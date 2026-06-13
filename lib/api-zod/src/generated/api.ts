@@ -151,6 +151,7 @@ export const CreateProductParams = zod.object({
 export const CreateProductBody = zod.object({
   name: zod.string(),
   packSize: zod.string().nullish(),
+  cost: zod.number().nullish().describe("Unit cost in dollars"),
 });
 
 /**
@@ -173,6 +174,7 @@ export const UpdateProductBody = zod.object({
   name: zod.string().optional(),
   packSize: zod.string().nullish(),
   isActive: zod.boolean().optional(),
+  cost: zod.number().nullish().describe("Unit cost in dollars"),
 });
 
 export const UpdateProductResponse = zod.object({

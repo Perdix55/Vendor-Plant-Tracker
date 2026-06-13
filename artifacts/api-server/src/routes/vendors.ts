@@ -152,15 +152,17 @@ router.get("/vendors/:vendorId/products", async (req, res) => {
 router.post("/vendors/:vendorId/products", async (req, res) => {
   try {
     const vendorId = parseInt(req.params.vendorId, 10);
-    const { name, packSize } = req.body;
+    const { name, packSize, cost } = req.body;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return res.status(400).json({ error: "name is required" });
     }
 
+    const costValue = cost != null && cost !== "" ? String(cost) : null;
+
     const inserted = await db
       .insert(productsTable)
-      .values({ vendorId, name: name.trim(), packSize: packSize?.trim() ?? null, isActive: true })
+      .values({ vendorId, name: name.trim(), packSize: packSize?.trim() ?? null, cost: costValue, isActive: true })
       .returning();
 
     res.status(201).json(mapProduct(inserted[0]));
@@ -187,12 +189,13 @@ router.patch("/vendors/:vendorId/products/:productId", async (req, res) => {
   try {
     const vendorId = parseInt(req.params.vendorId, 10);
     const productId = parseInt(req.params.productId, 10);
-    const { name, packSize, isActive } = req.body;
+    const { name, packSize, isActive, cost } = req.body;
 
     const updateData: Partial<typeof productsTable.$inferInsert> = {};
     if (name !== undefined) updateData.name = name.trim();
     if (packSize !== undefined) updateData.packSize = packSize?.trim() ?? null;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (cost !== undefined) updateData.cost = cost != null && cost !== "" ? String(cost) : null;
 
     await db
       .update(productsTable)

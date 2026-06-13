@@ -1082,6 +1082,10 @@ components:
         packSize:
           type: string
           nullable: true
+        cost:
+          type: number
+          nullable: true
+          description: Unit cost in dollars
       required: [name]
 
     UpdateProductBody:
@@ -1094,6 +1098,10 @@ components:
           nullable: true
         isActive:
           type: boolean
+        cost:
+          type: number
+          nullable: true
+          description: Unit cost in dollars
 
     OrderSummary:
       type: object
