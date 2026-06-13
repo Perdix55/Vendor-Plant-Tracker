@@ -97,6 +97,7 @@ export default function VendorDetail() {
                 <TableRow>
                   <TableHead>Product Name</TableHead>
                   <TableHead>Pack Size</TableHead>
+                  <TableHead className="text-right">Price</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -105,6 +106,7 @@ export default function VendorDetail() {
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   </TableRow>
                 ))}
@@ -116,8 +118,9 @@ export default function VendorDetail() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60%]">Product Name</TableHead>
+                  <TableHead className="w-[55%]">Product Name</TableHead>
                   <TableHead>Pack Size</TableHead>
+                  <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -125,7 +128,10 @@ export default function VendorDetail() {
                 {filteredProducts.map(product => (
                   <TableRow key={product.id} data-testid={`row-product-${product.id}`}>
                     <TableCell className="font-medium text-foreground">{product.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{product.packSize || "N/A"}</TableCell>
+                    <TableCell className="text-muted-foreground">{product.packSize || "—"}</TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {product.cost ? `$${parseFloat(product.cost).toFixed(2)}` : <span className="text-muted-foreground text-xs">—</span>}
+                    </TableCell>
                     <TableCell className="text-right">
                       {product.isActive ? (
                         <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">Active</Badge>
