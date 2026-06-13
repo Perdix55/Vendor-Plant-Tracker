@@ -281,12 +281,108 @@ export async function runPriceImportFromBuffer(opts: {
 }
 
 /**
+ * Living Colors Nursery PDF format.
+ *
+ * Column layout (x positions):
+ *   SIZE     x≈17–30   — pot size token (e.g. 5")
+ *   VARIETY  x≈34–165  — genus + species/variety; may float to a separate y-line above the data row
+ *   PACK     x≈185–198
+ *   COLOR    x≈221–275
+ *   DESCRIPTION x≈295–400
+ *   BOX TYPE x≈482–486
+ *   STATUS   x≈508–519
+ *   PRICE    x≈555–585 — "$N.NN" (sometimes split across 3 tokens: "$", digits, ".NN")
+ *
+ * Skip: "Regular price" annotation rows, section headers (no price token), box-charge rows.
+ * Floating names: some products have their name token on the y-line immediately above the data row.
+ */
+function isLivingColorsFormat(items: PdfItem[]): boolean {
+  const allText = items.map((i) => i.str).join(" ");
+  return allText.includes("Living Colors Nursery");
+}
+
+function parseLivingColorsPdf(items: PdfItem[]): ParsedItem[] {
+  const PRICE_X_MIN = 550;
+  const PRICE_X_MAX = 590;
+  const NAME_X_MIN = 30;
+  const NAME_X_MAX = 168;
+
+  // Group tokens by y-band (within ±4px) then sort each line by x
+  const lineMap = new Map<number, PdfItem[]>();
+  for (const item of items) {
+    const yKey = Math.round(item.y / 4) * 4;
+    if (!lineMap.has(yKey)) lineMap.set(yKey, []);
+    lineMap.get(yKey)!.push(item);
+  }
+  for (const line of lineMap.values()) line.sort((a, b) => a.x - b.x);
+
+  const sortedYs = [...lineMap.keys()].sort((a, b) => b - a); // top-of-page first
+
+  const parsedItems: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  for (let yi = 0; yi < sortedYs.length; yi++) {
+    const y = sortedYs[yi];
+    const line = lineMap.get(y)!;
+
+    // Skip "Regular price" annotation lines
+    const lineText = line.map((t) => t.str).join(" ");
+    if (/regular price/i.test(lineText)) continue;
+
+    // Collect price tokens at far-right column
+    const priceToks = line.filter((t) => t.x >= PRICE_X_MIN && t.x <= PRICE_X_MAX);
+    if (priceToks.length === 0) continue;
+
+    const priceStr = priceToks.map((t) => t.str).join("").replace(/[$,\s]/g, "");
+    const price = parseFloat(priceStr);
+    if (isNaN(price) || price <= 0) continue;
+
+    // Collect name tokens (x≈34–165), skipping flags
+    const FLAG_RE = /^(SALE!!!|LIMITED|NEW|BLOOMS|OPEN|READY|MEDIUM|\(P\)|SL|TL)$/i;
+    let nameToks = line.filter((t) => t.x >= NAME_X_MIN && t.x <= NAME_X_MAX && !FLAG_RE.test(t.str));
+
+    // If no name found on this line, look at the immediately preceding y-line
+    // (Living Colors sometimes places the variety name on its own line above the data row)
+    if (nameToks.length === 0 && yi > 0) {
+      const prevY = sortedYs[yi - 1];
+      if (prevY - y < 20) {
+        const prevLine = lineMap.get(prevY)!;
+        const prevPriceToks = prevLine.filter((t) => t.x >= PRICE_X_MIN && t.x <= PRICE_X_MAX);
+        if (prevPriceToks.length === 0) {
+          nameToks = prevLine.filter((t) => t.x >= NAME_X_MIN && t.x <= NAME_X_MAX && !FLAG_RE.test(t.str));
+        }
+      }
+    }
+
+    if (nameToks.length === 0) continue;
+
+    const varietyName = nameToks.map((t) => t.str).join(" ").trim();
+    if (!varietyName) continue;
+
+    // Prepend pot size (x < NAME_X_MIN on the same line)
+    const sizeToks = line.filter((t) => t.x < NAME_X_MIN);
+    const size = sizeToks.map((t) => t.str).join("").replace(/\s+/g, "").trim();
+    const fullName = size ? `${size} ${varietyName}` : varietyName;
+
+    const key = fullName.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      parsedItems.push({ name: fullName, cost: price, rawLine: `${fullName} $${price}` });
+    }
+  }
+
+  return parsedItems;
+}
+
+/**
  * Auto-detects PDF format and populates `result`.
  * Priority order:
- *  1. Sturon Nursery format — two-column genus+variety with combined "$N.NN" price tokens
- *  2. Column-format (Northland Floral style) — split "$" + number, position-based parser
- *  3. Text-based price parser (Castleton Gardens, Andersen Farms style)
- *  4. Availability-list parser (Plants in Design style — no prices)
+ *  1. Living Colors Nursery — column-format with SIZE|VARIETY|...|PRICE layout, identified by "Living Colors Nursery"
+ *  2. Capri Farms — combined "$N.NN" at x≈210–245 with dedicated pot-size column at x≈175–200
+ *  3. Sturon Nursery format — two-column genus+variety with combined "$N.NN" price tokens
+ *  4. Column-format (Northland Floral style) — split "$" + number, position-based parser
+ *  5. Text-based price parser (Castleton Gardens, Andersen Farms style)
+ *  6. Availability-list parser (Plants in Design style — no prices)
  */
 async function applyPdfResult(
   buffer: Buffer,
@@ -296,7 +392,21 @@ async function applyPdfResult(
 ): Promise<void> {
   const pdfItems = await extractPdfItems(buffer);
 
-  // 1. Capri Farms: combined "$N.NN" at x≈210–245 with dedicated pot-size column at x≈175–200
+  // 1. Living Colors Nursery: SIZE|VARIETY|...|PRICE column format, price at x≈555–585
+  if (isLivingColorsFormat(pdfItems)) {
+    const priceItems = parseLivingColorsPdf(pdfItems);
+    if (priceItems.length > 0) {
+      result.items = priceItems;
+      const dbResult = await upsertProductPrices(vendorId, priceItems, addNew);
+      result.productsUpdated = dbResult.updated;
+      result.productsAdded = dbResult.added;
+      result.unmatched = dbResult.unmatched;
+      result.priceChanges = dbResult.priceChanges;
+      return;
+    }
+  }
+
+  // 2. Capri Farms: combined "$N.NN" at x≈210–245 with dedicated pot-size column at x≈175–200
   if (isCapriFormat(pdfItems)) {
     const priceItems = parseCapriPdf(pdfItems);
     if (priceItems.length > 0) {
