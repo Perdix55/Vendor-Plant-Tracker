@@ -149,9 +149,10 @@ export async function runPriceImportFromBuffer(opts: {
 /**
  * Auto-detects PDF format and populates `result`.
  * Priority order:
- *  1. Column-format (Northland Floral style) — position-based parser
- *  2. Text-based price parser (Castleton Gardens, Andersen Farms style)
- *  3. Availability-list parser (Plants in Design style — no prices)
+ *  1. Sturon Nursery format — two-column genus+variety with combined "$N.NN" price tokens
+ *  2. Column-format (Northland Floral style) — split "$" + number, position-based parser
+ *  3. Text-based price parser (Castleton Gardens, Andersen Farms style)
+ *  4. Availability-list parser (Plants in Design style — no prices)
  */
 async function applyPdfResult(
   buffer: Buffer,
@@ -159,8 +160,23 @@ async function applyPdfResult(
   addNew: boolean,
   result: ImportResult,
 ): Promise<void> {
-  // 1. Try column-format parser first (structured PDFs with fixed-width columns)
   const pdfItems = await extractPdfItems(buffer);
+
+  // 1. Sturon Nursery: combined "$N.NN" price tokens, two-column genus+variety layout
+  if (isSturonFormat(pdfItems)) {
+    const priceItems = parseSturonPdf(pdfItems);
+    if (priceItems.length > 0) {
+      result.items = priceItems;
+      const dbResult = await upsertProductPrices(vendorId, priceItems, addNew);
+      result.productsUpdated = dbResult.updated;
+      result.productsAdded = dbResult.added;
+      result.unmatched = dbResult.unmatched;
+      result.priceChanges = dbResult.priceChanges;
+      return;
+    }
+  }
+
+  // 2. Column-format (Northland Floral, Carter Road Tropical): split "$" + number
   if (isColumnFormat(pdfItems)) {
     const priceItems = parseColumnPdf(pdfItems);
     if (priceItems.length > 0) {
@@ -416,6 +432,134 @@ function parseColumnPdf(items: PdfItem[]): ParsedItem[] {
     if (!seen.has(key)) {
       seen.add(key);
       result.push({ name, cost: price, rawLine: `${name} $${price.toFixed(2)}` });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Detect Sturon Nursery PDF format.
+ * Sturon renders prices as combined "$N.NN" tokens (not split "$ " + "N.NN" like Northland).
+ * We confirm by counting combined-price tokens clustered at x ≈ 390–430.
+ */
+function isSturonFormat(items: PdfItem[]): boolean {
+  const priceItems = items.filter(
+    (i) => /^\$\d{1,4}(?:\.\d{1,2})?$/.test(i.str) && i.x >= 390 && i.x <= 430,
+  );
+  return priceItems.length >= 5;
+}
+
+/**
+ * Parse a Sturon Nursery PDF price list.
+ *
+ * Column layout:
+ *   x ≈ 10–90   DESCRIPTION — genus/family (sticky, carries forward when absent on a row)
+ *   x ≈ 100–280 VARIETY     — specific variety name
+ *   x ≈ 290–390 SPECS       — size/availability (ignored)
+ *   x ≈ 390–430 PRICE       — combined "$N.NN" token
+ *   x ≈ 440+    COMMENTS    — ignored
+ *
+ * Pot-size section headers set a prefix applied to every product name:
+ *   "4.5 INCH" → "4.5\""    "6 INCH" → "6\""    "HANGING BASKET(S)" → "HB"
+ *
+ * Final product name: "{potSize} {genus} {variety}"  e.g. "6\" DRACAENA JANET CRAIG COMPACTA"
+ */
+function parseSturonPdf(items: PdfItem[]): ParsedItem[] {
+  // Group items by (page, rounded_y) with ±2px tolerance
+  const rowMap = new Map<string, PdfItem[]>();
+  for (const item of items) {
+    const yKey = Math.round(item.y / 4) * 4;
+    const key = `${item.page}:${yKey}`;
+    if (!rowMap.has(key)) rowMap.set(key, []);
+    rowMap.get(key)!.push(item);
+  }
+
+  // Sort: page ascending, then y descending (PDF y=0 is bottom; higher y = higher on page)
+  const sortedRows = [...rowMap.values()].sort((a, b) => {
+    const pa = a[0].page, pb = b[0].page;
+    if (pa !== pb) return pa - pb;
+    return b[0].y - a[0].y;
+  });
+
+  const result: ParsedItem[] = [];
+  const seen = new Set<string>();
+  let currentGenus = "";
+  let currentPotSize = "";
+
+  for (const row of sortedRows) {
+    row.sort((a, b) => a.x - b.x);
+
+    const descItem = row.find((i) => i.x >= 10 && i.x <= 90);
+    const varItem = row.find((i) => i.x >= 100 && i.x <= 280);
+    const priceItem = row.find(
+      (i) => /^\$\d{1,4}(?:\.\d{1,2})?$/.test(i.str) && i.x >= 390 && i.x <= 430,
+    );
+
+    // Process section header in the description column
+    if (descItem) {
+      const ds = descItem.str;
+
+      // Pot size: "4.5 INCH", "6 INCH", "8 INCH (CONT.)", etc.
+      const potMatch = ds.match(/^(\d+(?:\.\d+)?)\s+INCH/i);
+      if (potMatch) {
+        currentPotSize = `${potMatch[1]}"`;
+        currentGenus = "";
+        if (!priceItem) continue;
+      }
+
+      // Hanging basket section header
+      if (/^HANGING\s+BASKETS?/i.test(ds)) {
+        currentPotSize = "HB";
+        currentGenus = "";
+        if (!priceItem) continue;
+      }
+
+      // Column header row
+      if (/^DESCRIPTION$/i.test(ds)) continue;
+    }
+
+    if (!priceItem) continue;
+
+    const price = parseFloat(priceItem.str.replace("$", ""));
+    if (isNaN(price) || price < 1.0 || price > 500) continue;
+
+    // Update sticky genus from description column
+    if (descItem) {
+      const ds = descItem.str;
+      if (
+        !/^(\d+(?:\.\d+)?)\s+INCH/i.test(ds) &&
+        !/^HANGING\s+BASKETS?/i.test(ds) &&
+        !/^(DESCRIPTION|SPECS|PRICE|COMMENTS)$/i.test(ds) &&
+        /^[A-Z]/.test(ds) &&
+        ds.length >= 3
+      ) {
+        currentGenus = ds;
+      }
+    }
+
+    if (!varItem) continue;
+    const variety = varItem.str.trim();
+    if (!variety || variety.length < 3) continue;
+    if (/^(SPECS|PRICE|COMMENTS)$/i.test(variety)) continue;
+
+    // Build name: potSize + genus + variety
+    const parts: string[] = [];
+    if (currentPotSize) parts.push(currentPotSize);
+    if (currentGenus) parts.push(currentGenus);
+    parts.push(variety);
+    const name = parts
+      .join(" ")
+      .replace(/\*+/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!name || name.length < 3) continue;
+
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({ name, cost: price, rawLine: `${name} ${priceItem.str}` });
     }
   }
 
