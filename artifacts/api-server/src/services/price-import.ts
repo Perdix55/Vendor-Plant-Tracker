@@ -162,7 +162,21 @@ async function applyPdfResult(
 ): Promise<void> {
   const pdfItems = await extractPdfItems(buffer);
 
-  // 1. Sturon Nursery: combined "$N.NN" price tokens, two-column genus+variety layout
+  // 1. Capri Farms: combined "$N.NN" at x≈210–245 with dedicated pot-size column at x≈175–200
+  if (isCapriFormat(pdfItems)) {
+    const priceItems = parseCapriPdf(pdfItems);
+    if (priceItems.length > 0) {
+      result.items = priceItems;
+      const dbResult = await upsertProductPrices(vendorId, priceItems, addNew);
+      result.productsUpdated = dbResult.updated;
+      result.productsAdded = dbResult.added;
+      result.unmatched = dbResult.unmatched;
+      result.priceChanges = dbResult.priceChanges;
+      return;
+    }
+  }
+
+  // 2. Sturon Nursery: combined "$N.NN" price tokens, two-column genus+variety layout
   if (isSturonFormat(pdfItems)) {
     const priceItems = parseSturonPdf(pdfItems);
     if (priceItems.length > 0) {
@@ -432,6 +446,164 @@ function parseColumnPdf(items: PdfItem[]): ParsedItem[] {
     if (!seen.has(key)) {
       seen.add(key);
       result.push({ name, cost: price, rawLine: `${name} $${price.toFixed(2)}` });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Detect Capri Farms PDF format.
+ * Each product row has a pot-size token at x ≈ 175–200 (e.g. "6\"", "10\"") and a combined
+ * "$N.NN" price token at x ≈ 210–245.  Names appear at x < 170 (sometimes duplicated as
+ * visual-layer fragments at x ≈ 26+).
+ */
+function isCapriFormat(items: PdfItem[]): boolean {
+  const potItems = items.filter(
+    (i) => /^\d+(?:\.\d+)?"$/.test(i.str) && i.x >= 175 && i.x <= 200,
+  );
+  const priceItems = items.filter(
+    (i) => /^\$\d{1,4}(?:\.\d{1,2})?$/.test(i.str) && i.x >= 210 && i.x <= 245,
+  );
+  return potItems.length >= 5 && priceItems.length >= 5;
+}
+
+/**
+ * Parse a Capri Farms PDF price list.
+ *
+ * Column layout:
+ *   x <  170  Plant name  — complete name at x ≈ 20–21; visual fragments repeat at x ≈ 26+
+ *   x ≈ 175–200  Pot size   — e.g. "6\"", "10\"", "4\""
+ *   x ≈ 210–245  Price      — combined "$N.NN" token
+ *   x ≈ 292+     Notes/description (ignored)
+ *
+ * Name de-duplication: PDF renders the full name at x ≈ 20 AND fragment pieces at x ≈ 26+.
+ * Strategy: start with the leftmost name item; append additional items only when their text
+ * is not already contained in the accumulated name (fragment detection).
+ *
+ * Floating-label fix: when the assembled name is a single short word and the row immediately
+ * above (≤ 16 px) has name-zone items but no price/pot, those items are the variety label
+ * (e.g. "Cleopatra" printed on its own line above the price row).
+ *
+ * Product name: "{potSize} {assembledName}"  e.g. "6\" Aglaonema Cleopatra"
+ */
+function parseCapriPdf(items: PdfItem[]): ParsedItem[] {
+  // Group by (page, rounded_y) with 4 px tolerance
+  const rowMap = new Map<string, PdfItem[]>();
+  for (const item of items) {
+    const yKey = Math.round(item.y / 4) * 4;
+    const key = `${item.page}:${yKey}`;
+    if (!rowMap.has(key)) rowMap.set(key, []);
+    rowMap.get(key)!.push(item);
+  }
+
+  // Sort: page asc, y desc (higher y = higher on page in PDF coords)
+  const sortedRows = [...rowMap.values()].sort((a, b) => {
+    const pa = a[0].page, pb = b[0].page;
+    if (pa !== pb) return pa - pb;
+    return b[0].y - a[0].y;
+  });
+
+  // Build a quick y-keyed lookup for floating-label look-ahead
+  const rowByKey = new Map<string, PdfItem[]>();
+  for (const row of sortedRows) {
+    const key = `${row[0].page}:${Math.round(row[0].y / 4) * 4}`;
+    rowByKey.set(key, row);
+  }
+
+  // First pass: collect the primary name texts that appear on price rows (x ≈ 20–22).
+  // These are genus/section names; we must not use them as floating variety labels.
+  const priceRowPrimaryNames = new Set<string>();
+  for (const row of sortedRows) {
+    const hasPot = row.some((i) => /^\d+(?:\.\d+)?"$/.test(i.str) && i.x >= 175 && i.x <= 200);
+    const hasPrice = row.some((i) => /^\$\d/.test(i.str) && i.x >= 210 && i.x <= 245);
+    if (hasPot && hasPrice) {
+      for (const ni of row.filter((i) => i.x <= 22)) {
+        const t = ni.str.trim();
+        if (t) priceRowPrimaryNames.add(t.toLowerCase());
+      }
+    }
+  }
+
+  const result: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  for (const row of sortedRows) {
+    row.sort((a, b) => a.x - b.x);
+
+    const potItem = row.find((i) => /^\d+(?:\.\d+)?"$/.test(i.str) && i.x >= 175 && i.x <= 200);
+    const priceItem = row.find(
+      (i) => /^\$\d{1,4}(?:\.\d{1,2})?$/.test(i.str) && i.x >= 210 && i.x <= 245,
+    );
+
+    if (!potItem || !priceItem) continue;
+
+    const price = parseFloat(priceItem.str.replace("$", ""));
+    if (isNaN(price) || price < 1.0 || price > 1000) continue;
+
+    // Collect name-zone items (x < 170) and deduplicate visual fragments
+    const nameItems = row.filter((i) => i.x < 170).sort((a, b) => a.x - b.x);
+    let assembledName = "";
+    for (const ni of nameItems) {
+      const t = ni.str.trim();
+      if (!t) continue;
+      if (!assembledName) {
+        assembledName = t;
+      } else {
+        // Skip if the text (case-insensitive) is already in the accumulated name
+        if (assembledName.toLowerCase().includes(t.toLowerCase())) continue;
+        // Skip if every word in t already appears in the name (fragment check)
+        const words = t.split(/\s+/).filter(Boolean);
+        if (words.length > 0 && words.every((w) => assembledName.toLowerCase().includes(w.toLowerCase()))) continue;
+        assembledName = `${assembledName} ${t}`;
+      }
+    }
+
+    // Floating-label fix: when the assembled name is short (≤ 2 words, no parens), look at
+    // the row immediately above for a variety label printed on its own line.
+    // Guard: skip labels that are section/genus names (already appear as primary price-row
+    // names) or that look like notes (> 3 words).
+    if (assembledName && assembledName.split(/\s+/).length <= 2 && !assembledName.includes("(")) {
+      const rowY = Math.round(row[0].y / 4) * 4;
+      for (let delta = 4; delta <= 16; delta += 4) {
+        const aboveKey = `${row[0].page}:${rowY + delta}`;
+        const aboveRow = rowByKey.get(aboveKey);
+        if (!aboveRow) continue;
+        const hasPrice = aboveRow.some((i) => /^\$\d/.test(i.str) && i.x >= 210 && i.x <= 245);
+        const hasPot = aboveRow.some((i) => /^\d+(?:\.\d+)?"$/.test(i.str) && i.x >= 175 && i.x <= 200);
+        if (hasPrice || hasPot) break; // another price row above — stop
+        const labelItems = aboveRow.filter((i) => i.x >= 20 && i.x <= 80);
+        if (labelItems.length > 0) {
+          const label = labelItems
+            .map((i) => i.str.trim())
+            .filter(Boolean)
+            .join(" ");
+          // Skip if it's a section/genus name that already has its own price rows
+          if (priceRowPrimaryNames.has(label.toLowerCase())) break;
+          // Skip if the label is too long to be a variety name (it's a note)
+          if (label.split(/\s+/).length > 3) break;
+          if (label && !assembledName.toLowerCase().includes(label.toLowerCase())) {
+            assembledName = `${assembledName} ${label}`;
+          }
+          break;
+        }
+      }
+    }
+
+    if (!assembledName || assembledName.length < 3) continue;
+
+    // Skip obvious header / meta rows
+    if (/^(Plant|Pot|Price|Description|Customer|Notes|Green|Bold|Yellow|\$50)/i.test(assembledName))
+      continue;
+
+    const name = `${potItem.str} ${assembledName}`.replace(/\s+/g, " ").trim();
+
+    if (!name || name.length < 3) continue;
+
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push({ name, cost: price, rawLine: `${name} ${priceItem.str}` });
     }
   }
 
