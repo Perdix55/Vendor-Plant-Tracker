@@ -183,6 +183,8 @@ export interface OrderItem {
   productId: number;
   productName: string;
   packSize?: string | null;
+  /** Unit cost in dollars from the product catalog at time of request */
+  unitCost?: number | null;
   quantityOrdered: number;
   quantityConfirmed?: number | null;
   availability?: OrderItemAvailability;

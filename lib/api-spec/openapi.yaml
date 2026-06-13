@@ -1184,6 +1184,10 @@ components:
         packSize:
           type: string
           nullable: true
+        unitCost:
+          type: number
+          nullable: true
+          description: Unit cost in dollars from the product catalog at time of request
         quantityOrdered:
           type: integer
         quantityConfirmed:

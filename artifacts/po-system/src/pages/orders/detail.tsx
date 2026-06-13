@@ -478,6 +478,17 @@ export default function OrderDetail() {
                     {order.items.reduce((acc, item) => acc + (item.quantityConfirmed || 0), 0)}
                   </span>
                 </div>
+                {order.items.some(i => i.unitCost != null) && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-sm">Est. Order Total</span>
+                      <span className="font-semibold tabular-nums">
+                        ${order.items.reduce((acc, item) => acc + (item.unitCost ?? 0) * item.quantityOrdered, 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -517,7 +528,9 @@ export default function OrderDetail() {
                   <TableRow>
                     <TableHead className="w-[300px]">Product</TableHead>
                     <TableHead>Pack Size</TableHead>
+                    <TableHead className="text-right">Unit Cost</TableHead>
                     <TableHead className="text-right">Ordered</TableHead>
+                    <TableHead className="text-right">Line Total</TableHead>
                     {order.status !== "draft" && (
                       <>
                         <TableHead className="text-right">Confirmed</TableHead>
@@ -550,6 +563,9 @@ export default function OrderDetail() {
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{item.packSize || "N/A"}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {item.unitCost != null ? `$${item.unitCost.toFixed(2)}` : "—"}
+                        </TableCell>
                         <TableCell className="text-right font-medium">
                           {isEditingThisItem ? (
                             <Input
@@ -568,6 +584,11 @@ export default function OrderDetail() {
                           ) : (
                             item.quantityOrdered
                           )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">
+                          {item.unitCost != null
+                            ? `$${(item.unitCost * item.quantityOrdered).toFixed(2)}`
+                            : "—"}
                         </TableCell>
 
                         {order.status !== "draft" && (

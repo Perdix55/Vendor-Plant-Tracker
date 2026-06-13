@@ -259,6 +259,12 @@ export const GetOrderResponse = zod.object({
       productId: zod.number(),
       productName: zod.string(),
       packSize: zod.string().nullish(),
+      unitCost: zod
+        .number()
+        .nullish()
+        .describe(
+          "Unit cost in dollars from the product catalog at time of request",
+        ),
       quantityOrdered: zod.number(),
       quantityConfirmed: zod.number().nullish(),
       availability: zod
@@ -305,6 +311,12 @@ export const UpdateOrderResponse = zod.object({
       productId: zod.number(),
       productName: zod.string(),
       packSize: zod.string().nullish(),
+      unitCost: zod
+        .number()
+        .nullish()
+        .describe(
+          "Unit cost in dollars from the product catalog at time of request",
+        ),
       quantityOrdered: zod.number(),
       quantityConfirmed: zod.number().nullish(),
       availability: zod
@@ -337,6 +349,12 @@ export const ListOrderItemsResponseItem = zod.object({
   productId: zod.number(),
   productName: zod.string(),
   packSize: zod.string().nullish(),
+  unitCost: zod
+    .number()
+    .nullish()
+    .describe(
+      "Unit cost in dollars from the product catalog at time of request",
+    ),
   quantityOrdered: zod.number(),
   quantityConfirmed: zod.number().nullish(),
   availability: zod
@@ -381,6 +399,12 @@ export const UpdateOrderItemResponse = zod.object({
   productId: zod.number(),
   productName: zod.string(),
   packSize: zod.string().nullish(),
+  unitCost: zod
+    .number()
+    .nullish()
+    .describe(
+      "Unit cost in dollars from the product catalog at time of request",
+    ),
   quantityOrdered: zod.number(),
   quantityConfirmed: zod.number().nullish(),
   availability: zod
@@ -454,6 +478,12 @@ export const ConfirmOrderResponse = zod.object({
       productId: zod.number(),
       productName: zod.string(),
       packSize: zod.string().nullish(),
+      unitCost: zod
+        .number()
+        .nullish()
+        .describe(
+          "Unit cost in dollars from the product catalog at time of request",
+        ),
       quantityOrdered: zod.number(),
       quantityConfirmed: zod.number().nullish(),
       availability: zod
@@ -504,6 +534,12 @@ export const GetOrderByTokenResponse = zod.object({
       productId: zod.number(),
       productName: zod.string(),
       packSize: zod.string().nullish(),
+      unitCost: zod
+        .number()
+        .nullish()
+        .describe(
+          "Unit cost in dollars from the product catalog at time of request",
+        ),
       quantityOrdered: zod.number(),
       quantityConfirmed: zod.number().nullish(),
       availability: zod
@@ -552,6 +588,12 @@ export const ConfirmOrderByTokenResponse = zod.object({
       productId: zod.number(),
       productName: zod.string(),
       packSize: zod.string().nullish(),
+      unitCost: zod
+        .number()
+        .nullish()
+        .describe(
+          "Unit cost in dollars from the product catalog at time of request",
+        ),
       quantityOrdered: zod.number(),
       quantityConfirmed: zod.number().nullish(),
       availability: zod

@@ -40,6 +40,7 @@ function mapItem(item: any) {
     productId: item.productId,
     productName: item.productName ?? item.name ?? "",
     packSize: item.packSize ?? null,
+    unitCost: item.cost != null ? parseFloat(item.cost) : null,
     quantityOrdered: item.quantityOrdered,
     quantityConfirmed: item.quantityConfirmed ?? null,
     availability: item.availability ?? null,
@@ -76,6 +77,7 @@ async function fetchOrderWithItems(orderId: number) {
       productId: orderItemsTable.productId,
       productName: productsTable.name,
       packSize: productsTable.packSize,
+      cost: productsTable.cost,
       quantityOrdered: orderItemsTable.quantityOrdered,
       quantityConfirmed: orderItemsTable.quantityConfirmed,
       availability: orderItemsTable.availability,
@@ -257,6 +259,7 @@ router.get("/orders/:orderId/items", async (req, res) => {
         productId: orderItemsTable.productId,
         productName: productsTable.name,
         packSize: productsTable.packSize,
+        cost: productsTable.cost,
         quantityOrdered: orderItemsTable.quantityOrdered,
         quantityConfirmed: orderItemsTable.quantityConfirmed,
         availability: orderItemsTable.availability,
@@ -286,7 +289,7 @@ router.post("/orders/:orderId/items", async (req, res) => {
 
     const [product] = await db.select().from(productsTable).where(eq(productsTable.id, productId));
 
-    res.status(201).json(mapItem({ ...item, productName: product?.name ?? "", packSize: product?.packSize }));
+    res.status(201).json(mapItem({ ...item, productName: product?.name ?? "", packSize: product?.packSize, cost: product?.cost }));
   } catch (err) {
     req.log.error({ err }, "Failed to add order item");
     res.status(500).json({ error: "Internal server error" });
@@ -314,6 +317,7 @@ router.patch("/orders/:orderId/items/:itemId", async (req, res) => {
         productId: orderItemsTable.productId,
         productName: productsTable.name,
         packSize: productsTable.packSize,
+        cost: productsTable.cost,
         quantityOrdered: orderItemsTable.quantityOrdered,
         quantityConfirmed: orderItemsTable.quantityConfirmed,
         availability: orderItemsTable.availability,
