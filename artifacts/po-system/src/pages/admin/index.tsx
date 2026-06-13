@@ -392,10 +392,12 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
     }
   };
 
+  const ACCEPTED_EXTS = [".pdf", ".xlsx", ".xls", ".csv"];
   const handleFileSelect = (f: File | null) => {
     if (!f) return;
-    if (!f.name.toLowerCase().endsWith(".pdf")) {
-      setUploadError("Only PDF files are supported.");
+    const ok = ACCEPTED_EXTS.some(ext => f.name.toLowerCase().endsWith(ext));
+    if (!ok) {
+      setUploadError("Only PDF, Excel (.xlsx / .xls), or CSV files are supported.");
       return;
     }
     setUploadFile(f);
@@ -552,11 +554,11 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
             )}
           </div>
 
-          {/* Upload PDF directly */}
+          {/* Upload file directly */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Upload PDF Directly</Label>
+            <Label className="text-sm font-medium">Upload Price List Directly</Label>
             <p className="text-xs text-muted-foreground">
-              For vendors that send price lists as PDF attachments rather than links.
+              Upload a PDF, Excel (.xlsx / .xls), or CSV price list directly from your computer.
             </p>
             <div
               className={`relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-5 text-center transition-colors cursor-pointer
@@ -574,7 +576,7 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,application/pdf"
+                accept=".pdf,application/pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                 className="hidden"
                 onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
               />
@@ -587,7 +589,7 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
               ) : (
                 <>
                   <Upload className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Drop a PDF here or <span className="text-primary font-medium">click to browse</span></span>
+                  <span className="text-sm text-muted-foreground">Drop a PDF or spreadsheet here or <span className="text-primary font-medium">click to browse</span></span>
                 </>
               )}
             </div>

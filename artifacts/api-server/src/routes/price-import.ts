@@ -4,15 +4,22 @@ import { db, vendorsTable, priceListImportsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { runPriceImport, runPriceImportFromBuffer, extractPriceListUrl } from "../services/price-import";
 
+const EXCEL_EXTS = [".xlsx", ".xls", ".csv"];
+const isExcelFile = (name: string, mime: string) =>
+  EXCEL_EXTS.some((ext) => name.toLowerCase().endsWith(ext)) ||
+  mime.includes("spreadsheet") ||
+  mime.includes("excel") ||
+  mime === "text/csv";
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype === "application/pdf" || file.originalname.toLowerCase().endsWith(".pdf")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only PDF files are accepted."));
-    }
+    const ok =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf") ||
+      isExcelFile(file.originalname, file.mimetype);
+    ok ? cb(null, true) : cb(new Error("Only PDF, Excel (.xlsx/.xls), or CSV files are accepted."));
   },
 });
 

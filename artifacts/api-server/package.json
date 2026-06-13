@@ -30,7 +30,8 @@
     "pdfjs-dist": "^6.0.227",
     "pg": "^8.20.0",
     "pino": "^9",
-    "pino-http": "^10"
+    "pino-http": "^10",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/cheerio": "^1.0.0",

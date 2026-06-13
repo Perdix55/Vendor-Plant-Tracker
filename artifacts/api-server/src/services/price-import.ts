@@ -1,4 +1,5 @@
 import { load } from "cheerio";
+import * as XLSX from "xlsx";
 import { db, productsTable, priceListImportsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -95,7 +96,98 @@ export async function runPriceImport(opts: {
 }
 
 /**
- * Import prices from an already-downloaded PDF buffer (e.g. a file upload).
+ * Parse an Excel (.xlsx / .xls) or CSV buffer into ParsedItems.
+ *
+ * Strategy:
+ *  1. Load the first sheet.
+ *  2. Find the header row — the first row whose cells contain at least one
+ *     name-like header AND one price-like header (case-insensitive substring match).
+ *  3. Extract product name and cost from every subsequent non-empty row.
+ *
+ * Supported header aliases:
+ *   Name   → "product", "name", "item", "description", "variety", "plant"
+ *   Price  → "price", "cost", "rate", "each", "unit price", "retail", "wholesale"
+ */
+export function parseExcelBuffer(buffer: Buffer): ParsedItem[] {
+  const wb = XLSX.read(buffer, { type: "buffer", cellDates: false });
+  const sheetName = wb.SheetNames[0];
+  if (!sheetName) return [];
+  const ws = wb.Sheets[sheetName];
+
+  // Convert to array-of-arrays (all values as strings)
+  const rows: string[][] = XLSX.utils.sheet_to_json(ws, {
+    header: 1,
+    defval: "",
+    raw: false,
+  }) as string[][];
+
+  if (rows.length < 2) return [];
+
+  const NAME_HINTS = ["product", "name", "item", "description", "variety", "plant"];
+  const PRICE_HINTS = ["price", "cost", "rate", "each", "unit price", "retail", "wholesale", "ea"];
+
+  const pickCol = (headers: string[], hints: string[]) =>
+    headers.findIndex((h) => hints.some((hint) => h.toLowerCase().includes(hint)));
+
+  // Find the header row (first row that has both a name col and a price col)
+  let headerRowIdx = -1;
+  let nameCol = -1;
+  let priceCol = -1;
+
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
+    const cells = rows[i].map((c) => String(c ?? "").trim());
+    const ni = pickCol(cells, NAME_HINTS);
+    const pi = pickCol(cells, PRICE_HINTS);
+    if (ni >= 0 && pi >= 0) {
+      headerRowIdx = i;
+      nameCol = ni;
+      priceCol = pi;
+      break;
+    }
+  }
+
+  // If no header found, fall back to first row as header
+  if (headerRowIdx < 0) {
+    const cells = rows[0].map((c) => String(c ?? "").trim());
+    nameCol = 0;
+    priceCol = cells.findIndex((c) => /price|cost|rate|each/i.test(c));
+    if (priceCol < 0) priceCol = 1; // second column as fallback
+    headerRowIdx = 0;
+  }
+
+  const items: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    const rawName = String(row[nameCol] ?? "").trim();
+    const rawPrice = String(row[priceCol] ?? "").trim();
+
+    if (!rawName) continue;
+
+    // Parse price: strip currency symbols and commas
+    const priceStr = rawPrice.replace(/[$,\s]/g, "");
+    const price = parseFloat(priceStr);
+
+    if (!isNaN(price) && price > 0) {
+      const key = rawName.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        items.push({ name: rawName, cost: price, rawLine: `${rawName} $${price}` });
+      }
+    }
+  }
+
+  return items;
+}
+
+const EXCEL_EXTS = [".xlsx", ".xls", ".csv"];
+function isExcelFilename(filename: string) {
+  return EXCEL_EXTS.some((ext) => filename.toLowerCase().endsWith(ext));
+}
+
+/**
+ * Import prices from an already-downloaded PDF or Excel buffer (e.g. a file upload).
  * Behaves identically to runPriceImport but skips the HTTP fetch step.
  */
 export async function runPriceImportFromBuffer(opts: {
@@ -105,16 +197,28 @@ export async function runPriceImportFromBuffer(opts: {
   triggeredBy: "manual";
   addNewProducts?: boolean;
 }): Promise<ImportResult> {
-  const { vendorId, buffer, filename = "upload.pdf", triggeredBy, addNewProducts = true } = opts;
+  const { vendorId, buffer, filename = "upload", triggeredBy, addNewProducts = true } = opts;
   const result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [], priceChanges: [] };
 
   try {
-    // Validate PDF magic bytes (%PDF)
-    if (buffer.length < 4 || buffer[0] !== 0x25 || buffer[1] !== 0x50 || buffer[2] !== 0x44 || buffer[3] !== 0x46) {
-      throw new Error("Uploaded file does not appear to be a PDF (missing %PDF header).");
+    // Route to Excel parser if the filename indicates a spreadsheet
+    if (isExcelFilename(filename)) {
+      const items = parseExcelBuffer(buffer);
+      result.items = items;
+      if (items.length > 0) {
+        const dbResult = await upsertProductPrices(vendorId, items, addNewProducts);
+        result.productsUpdated = dbResult.updated;
+        result.productsAdded = dbResult.added;
+        result.unmatched = dbResult.unmatched;
+        result.priceChanges = dbResult.priceChanges;
+      }
+    } else {
+      // Validate PDF magic bytes (%PDF)
+      if (buffer.length < 4 || buffer[0] !== 0x25 || buffer[1] !== 0x50 || buffer[2] !== 0x44 || buffer[3] !== 0x46) {
+        throw new Error("Uploaded file does not appear to be a PDF (missing %PDF header).");
+      }
+      await applyPdfResult(buffer, vendorId, addNewProducts, result);
     }
-
-    await applyPdfResult(buffer, vendorId, addNewProducts, result);
 
     await db.insert(priceListImportsTable).values({
       vendorId,
