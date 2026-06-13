@@ -14,11 +14,18 @@ export type CatalogItem = {
   name: string;
 };
 
+export type PriceChange = {
+  name: string;
+  oldCost: number;
+  newCost: number;
+};
+
 export type ImportResult = {
   items: ParsedItem[];
   productsUpdated: number;
   productsAdded: number;
   unmatched: ParsedItem[];
+  priceChanges: PriceChange[];
   /** True when the source had no prices — products were added to catalog only, costs untouched. */
   noPrices?: boolean;
 };
@@ -33,7 +40,7 @@ export async function runPriceImport(opts: {
 }): Promise<ImportResult> {
   const { vendorId, url, triggeredBy, emailFrom, emailSubject, addNewProducts = true } = opts;
 
-  const result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [] };
+  const result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [], priceChanges: [] };
 
   try {
     const { buffer, contentType, finalUrl } = await fetchUrlBinary(url);
@@ -49,6 +56,7 @@ export async function runPriceImport(opts: {
         result.productsUpdated = dbResult.updated;
         result.productsAdded = dbResult.added;
         result.unmatched = dbResult.unmatched;
+        result.priceChanges = dbResult.priceChanges;
       }
     } else {
       throw new Error(
@@ -98,7 +106,7 @@ export async function runPriceImportFromBuffer(opts: {
   addNewProducts?: boolean;
 }): Promise<ImportResult> {
   const { vendorId, buffer, filename = "upload.pdf", triggeredBy, addNewProducts = true } = opts;
-  const result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [] };
+  const result: ImportResult = { items: [], productsUpdated: 0, productsAdded: 0, unmatched: [], priceChanges: [] };
 
   try {
     // Validate PDF magic bytes (%PDF)
@@ -161,6 +169,7 @@ async function applyPdfResult(
       result.productsUpdated = dbResult.updated;
       result.productsAdded = dbResult.added;
       result.unmatched = dbResult.unmatched;
+      result.priceChanges = dbResult.priceChanges;
       return;
     }
   }
@@ -174,6 +183,7 @@ async function applyPdfResult(
     result.productsUpdated = dbResult.updated;
     result.productsAdded = dbResult.added;
     result.unmatched = dbResult.unmatched;
+    result.priceChanges = dbResult.priceChanges;
   } else {
     // No prices found — try availability list format (Plants in Design style)
     const catalogItems = parseAvailabilityText(text);
@@ -818,15 +828,16 @@ async function upsertProductPrices(
   vendorId: number,
   items: ParsedItem[],
   addNew: boolean,
-): Promise<{ updated: number; added: number; unmatched: ParsedItem[] }> {
+): Promise<{ updated: number; added: number; unmatched: ParsedItem[]; priceChanges: PriceChange[] }> {
   const existing = await db
-    .select({ id: productsTable.id, name: productsTable.name })
+    .select({ id: productsTable.id, name: productsTable.name, cost: productsTable.cost })
     .from(productsTable)
     .where(eq(productsTable.vendorId, vendorId));
 
   let updated = 0;
   let added = 0;
   const unmatched: ParsedItem[] = [];
+  const priceChanges: PriceChange[] = [];
 
   for (const item of items) {
     const nameLower = item.name.toLowerCase();
@@ -843,13 +854,21 @@ async function upsertProductPrices(
     }
 
     if (match) {
-      await db.update(productsTable).set({ cost: String(item.cost) }).where(eq(productsTable.id, match.id));
-      updated++;
+      const oldCost = match.cost != null ? parseFloat(match.cost) : null;
+      const newCost = item.cost;
+      // Only write and count as updated if the price actually changed
+      if (oldCost == null || Math.abs(oldCost - newCost) >= 0.005) {
+        await db.update(productsTable).set({ cost: String(newCost) }).where(eq(productsTable.id, match.id));
+        updated++;
+        if (oldCost != null) {
+          priceChanges.push({ name: match.name, oldCost, newCost });
+        }
+      }
     } else if (addNew) {
       const [inserted] = await db
         .insert(productsTable)
         .values({ vendorId, name: item.name, cost: String(item.cost) })
-        .returning({ id: productsTable.id, name: productsTable.name });
+        .returning({ id: productsTable.id, name: productsTable.name, cost: productsTable.cost });
       existing.push(inserted);
       added++;
     } else {
@@ -857,7 +876,7 @@ async function upsertProductPrices(
     }
   }
 
-  return { updated, added, unmatched };
+  return { updated, added, unmatched, priceChanges };
 }
 
 /**

@@ -308,7 +308,7 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number; noPrices?: boolean } | null>(null);
+  const [result, setResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number; noPrices?: boolean; priceChanges?: { name: string; oldCost: number; newCost: number }[] } | null>(null);
   const [importError, setImportError] = useState("");
   const [priceListEmail, setPriceListEmail] = useState(vendor.priceListEmail ?? "");
   const [savingEmail, setSavingEmail] = useState(false);
@@ -317,7 +317,7 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number; noPrices?: boolean } | null>(null);
+  const [uploadResult, setUploadResult] = useState<{ itemsFound: number; productsUpdated: number; productsAdded: number; unmatched: number; noPrices?: boolean; priceChanges?: { name: string; oldCost: number; newCost: number }[] } | null>(null);
   const [uploadError, setUploadError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -509,13 +509,29 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
               </Button>
             </div>
             {result && !result.noPrices && (
-              <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-0.5">
+              <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-1.5">
                 <div className="font-medium text-green-800 flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4" /> Import successful
                 </div>
                 <div className="text-xs text-green-700">
-                  Found <strong>{result.itemsFound}</strong> items · Updated <strong>{result.productsUpdated}</strong> products · Added <strong>{result.productsAdded}</strong> new · <strong>{result.unmatched}</strong> unmatched
+                  Found <strong>{result.itemsFound}</strong> items · Updated <strong>{result.productsUpdated}</strong> prices · Added <strong>{result.productsAdded}</strong> new · <strong>{result.unmatched}</strong> unmatched
                 </div>
+                {result.priceChanges && result.priceChanges.length > 0 && (
+                  <div className="mt-1.5 max-h-40 overflow-y-auto rounded border border-green-200 bg-white divide-y divide-green-100">
+                    {result.priceChanges.map((c, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 px-2 py-1 text-xs">
+                        <span className="truncate text-gray-700 flex-1 min-w-0">{c.name}</span>
+                        <span className="shrink-0 font-mono tabular-nums flex items-center gap-1">
+                          <span className="text-gray-400">${c.oldCost.toFixed(2)}</span>
+                          <span className="text-gray-400">→</span>
+                          <span className={c.newCost > c.oldCost ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+                            {c.newCost > c.oldCost ? "▲" : "▼"} ${c.newCost.toFixed(2)}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {result?.noPrices && (
@@ -583,13 +599,29 @@ function PriceImportDialog({ vendor }: { vendor: PriceImportDialogVendor }) {
               {uploadLoading ? "Importing…" : "Import PDF"}
             </Button>
             {uploadResult && !uploadResult.noPrices && (
-              <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-0.5">
+              <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm space-y-1.5">
                 <div className="font-medium text-green-800 flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4" /> Import successful
                 </div>
                 <div className="text-xs text-green-700">
-                  Found <strong>{uploadResult.itemsFound}</strong> items · Updated <strong>{uploadResult.productsUpdated}</strong> products · Added <strong>{uploadResult.productsAdded}</strong> new · <strong>{uploadResult.unmatched}</strong> unmatched
+                  Found <strong>{uploadResult.itemsFound}</strong> items · Updated <strong>{uploadResult.productsUpdated}</strong> prices · Added <strong>{uploadResult.productsAdded}</strong> new · <strong>{uploadResult.unmatched}</strong> unmatched
                 </div>
+                {uploadResult.priceChanges && uploadResult.priceChanges.length > 0 && (
+                  <div className="mt-1.5 max-h-40 overflow-y-auto rounded border border-green-200 bg-white divide-y divide-green-100">
+                    {uploadResult.priceChanges.map((c, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 px-2 py-1 text-xs">
+                        <span className="truncate text-gray-700 flex-1 min-w-0">{c.name}</span>
+                        <span className="shrink-0 font-mono tabular-nums flex items-center gap-1">
+                          <span className="text-gray-400">${c.oldCost.toFixed(2)}</span>
+                          <span className="text-gray-400">→</span>
+                          <span className={c.newCost > c.oldCost ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+                            {c.newCost > c.oldCost ? "▲" : "▼"} ${c.newCost.toFixed(2)}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {uploadResult?.noPrices && (
