@@ -96,17 +96,47 @@ export async function runPriceImport(opts: {
 }
 
 /**
+ * K and M Nursery FOB price list format:
+ *   Col 0: flag ("NEW" / "LIMITED" / empty)
+ *   Col 1: product name
+ *   Col 2: "photo" or empty
+ *   Col 3: "$X.XX" price  OR  "F.O.B." (section header marker) OR empty
+ *   Col 4: UPC barcode
+ *
+ * No column-header row — section titles appear as rows where col 3 = "F.O.B."
+ * Detection: any of the first 5 rows contain the text "F.O.B."
+ */
+function isKandMFormat(rows: string[][]): boolean {
+  for (let i = 0; i < Math.min(rows.length, 5); i++) {
+    if (rows[i].some((cell) => String(cell).includes("F.O.B."))) return true;
+  }
+  return false;
+}
+
+function parseKandMRows(rows: string[][]): ParsedItem[] {
+  const PRICE_RE = /^\$[\d,]+\.?\d*$/;
+  const items: ParsedItem[] = [];
+  for (const row of rows) {
+    const name = String(row[1] ?? "").trim();
+    const priceCell = String(row[3] ?? "").trim();
+    if (name && PRICE_RE.test(priceCell)) {
+      const price = parseFloat(priceCell.replace(/[$,]/g, ""));
+      if (price > 0) {
+        items.push({ name, cost: price, rawLine: `${name} ${priceCell}` });
+      }
+    }
+  }
+  return items;
+}
+
+/**
  * Parse an Excel (.xlsx / .xls) or CSV buffer into ParsedItems.
  *
- * Strategy:
- *  1. Load the first sheet.
- *  2. Find the header row — the first row whose cells contain at least one
- *     name-like header AND one price-like header (case-insensitive substring match).
- *  3. Extract product name and cost from every subsequent non-empty row.
- *
- * Supported header aliases:
- *   Name   → "product", "name", "item", "description", "variety", "plant"
- *   Price  → "price", "cost", "rate", "each", "unit price", "retail", "wholesale"
+ * Format detection order:
+ *  1. K and M Nursery FOB format — col 1 = name, col 3 = "$X.XX", no header row,
+ *     identified by "F.O.B." text appearing in the first few rows.
+ *  2. Generic header-based format — scans the first 20 rows for a row containing
+ *     recognisable name and price column headers, then extracts those columns.
  */
 export function parseExcelBuffer(buffer: Buffer): ParsedItem[] {
   const wb = XLSX.read(buffer, { type: "buffer", cellDates: false });
@@ -114,22 +144,26 @@ export function parseExcelBuffer(buffer: Buffer): ParsedItem[] {
   if (!sheetName) return [];
   const ws = wb.Sheets[sheetName];
 
-  // Convert to array-of-arrays (all values as strings)
   const rows: string[][] = XLSX.utils.sheet_to_json(ws, {
     header: 1,
     defval: "",
     raw: false,
   }) as string[][];
 
-  if (rows.length < 2) return [];
+  if (rows.length < 1) return [];
 
+  // --- K and M Nursery FOB format ---
+  if (isKandMFormat(rows)) {
+    return parseKandMRows(rows);
+  }
+
+  // --- Generic header-based format ---
   const NAME_HINTS = ["product", "name", "item", "description", "variety", "plant"];
   const PRICE_HINTS = ["price", "cost", "rate", "each", "unit price", "retail", "wholesale", "ea"];
 
   const pickCol = (headers: string[], hints: string[]) =>
     headers.findIndex((h) => hints.some((hint) => h.toLowerCase().includes(hint)));
 
-  // Find the header row (first row that has both a name col and a price col)
   let headerRowIdx = -1;
   let nameCol = -1;
   let priceCol = -1;
@@ -146,12 +180,12 @@ export function parseExcelBuffer(buffer: Buffer): ParsedItem[] {
     }
   }
 
-  // If no header found, fall back to first row as header
+  // Fall back: treat row 0 as header, col 0 = name, col 1 = price
   if (headerRowIdx < 0) {
     const cells = rows[0].map((c) => String(c ?? "").trim());
     nameCol = 0;
     priceCol = cells.findIndex((c) => /price|cost|rate|each/i.test(c));
-    if (priceCol < 0) priceCol = 1; // second column as fallback
+    if (priceCol < 0) priceCol = 1;
     headerRowIdx = 0;
   }
 
@@ -162,13 +196,9 @@ export function parseExcelBuffer(buffer: Buffer): ParsedItem[] {
     const row = rows[i];
     const rawName = String(row[nameCol] ?? "").trim();
     const rawPrice = String(row[priceCol] ?? "").trim();
-
     if (!rawName) continue;
-
-    // Parse price: strip currency symbols and commas
     const priceStr = rawPrice.replace(/[$,\s]/g, "");
     const price = parseFloat(priceStr);
-
     if (!isNaN(price) && price > 0) {
       const key = rawName.toLowerCase();
       if (!seen.has(key)) {
