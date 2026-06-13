@@ -8,6 +8,7 @@ import {
   useListVendorProducts,
   useCreateProduct,
   useUpdateProduct,
+  useDeleteProduct,
   useGetSettings,
   useUpdateSettings,
   getListVendorsQueryKey,
@@ -1010,6 +1011,7 @@ function VendorProductsTab() {
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
 
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -1065,6 +1067,22 @@ function VendorProductsTab() {
           setEditingId(null);
         },
         onError: () => toast({ title: "Error", description: "Failed to update product.", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleDeleteProduct = (productId: number, productName: string) => {
+    if (!selectedVendorId) return;
+    if (!window.confirm(`Delete "${productName}"? This cannot be undone.`)) return;
+    deleteProduct.mutate(
+      { vendorId: selectedVendorId, productId },
+      {
+        onSuccess: () => {
+          toast({ title: "Product deleted", description: `${productName} removed from catalog.` });
+          queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey(selectedVendorId) });
+          queryClient.invalidateQueries({ queryKey: getListVendorsQueryKey() });
+        },
+        onError: () => toast({ title: "Error", description: "Failed to delete product.", variant: "destructive" }),
       }
     );
   };
@@ -1261,9 +1279,14 @@ function VendorProductsTab() {
                           </Button>
                         </div>
                       ) : (
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => startEditProduct(product.id, product.name, product.packSize)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => startEditProduct(product.id, product.name, product.packSize)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteProduct(product.id, product.name)} disabled={deleteProduct.isPending}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>

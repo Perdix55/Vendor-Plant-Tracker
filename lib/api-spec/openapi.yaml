@@ -179,6 +179,24 @@ paths:
                 $ref: "#/components/schemas/Product"
 
   /vendors/{vendorId}/products/{productId}:
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      summary: Delete a product
+      parameters:
+        - name: vendorId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
     patch:
       operationId: updateProduct
       tags: [products]

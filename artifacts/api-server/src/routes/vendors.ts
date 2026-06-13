@@ -170,6 +170,18 @@ router.post("/vendors/:vendorId/products", async (req, res) => {
   }
 });
 
+// DELETE /vendors/:vendorId/products/:productId
+router.delete("/vendors/:vendorId/products/:productId", async (req, res) => {
+  try {
+    const productId = parseInt(req.params.productId, 10);
+    await db.delete(productsTable).where(eq(productsTable.id, productId));
+    res.status(204).end();
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete product");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // PATCH /vendors/:vendorId/products/:productId
 router.patch("/vendors/:vendorId/products/:productId", async (req, res) => {
   try {

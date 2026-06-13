@@ -154,6 +154,14 @@ export const CreateProductBody = zod.object({
 });
 
 /**
+ * @summary Delete a product
+ */
+export const DeleteProductParams = zod.object({
+  vendorId: zod.coerce.number(),
+  productId: zod.coerce.number(),
+});
+
+/**
  * @summary Update a product (name, packSize, isActive)
  */
 export const UpdateProductParams = zod.object({
