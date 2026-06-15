@@ -442,6 +442,102 @@ function parseLivingColorsPdf(items: PdfItem[]): ParsedItem[] {
 }
 
 /**
+ * Sunlet Nursery format — three-panel price list with two price tiers (W / WB).
+ *
+ * Single-page PDF.  Identified by "Availability for ship week" in the token stream.
+ *
+ * Layout: 3 side-by-side panels.  Each panel has its own size header (e.g. "2 inch",
+ * "6 inch", "8 inch") that can change independently mid-page.  Panels:
+ *
+ *   Panel 0 (left):   Item# x∈[22,55],  Name x∈[55,155],  W-price x∈[155,185]
+ *   Panel 1 (middle): Item# x∈[205,238], Name x∈[238,345], W-price x∈[345,370]
+ *   Panel 2 (right):  Item# x∈[396,430], Name x∈[430,548], W-price x∈[548,580]
+ *
+ * A row can mix header cells (size update for one panel) and product data
+ * (other panels).  Size tokens match /^\d+ inch$/i.
+ *
+ * Product name = "{size} {product name}" (e.g. "2 inch Adenium").
+ * The W (wholesale) price is used as cost; WB price is ignored.
+ */
+function isSunletFormat(items: PdfItem[]): boolean {
+  return items.some((i) => i.str.includes("Availability for ship week"));
+}
+
+function parseSunletPdf(items: PdfItem[]): ParsedItem[] {
+  const PANELS = [
+    { itemMin: 22, itemMax: 55, nameMin: 55, nameMax: 155, priceMin: 155, priceMax: 185, sizeMin: 55, sizeMax: 200 },
+    { itemMin: 205, itemMax: 238, nameMin: 238, nameMax: 345, priceMin: 345, priceMax: 370, sizeMin: 238, sizeMax: 398 },
+    { itemMin: 396, itemMax: 430, nameMin: 430, nameMax: 548, priceMin: 548, priceMax: 580, sizeMin: 430, sizeMax: 600 },
+  ];
+  const SIZE_RE = /^\d+ inch$/i;
+
+  // Group tokens by (page, y-band)
+  const lineMap = new Map<string, PdfItem[]>();
+  for (const item of items) {
+    const key = `${item.page}_${Math.round(item.y / 4) * 4}`;
+    if (!lineMap.has(key)) lineMap.set(key, []);
+    lineMap.get(key)!.push(item);
+  }
+  for (const line of lineMap.values()) line.sort((a, b) => a.x - b.x);
+
+  // Process rows top-to-bottom (PDF y increases upward, so sort y descending)
+  const sortedKeys = [...lineMap.keys()].sort((a, b) => {
+    const ya = parseInt(a.split("_")[1]);
+    const yb = parseInt(b.split("_")[1]);
+    return yb - ya;
+  });
+
+  const activeSize: [string, string, string] = ["", "", ""];
+  const results: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  for (const key of sortedKeys) {
+    const line = lineMap.get(key)!;
+
+    for (let pi = 0; pi < PANELS.length; pi++) {
+      const pan = PANELS[pi];
+      const panelToks = line.filter((t) => t.x >= pan.itemMin && t.x < pan.priceMax + 10);
+
+      // Size header token → update active size for this panel, skip as data
+      const sizeTok = panelToks.find(
+        (t) => t.x >= pan.sizeMin && t.x < pan.sizeMax && SIZE_RE.test(t.str),
+      );
+      if (sizeTok) {
+        activeSize[pi] = sizeTok.str;
+        continue;
+      }
+
+      // Item# must be a pure integer in the item x-range
+      const itemTok = panelToks.find(
+        (t) => t.x >= pan.itemMin && t.x < pan.itemMax && /^\d+$/.test(t.str),
+      );
+      if (!itemTok) continue;
+
+      // Name: all tokens in name x-range
+      const nameToks = panelToks.filter((t) => t.x >= pan.nameMin && t.x < pan.nameMax);
+      if (!nameToks.length) continue;
+
+      // W (wholesale) price — first token in price x-range
+      const priceTok = panelToks.find((t) => t.x >= pan.priceMin && t.x < pan.priceMax);
+      if (!priceTok) continue;
+      const price = parseFloat(priceTok.str.replace(/[,$]/g, ""));
+      if (isNaN(price) || price <= 0) continue;
+
+      const namePart = nameToks.map((t) => t.str).join(" ").trim();
+      const fullName = activeSize[pi] ? `${activeSize[pi]} ${namePart}` : namePart;
+
+      const k = fullName.toLowerCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        results.push({ name: fullName, cost: price, rawLine: `${fullName} $${price}` });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
  * Mercer Botanicals format — availability-only list (no prices).
  *
  * 2-page PDF with columns: POT SIZE | SPECIES | VARIETY | QTY AVAIL | NOTES
@@ -528,7 +624,21 @@ async function applyPdfResult(
 ): Promise<void> {
   const pdfItems = await extractPdfItems(buffer);
 
-  // 1. Mercer Botanicals: availability-only list — SIZE|SPECIES|VARIETY|QTY, no prices
+  // 1. Sunlet Nursery: three-panel W/WB price list, identified by "Availability for ship week"
+  if (isSunletFormat(pdfItems)) {
+    const priceItems = parseSunletPdf(pdfItems);
+    if (priceItems.length > 0) {
+      result.items = priceItems;
+      const dbResult = await upsertProductPrices(vendorId, priceItems, addNew);
+      result.productsUpdated = dbResult.updated;
+      result.productsAdded = dbResult.added;
+      result.unmatched = dbResult.unmatched;
+      result.priceChanges = dbResult.priceChanges;
+      return;
+    }
+  }
+
+  // 2. Mercer Botanicals: availability-only list — SIZE|SPECIES|VARIETY|QTY, no prices
   if (isMercerFormat(pdfItems)) {
     const catalogItems = parseMercerPdf(pdfItems);
     if (catalogItems.length > 0) {
