@@ -616,6 +616,169 @@ function parseMercerPdf(items: PdfItem[]): ParsedItem[] {
  *  6. Text-based price parser (Castleton Gardens, Andersen Farms style)
  *  7. Availability-list parser (Plants in Design style — no prices)
  */
+
+/**
+ * The Good Earth Nursery format — weekly availability PDF with prices.
+ *
+ * 3 pages, two-column layout (left / right panel per page).
+ * Each product row: UNITS | PRODUCT NAME | $ | PRICE | QTY | NOTES
+ *
+ * Left panel x-zones:
+ *   Units  : x ∈ [33, 57)
+ *   Name   : x ∈ [57, 210)
+ *   $      : x ∈ [205, 222)
+ *   Price  : x ∈ [218, 260)
+ *
+ * Right panel x-zones:
+ *   Units  : x ∈ [305, 340)
+ *   Name   : x ∈ [333, 480)
+ *   $      : x ∈ [480, 495)
+ *   Price  : x ∈ [492, 540)
+ *
+ * Section headers appear as wide tokens matching /^\d+"|^\d+\s+gal(lon)?/i in the name
+ * x-range; they provide the pot size prepended to each product name.
+ *
+ * The $ token is used as the primary anchor. For each $ found in a price column,
+ * all tokens within ±10px in y are collected; name tokens containing "$" are
+ * excluded (they are pricing notes, not names). BTF prices (non-numeric) are skipped.
+ *
+ * Identified by "The Good Earth Nursery" appearing in the token stream.
+ */
+function isGoodEarthFormat(items: PdfItem[]): boolean {
+  return items.some((i) => i.str.includes("The Good Earth Nursery"));
+}
+
+function parseGoodEarthPdf(items: PdfItem[]): ParsedItem[] {
+  const SIZE_HEADER_RE = /^(\d+"|(\d+\s+gal(?:lon)?))/i;
+
+  // Index all items by page for windowed lookups
+  const byPage = new Map<number, PdfItem[]>();
+  for (const tok of items) {
+    if (!byPage.has(tok.page)) byPage.set(tok.page, []);
+    byPage.get(tok.page)!.push(tok);
+  }
+
+  function extractSize(s: string): string {
+    const m = s.match(SIZE_HEADER_RE);
+    return m ? m[0].trim() : "";
+  }
+
+  // Pass 1: collect all section headers, keyed by panel
+  // Left section headers  : x ∈ [57, 226) in name range
+  // Right section headers : x ∈ [330, 575) in name range
+  const leftHeaders: { page: number; y: number; size: string }[] = [];
+  const rightHeaders: { page: number; y: number; size: string }[] = [];
+
+  for (const tok of items) {
+    if (!SIZE_HEADER_RE.test(tok.str)) continue;
+    const size = extractSize(tok.str);
+    if (!size) continue;
+    if (tok.x >= 57 && tok.x < 226) {
+      leftHeaders.push({ page: tok.page, y: tok.y, size });
+    } else if (tok.x >= 330 && tok.x < 575) {
+      rightHeaders.push({ page: tok.page, y: tok.y, size });
+    }
+  }
+
+  // Find the nearest section header AT OR ABOVE the given (page, y)
+  // "above" = same page, higher y value (PDF y increases upward)
+  function nearestSection(
+    headers: { page: number; y: number; size: string }[],
+    page: number,
+    y: number,
+  ): string {
+    const candidates = headers.filter((h) => h.page === page && h.y >= y);
+    if (!candidates.length) return "";
+    // Sort ascending by y — the one with the smallest y ≥ product y is closest above
+    candidates.sort((a, b) => a.y - b.y);
+    return candidates[0].size;
+  }
+
+  // Pass 2: for each $ in a price column, extract the product
+  const Y_WINDOW = 10;
+  const results: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  const leftDollars = items.filter(
+    (t) => t.str === "$" && t.x >= 205 && t.x < 222,
+  );
+  const rightDollars = items.filter(
+    (t) => t.str === "$" && t.x >= 480 && t.x < 495,
+  );
+
+  function extractProduct(
+    dollarTok: PdfItem,
+    panel: "left" | "right",
+  ): ParsedItem | null {
+    const { page, y: dy } = dollarTok;
+    const isLeft = panel === "left";
+    const pageToks = byPage.get(page) ?? [];
+
+    // Tokens within ±Y_WINDOW px of the $ anchor
+    const window = pageToks.filter((t) => Math.abs(t.y - dy) <= Y_WINDOW);
+
+    // Units token (we just need its presence to confirm a real product row)
+    const hasUnits = window.some(
+      isLeft
+        ? (t) => t.x >= 33 && t.x < 57
+        : (t) => t.x >= 305 && t.x < 340,
+    );
+    if (!hasUnits) return null;
+
+    // Name tokens: collect all in name x-range, skip tokens containing "$"
+    const nameToks = window
+      .filter(
+        isLeft
+          ? (t) => t.x >= 57 && t.x < 210
+          : (t) => t.x >= 333 && t.x < 480,
+      )
+      .filter((t) => !t.str.includes("$"))
+      // Exclude section header tokens (they have size pattern)
+      .filter((t) => !SIZE_HEADER_RE.test(t.str))
+      // Sort top-to-bottom (higher y = higher on page), then left-to-right
+      .sort((a, b) => b.y - a.y || a.x - b.x);
+
+    const rawName = nameToks.map((t) => t.str).join(" ").trim();
+    if (!rawName) return null;
+
+    // Price token in price column
+    const priceTok = window.find(
+      isLeft
+        ? (t) => t.x >= 218 && t.x < 260
+        : (t) => t.x >= 492 && t.x < 540,
+    );
+    if (!priceTok) return null;
+    const cost = parseFloat(priceTok.str.replace(/[,$+]/g, ""));
+    if (isNaN(cost) || cost <= 0) return null;
+
+    const sectionHeaders = isLeft ? leftHeaders : rightHeaders;
+    const size = nearestSection(sectionHeaders, page, dy);
+
+    // Title-case the raw name
+    const titleName = rawName
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const fullName = size ? `${size} ${titleName}` : titleName;
+
+    const k = fullName.toLowerCase();
+    if (seen.has(k)) return null;
+    seen.add(k);
+
+    return { name: fullName, cost, rawLine: `${fullName} $${cost}` };
+  }
+
+  for (const d of leftDollars) {
+    const p = extractProduct(d, "left");
+    if (p) results.push(p);
+  }
+  for (const d of rightDollars) {
+    const p = extractProduct(d, "right");
+    if (p) results.push(p);
+  }
+
+  return results;
+}
+
 async function applyPdfResult(
   buffer: Buffer,
   vendorId: number,
@@ -624,7 +787,21 @@ async function applyPdfResult(
 ): Promise<void> {
   const pdfItems = await extractPdfItems(buffer);
 
-  // 1. Sunlet Nursery: three-panel W/WB price list, identified by "Availability for ship week"
+  // 1. Good Earth Nursery: two-column weekly availability with prices, identified by "The Good Earth Nursery"
+  if (isGoodEarthFormat(pdfItems)) {
+    const priceItems = parseGoodEarthPdf(pdfItems);
+    if (priceItems.length > 0) {
+      result.items = priceItems;
+      const dbResult = await upsertProductPrices(vendorId, priceItems, addNew);
+      result.productsUpdated = dbResult.updated;
+      result.productsAdded = dbResult.added;
+      result.unmatched = dbResult.unmatched;
+      result.priceChanges = dbResult.priceChanges;
+      return;
+    }
+  }
+
+  // 2. Sunlet Nursery: three-panel W/WB price list, identified by "Availability for ship week"
   if (isSunletFormat(pdfItems)) {
     const priceItems = parseSunletPdf(pdfItems);
     if (priceItems.length > 0) {
