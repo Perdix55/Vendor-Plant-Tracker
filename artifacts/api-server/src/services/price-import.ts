@@ -130,12 +130,74 @@ function parseKandMRows(rows: string[][]): ParsedItem[] {
 }
 
 /**
+ * Palm Acres format — three-panel side-by-side layout.
+ *
+ * Sheet: "INDEPENDENT HOUSE DELIVERED"
+ * Header row (index 7): Order | Item# | Code | Cost | Description  (repeated at cols 11 and 21)
+ * Data starts at row index 8.
+ *
+ * Panel column offsets (0-based):
+ *   Panel 1: Item# col 2, Cost col 4, Name col 5
+ *   Panel 2: Item# col 12, Cost col 14, Name col 15
+ *   Panel 3: Item# col 22, Cost col 24, Name col 25
+ *
+ * Product rows: Item# is a number, Cost is a number, Name is non-empty.
+ * Section header rows (category labels): Item# is empty, Name contains category text — skipped.
+ */
+function isPalmAcresFormat(sheetName: string, rows: string[][]): boolean {
+  if (sheetName.toUpperCase().includes("INDEPENDENT HOUSE DELIVERED")) return true;
+  // Fallback: header row 7 has "Item#" at col 2 and "Cost" at col 4
+  const hdr = rows[7] ?? [];
+  return (
+    String(hdr[2] ?? "").trim().toLowerCase() === "item#" &&
+    String(hdr[4] ?? "").trim().toLowerCase() === "cost" &&
+    String(hdr[5] ?? "").trim().toLowerCase() === "description"
+  );
+}
+
+function parsePalmAcresRows(rows: string[][]): ParsedItem[] {
+  // [itemColIdx, costColIdx, nameColIdx] for each of the 3 panels
+  const PANELS: [number, number, number][] = [
+    [2, 4, 5],
+    [12, 14, 15],
+    [22, 24, 25],
+  ];
+
+  const items: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  for (let ri = 8; ri < rows.length; ri++) {
+    const row = rows[ri];
+    for (const [itemCol, costCol, nameCol] of PANELS) {
+      const rawItem = String(row[itemCol] ?? "").trim();
+      const rawCost = String(row[costCol] ?? "").replace(/[$,]/g, "").trim();
+      const name = String(row[nameCol] ?? "").trim();
+
+      if (!rawItem || !name) continue;
+      const itemNum = parseFloat(rawItem);
+      const cost = parseFloat(rawCost);
+      if (isNaN(itemNum) || isNaN(cost) || cost <= 0) continue;
+
+      const key = name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        items.push({ name, cost, rawLine: `${name} $${cost}` });
+      }
+    }
+  }
+
+  return items;
+}
+
+/**
  * Parse an Excel (.xlsx / .xls) or CSV buffer into ParsedItems.
  *
  * Format detection order:
- *  1. K and M Nursery FOB format — col 1 = name, col 3 = "$X.XX", no header row,
+ *  1. Palm Acres — three-panel layout (sheet "INDEPENDENT HOUSE DELIVERED"),
+ *     Item# at cols 2/12/22, Cost at cols 4/14/24, Name at cols 5/15/25.
+ *  2. K and M Nursery FOB format — col 1 = name, col 3 = "$X.XX", no header row,
  *     identified by "F.O.B." text appearing in the first few rows.
- *  2. Generic header-based format — scans the first 20 rows for a row containing
+ *  3. Generic header-based format — scans the first 20 rows for a row containing
  *     recognisable name and price column headers, then extracts those columns.
  */
 export function parseExcelBuffer(buffer: Buffer): ParsedItem[] {
@@ -151,6 +213,11 @@ export function parseExcelBuffer(buffer: Buffer): ParsedItem[] {
   }) as string[][];
 
   if (rows.length < 1) return [];
+
+  // --- Palm Acres three-panel format ---
+  if (isPalmAcresFormat(sheetName, rows)) {
+    return parsePalmAcresRows(rows);
+  }
 
   // --- K and M Nursery FOB format ---
   if (isKandMFormat(rows)) {
