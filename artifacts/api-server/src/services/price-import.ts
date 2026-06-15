@@ -442,14 +442,83 @@ function parseLivingColorsPdf(items: PdfItem[]): ParsedItem[] {
 }
 
 /**
+ * Mercer Botanicals format — availability-only list (no prices).
+ *
+ * 2-page PDF with columns: POT SIZE | SPECIES | VARIETY | QTY AVAIL | NOTES
+ * Identified by "MERCER BOTANICALS" appearing in the token stream.
+ *
+ * Column x positions (0-based):
+ *   POT SIZE : x < 65   (e.g. "8"", "4"", "8" HB")
+ *   SPECIES  : x ∈ [65, 165)   (full species descriptor, possibly multiple tokens)
+ *   VARIETY  : x ∈ [165, 320)  (not used in product name — comma-separated lists)
+ *   QTY AVAIL: x ∈ [320, 345]  (positive integer)
+ *   NOTES    : x > 345
+ *
+ * Product name = "{POT SIZE} {SPECIES}" (title-cased).
+ * Since no prices are present, results feed into upsertProductCatalog (noPrices path).
+ */
+function isMercerFormat(items: PdfItem[]): boolean {
+  return items.some((i) => i.str.includes("MERCER BOTANICALS"));
+}
+
+function parseMercerPdf(items: PdfItem[]): ParsedItem[] {
+  const SIZE_MAX_X = 65;
+  const SPECIES_MIN_X = 65;
+  const SPECIES_MAX_X = 165;
+  const QTY_MIN_X = 320;
+  const QTY_MAX_X = 345;
+
+  // Group tokens by (page, y-band) — ±4px tolerance handles column jitter
+  const lineMap = new Map<string, PdfItem[]>();
+  for (const item of items) {
+    const key = `${item.page}_${Math.round(item.y / 4) * 4}`;
+    if (!lineMap.has(key)) lineMap.set(key, []);
+    lineMap.get(key)!.push(item);
+  }
+  for (const line of lineMap.values()) line.sort((a, b) => a.x - b.x);
+
+  const toTitleCase = (s: string) =>
+    s.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
+  const results: ParsedItem[] = [];
+  const seen = new Set<string>();
+
+  for (const line of lineMap.values()) {
+    const sizeToks = line.filter((t) => t.x < SIZE_MAX_X);
+    const speciesToks = line.filter((t) => t.x >= SPECIES_MIN_X && t.x < SPECIES_MAX_X);
+    const qtyToks = line.filter((t) => t.x >= QTY_MIN_X && t.x <= QTY_MAX_X);
+
+    if (!sizeToks.length || !speciesToks.length || !qtyToks.length) continue;
+
+    // QTY must be a positive integer (headers like "AVAIL", notes like "9/15"" will fail)
+    const qty = parseInt(qtyToks[0].str.trim(), 10);
+    if (isNaN(qty) || qty <= 0) continue;
+
+    const size = sizeToks.map((t) => t.str).join("").trim();
+    const species = toTitleCase(speciesToks.map((t) => t.str).join(" ").trim());
+    const name = `${size} ${species}`;
+    if (name.length < 4) continue;
+
+    const key = name.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      results.push({ name, cost: 0, rawLine: name });
+    }
+  }
+
+  return results;
+}
+
+/**
  * Auto-detects PDF format and populates `result`.
  * Priority order:
- *  1. Living Colors Nursery — column-format with SIZE|VARIETY|...|PRICE layout, identified by "Living Colors Nursery"
- *  2. Capri Farms — combined "$N.NN" at x≈210–245 with dedicated pot-size column at x≈175–200
- *  3. Sturon Nursery format — two-column genus+variety with combined "$N.NN" price tokens
- *  4. Column-format (Northland Floral style) — split "$" + number, position-based parser
- *  5. Text-based price parser (Castleton Gardens, Andersen Farms style)
- *  6. Availability-list parser (Plants in Design style — no prices)
+ *  1. Mercer Botanicals — availability-only list with SIZE|SPECIES|VARIETY|QTY columns, no prices
+ *  2. Living Colors Nursery — column-format with SIZE|VARIETY|...|PRICE layout, identified by "Living Colors Nursery"
+ *  3. Capri Farms — combined "$N.NN" at x≈210–245 with dedicated pot-size column at x≈175–200
+ *  4. Sturon Nursery format — two-column genus+variety with combined "$N.NN" price tokens
+ *  5. Column-format (Northland Floral style) — split "$" + number, position-based parser
+ *  6. Text-based price parser (Castleton Gardens, Andersen Farms style)
+ *  7. Availability-list parser (Plants in Design style — no prices)
  */
 async function applyPdfResult(
   buffer: Buffer,
@@ -459,7 +528,19 @@ async function applyPdfResult(
 ): Promise<void> {
   const pdfItems = await extractPdfItems(buffer);
 
-  // 1. Living Colors Nursery: SIZE|VARIETY|...|PRICE column format, price at x≈555–585
+  // 1. Mercer Botanicals: availability-only list — SIZE|SPECIES|VARIETY|QTY, no prices
+  if (isMercerFormat(pdfItems)) {
+    const catalogItems = parseMercerPdf(pdfItems);
+    if (catalogItems.length > 0) {
+      result.noPrices = true;
+      result.items = catalogItems;
+      const dbResult = await upsertProductCatalog(vendorId, catalogItems, addNew);
+      result.productsAdded = dbResult.added;
+      return;
+    }
+  }
+
+  // 2. Living Colors Nursery: SIZE|VARIETY|...|PRICE column format, price at x≈555–585
   if (isLivingColorsFormat(pdfItems)) {
     const priceItems = parseLivingColorsPdf(pdfItems);
     if (priceItems.length > 0) {
