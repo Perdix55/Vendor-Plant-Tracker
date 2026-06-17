@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import {
   salesOrdersTable,
   salesOrderItemsTable,
+  shopOrderItemsTable,
   inventoryItemsTable,
   productsTable,
   vendorsTable,
@@ -81,15 +82,14 @@ router.get("/sales-orders", async (req, res) => {
       .where(status ? eq(salesOrdersTable.status, status) : undefined)
       .orderBy(desc(salesOrdersTable.createdAt));
 
-    // Count items per order
-    const itemCounts = await db
-      .select({
-        salesOrderId: salesOrderItemsTable.salesOrderId,
-      })
-      .from(salesOrderItemsTable);
+    // Count items per order from both tables
+    const [legacyItems, shopItems] = await Promise.all([
+      db.select({ salesOrderId: salesOrderItemsTable.salesOrderId }).from(salesOrderItemsTable),
+      db.select({ salesOrderId: shopOrderItemsTable.salesOrderId }).from(shopOrderItemsTable),
+    ]);
 
     const countMap: Record<number, number> = {};
-    for (const r of itemCounts) {
+    for (const r of [...legacyItems, ...shopItems]) {
       countMap[r.salesOrderId] = (countMap[r.salesOrderId] ?? 0) + 1;
     }
 
