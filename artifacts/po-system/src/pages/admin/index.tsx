@@ -1934,7 +1934,7 @@ function AIReportsTab() {
   );
 }
 
-type ShopListing = { id: number; productName: string; status: string; priceB: string | null; priceF: string | null; importedAt: string };
+type ShopListing = { id: number; productName: string; status: string; price: string | null; importedAt: string };
 type ImportResult = { imported: number; available: number; limited: number; outOfStock: number; listings: ShopListing[] };
 
 function ShopAvailabilityTab() {
@@ -2084,8 +2084,7 @@ function ShopAvailabilityTab() {
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="font-semibold">Product Name</TableHead>
-                    <TableHead className="font-semibold w-24 text-right">Price (B)</TableHead>
-                    <TableHead className="font-semibold w-24 text-right">Price (F)</TableHead>
+                    <TableHead className="font-semibold w-24 text-right">Price</TableHead>
                     <TableHead className="font-semibold w-32">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -2093,8 +2092,7 @@ function ShopAvailabilityTab() {
                   {displayList.map((item, i) => (
                     <TableRow key={i}>
                       <TableCell className="font-medium">{item.productName}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">{item.priceB ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">{item.priceF ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">{item.price ?? "—"}</TableCell>
                       <TableCell>{statusBadge(item.status)}</TableCell>
                     </TableRow>
                   ))}

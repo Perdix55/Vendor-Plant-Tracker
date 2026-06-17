@@ -38,49 +38,65 @@ router.post("/shop-availability/import", upload.single("file"), async (req, res)
     return res.status(400).json({ error: "Could not read the file. Make sure it is a valid CSV or Excel file." });
   }
 
-  const listings: { productName: string; status: "available" | "limited" | "out_of_stock"; priceB: string | null; priceF: string | null }[] = [];
+  const listings: { productName: string; status: "available" | "limited" | "out_of_stock"; price: string | null }[] = [];
 
   const LEGEND_KEYWORDS = ["legend", "availability legend", "key:", "key :", "✓ =", "✔ =", "* =", "checkmark", "= available", "= limited"];
-  // Phone pattern now also handles slashes between numbers (e.g. 214-824-4440/800-408-0323)
+  // Matches phone numbers including slash-separated numbers like 214-824-4440/800-408-0323
   const SKIP_PATTERNS = [/@/, /^[\d\s\-().\/]{7,}$/, /^www\./i, /^http/i, /^fax/i, /^phone/i, /^tel/i, /^email/i, /^address/i];
+  const LABEL_SKIP = new Set(["name", "product", "item"]);
+
+  function shouldSkipName(n: string): boolean {
+    if (!n) return true;
+    const nl = n.toLowerCase();
+    if (LEGEND_KEYWORDS.some((kw) => nl.includes(kw))) return true;
+    if (LABEL_SKIP.has(nl)) return true;
+    if (SKIP_PATTERNS.some((re) => re.test(n))) return true;
+    return false;
+  }
+
+  function resolveStatus(avail: string): "available" | "limited" | "out_of_stock" {
+    if (avail === "*") return "limited";
+    return parseAvailability(avail);
+  }
+
+  let hitLegend = false;
 
   for (const row of rows) {
-    const name = String(row[0] ?? "").trim();
-    if (!name) continue;
-    const nameLower = name.toLowerCase();
+    if (hitLegend) break;
 
-    // Stop at the legend row and skip everything after it
-    if (LEGEND_KEYWORDS.some((kw) => nameLower.includes(kw))) break;
+    // --- Left section: columns A (0), B (1), C (2) ---
+    const nameA = String(row[0] ?? "").trim();
+    if (nameA) {
+      const nl = nameA.toLowerCase();
+      if (LEGEND_KEYWORDS.some((kw) => nl.includes(kw))) { hitLegend = true; break; }
 
-    // Skip header-like labels and business contact info
-    if (nameLower === "name" || nameLower === "product" || nameLower === "item") continue;
-    if (SKIP_PATTERNS.some((re) => re.test(name))) continue;
+      const colB = String(row[1] ?? "").trim();
+      const colC = String(row[2] ?? "").trim();
 
-    const colB = String(row[1] ?? "").trim();
-    const colC = String(row[2] ?? "").trim();
-    const colF = String(row[5] ?? "").trim();
-    const colG = String(row[6] ?? "").trim();
-
-    // Skip all-uppercase section headers / business name rows that have no availability data
-    if (name === name.toUpperCase() && name !== name.toLowerCase() && !colC && !colG) continue;
-
-    let status: "available" | "limited" | "out_of_stock" = "out_of_stock";
-    if (colC === "*" || colG === "*") {
-      status = "limited";
-    } else {
-      const cStatus = parseAvailability(colC);
-      const gStatus = parseAvailability(colG);
-      if (cStatus === "available" || gStatus === "available") {
-        status = "available";
+      if (
+        !shouldSkipName(nameA) &&
+        !(nameA === nameA.toUpperCase() && nameA !== nameA.toLowerCase() && !colC)
+      ) {
+        listings.push({ productName: nameA, status: resolveStatus(colC), price: colB || null });
       }
     }
 
-    listings.push({
-      productName: name,
-      status,
-      priceB: colB || null,
-      priceF: colF || null,
-    });
+    // --- Right section: columns E (4), F (5), G (6) ---
+    const nameE = String(row[4] ?? "").trim();
+    if (nameE) {
+      const nl = nameE.toLowerCase();
+      if (LEGEND_KEYWORDS.some((kw) => nl.includes(kw))) { hitLegend = true; break; }
+
+      const colF = String(row[5] ?? "").trim();
+      const colG = String(row[6] ?? "").trim();
+
+      if (
+        !shouldSkipName(nameE) &&
+        !(nameE === nameE.toUpperCase() && nameE !== nameE.toLowerCase() && !colG)
+      ) {
+        listings.push({ productName: nameE, status: resolveStatus(colG), price: colF || null });
+      }
+    }
   }
 
   if (listings.length === 0) {

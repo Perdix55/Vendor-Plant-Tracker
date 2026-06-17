@@ -6,8 +6,7 @@ export const shopListingsTable = pgTable("shop_listings", {
   id: serial("id").primaryKey(),
   productName: text("product_name").notNull(),
   status: text("status").notNull().default("available"),
-  priceB: text("price_b"),
-  priceF: text("price_f"),
+  price: text("price"),
   importedAt: timestamp("imported_at").defaultNow().notNull(),
 });
 
