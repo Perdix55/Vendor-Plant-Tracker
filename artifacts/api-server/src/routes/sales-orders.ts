@@ -129,11 +129,44 @@ async function getSalesOrderWithItems(id: number) {
 
   if (!order) return null;
 
-  const items = await db
-    .select()
-    .from(salesOrderItemsTable)
-    .where(eq(salesOrderItemsTable.salesOrderId, id))
-    .orderBy(salesOrderItemsTable.createdAt);
+  const [legacyItems, shopItems] = await Promise.all([
+    db.select().from(salesOrderItemsTable)
+      .where(eq(salesOrderItemsTable.salesOrderId, id))
+      .orderBy(salesOrderItemsTable.createdAt),
+    db.select().from(shopOrderItemsTable)
+      .where(eq(shopOrderItemsTable.salesOrderId, id))
+      .orderBy(shopOrderItemsTable.createdAt),
+  ]);
+
+  const normalizedLegacy = legacyItems.map((i) => ({
+    id: i.id,
+    salesOrderId: i.salesOrderId,
+    productName: i.productName,
+    vendorName: i.vendorName ?? null,
+    packSize: i.packSize ?? null,
+    price: i.price ?? null,
+    quantity: i.quantity,
+    inventoryItemId: i.inventoryItemId ?? null,
+    createdAt: i.createdAt,
+    _source: "legacy" as const,
+  }));
+
+  const normalizedShop = shopItems.map((i) => ({
+    id: i.id,
+    salesOrderId: i.salesOrderId,
+    productName: i.productName,
+    vendorName: null,
+    packSize: null,
+    price: i.price ?? null,
+    quantity: i.quantity,
+    inventoryItemId: null,
+    createdAt: i.createdAt,
+    _source: "shop" as const,
+  }));
+
+  const items = [...normalizedLegacy, ...normalizedShop].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
 
   return { ...order, items };
 }
@@ -287,14 +320,22 @@ router.put("/sales-orders/:salesOrderId/items/:itemId", async (req, res) => {
   try {
     const { quantity } = req.body as { quantity: number };
 
-    const [item] = await db
+    const [legacyItem] = await db
       .update(salesOrderItemsTable)
       .set({ quantity })
       .where(eq(salesOrderItemsTable.id, itemId))
       .returning();
 
-    if (!item) return res.status(404).json({ error: "Item not found" });
-    res.json(item);
+    if (legacyItem) return res.json(legacyItem);
+
+    const [shopItem] = await db
+      .update(shopOrderItemsTable)
+      .set({ quantity })
+      .where(eq(shopOrderItemsTable.id, itemId))
+      .returning();
+
+    if (!shopItem) return res.status(404).json({ error: "Item not found" });
+    res.json(shopItem);
   } catch (err) {
     req.log.error({ err }, "Failed to update sales order item");
     res.status(500).json({ error: "Internal server error" });
@@ -305,7 +346,15 @@ router.put("/sales-orders/:salesOrderId/items/:itemId", async (req, res) => {
 router.delete("/sales-orders/:salesOrderId/items/:itemId", async (req, res) => {
   const itemId = parseInt(req.params.itemId, 10);
   try {
-    await db.delete(salesOrderItemsTable).where(eq(salesOrderItemsTable.id, itemId));
+    const [legacyItem] = await db
+      .delete(salesOrderItemsTable)
+      .where(eq(salesOrderItemsTable.id, itemId))
+      .returning();
+
+    if (!legacyItem) {
+      await db.delete(shopOrderItemsTable).where(eq(shopOrderItemsTable.id, itemId));
+    }
+
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete sales order item");
