@@ -6,8 +6,9 @@ import {
   inventoryItemsTable,
   productsTable,
   vendorsTable,
+  shopListingsTable,
 } from "@workspace/db";
-import { eq, ilike, desc, sql, or } from "drizzle-orm";
+import { eq, ilike, desc, sql, or, and, ne, count } from "drizzle-orm";
 import { inventoryTransactionsTable } from "@workspace/db";
 
 const router = Router();
@@ -18,6 +19,26 @@ router.get("/inventory/lookup", async (req, res) => {
   if (!q) return res.status(400).json({ error: "Missing query parameter: q" });
 
   try {
+    const [{ total }] = await db.select({ total: count() }).from(shopListingsTable);
+    const hasListings = total > 0;
+
+    const nameFilter = /^\d+$/.test(q)
+      ? or(
+          eq(inventoryItemsTable.productId, parseInt(q, 10)),
+          ilike(productsTable.name, `%${q}%`)
+        )
+      : ilike(productsTable.name, `%${q}%`);
+
+    const shopFilter = hasListings
+      ? sql`EXISTS (
+          SELECT 1 FROM shop_listings sl
+          WHERE LOWER(${productsTable.name}) = LOWER(sl.product_name)
+            AND sl.status != 'out_of_stock'
+        )`
+      : undefined;
+
+    const whereClause = shopFilter ? and(nameFilter, shopFilter) : nameFilter;
+
     const rows = await db
       .select({
         id: inventoryItemsTable.id,
@@ -32,14 +53,7 @@ router.get("/inventory/lookup", async (req, res) => {
       .from(inventoryItemsTable)
       .innerJoin(productsTable, eq(productsTable.id, inventoryItemsTable.productId))
       .innerJoin(vendorsTable, eq(vendorsTable.id, inventoryItemsTable.vendorId))
-      .where(
-        /^\d+$/.test(q)
-          ? or(
-              eq(inventoryItemsTable.productId, parseInt(q, 10)),
-              ilike(productsTable.name, `%${q}%`)
-            )
-          : ilike(productsTable.name, `%${q}%`)
-      );
+      .where(whereClause);
 
     res.json(rows);
   } catch (err) {

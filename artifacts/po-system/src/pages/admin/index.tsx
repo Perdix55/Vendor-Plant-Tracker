@@ -1934,6 +1934,157 @@ function AIReportsTab() {
   );
 }
 
+type ShopListing = { id: number; productName: string; status: string; importedAt: string };
+type ImportResult = { imported: number; available: number; limited: number; outOfStock: number; listings: ShopListing[] };
+
+function ShopAvailabilityTab() {
+  const { toast } = useToast();
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [current, setCurrent] = useState<ShopListing[] | null>(null);
+  const [loadingCurrent, setLoadingCurrent] = useState(true);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetch("/api/shop-availability")
+      .then((r) => r.json())
+      .then((data) => setCurrent(data))
+      .catch(() => setCurrent([]))
+      .finally(() => setLoadingCurrent(false));
+  }, [result]);
+
+  async function handleImport() {
+    if (!url.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const resp = await fetch("/api/shop-availability/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        setError(data.error ?? "Import failed");
+      } else {
+        setResult(data);
+        toast({ title: `Imported ${data.imported} products`, description: `${data.available} available · ${data.limited} limited · ${data.outOfStock} out of stock` });
+      }
+    } catch {
+      setError("Network error — check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const statusBadge = (status: string) => {
+    if (status === "available") return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">Available</Badge>;
+    if (status === "limited") return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">Limited</Badge>;
+    return <Badge variant="outline" className="text-muted-foreground">Out of Stock</Badge>;
+  };
+
+  const displayList = (result?.listings ?? current ?? []).filter(
+    (l) => !search || l.productName.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const importedAt = current?.[0]?.importedAt ? new Date(current[0].importedAt).toLocaleString() : null;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Store className="h-5 w-5" />Weekly Shop Availability Import</CardTitle>
+          <CardDescription>
+            Paste your Google Sheet URL below (must be set to "Anyone with the link can view"). Columns C and G are checked for availability: ✓ = available, * = limited, blank = out of stock.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="font-mono text-sm"
+            />
+            <Button onClick={handleImport} disabled={loading || !url.trim()} className="gap-2 shrink-0">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {loading ? "Importing…" : "Import"}
+            </Button>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive flex gap-2 items-start">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {result && (
+            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 flex flex-wrap gap-4 text-sm">
+              <span className="font-semibold text-green-900">{result.imported} products imported</span>
+              <span className="text-green-800">{result.available} available</span>
+              <span className="text-yellow-700">{result.limited} limited</span>
+              <span className="text-muted-foreground">{result.outOfStock} out of stock</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle className="text-base">Current Shop Listing</CardTitle>
+              {importedAt && !result && <CardDescription className="mt-0.5">Last imported {importedAt}</CardDescription>}
+            </div>
+            <Input
+              placeholder="Search products…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-52 h-8 text-sm"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loadingCurrent ? (
+            <div className="p-6 space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
+          ) : displayList.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">
+              {current?.length === 0 ? "No availability list imported yet. Paste a Google Sheet URL above to get started." : "No products match your search."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="font-semibold">Product Name</TableHead>
+                    <TableHead className="font-semibold w-32">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {displayList.map((item, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{item.productName}</TableCell>
+                      <TableCell>{statusBadge(item.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="border-t px-4 py-2 text-xs text-muted-foreground bg-muted/30">
+                {displayList.length} product{displayList.length !== 1 ? "s" : ""}
+                {search && ` matching "${search}"`}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-6">
@@ -1960,6 +2111,10 @@ export default function AdminPage() {
             <Settings className="h-4 w-4" />
             Settings
           </TabsTrigger>
+          <TabsTrigger value="shop" className="gap-1.5">
+            <Store className="h-4 w-4" />
+            Shop
+          </TabsTrigger>
           <TabsTrigger value="reports" className="gap-1.5">
             <BarChart2 className="h-4 w-4" />
             AI Reports
@@ -1976,6 +2131,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="settings">
           <SettingsTab />
+        </TabsContent>
+        <TabsContent value="shop">
+          <ShopAvailabilityTab />
         </TabsContent>
         <TabsContent value="reports">
           <AIReportsTab />

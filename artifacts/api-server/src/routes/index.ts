@@ -11,6 +11,7 @@ import inventoryRouter from "./inventory";
 import settingsRouter from "./settings";
 import salesOrdersRouter from "./sales-orders";
 import reportsRouter from "./reports";
+import shopAvailabilityRouter from "./shop-availability";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(inventoryRouter);
 router.use(settingsRouter);
 router.use(salesOrdersRouter);
 router.use(reportsRouter);
+router.use(shopAvailabilityRouter);
 
 export default router;
