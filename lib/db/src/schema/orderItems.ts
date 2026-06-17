@@ -12,6 +12,8 @@ export const orderItemsTable = pgTable("order_items", {
   quantityConfirmed: integer("quantity_confirmed"),
   availability: text("availability"),
   notes: text("notes"),
+  substitutionName: text("substitution_name"),
+  substitutionNotes: text("substitution_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -44,6 +44,7 @@ export default function Orders() {
       sent: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
       confirmed: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
       partial: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+      substitution: "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
     };
     const label = status === "submitted" ? "Created" : status.charAt(0).toUpperCase() + status.slice(1);
 
@@ -96,6 +97,7 @@ export default function Orders() {
               <SelectItem value="submitted">Created</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="partial">Partial</SelectItem>
+              <SelectItem value="substitution">Substitution</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
             </SelectContent>
           </Select>

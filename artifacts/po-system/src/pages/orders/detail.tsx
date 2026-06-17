@@ -31,7 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X, PackageCheck, Printer, Plus, Search, Package, ChevronUp, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Send, Trash2, Info, Mail, Pencil, X, PackageCheck, Printer, Plus, Search, Package, ChevronUp, Sparkles, ArrowLeftRight, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -322,6 +322,7 @@ export default function OrderDetail() {
       sent: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
       confirmed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
       partial: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
+      substitution: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
     };
     const label = status === "submitted" ? "Created" : status.charAt(0).toUpperCase() + status.slice(1);
     return <Badge className={styles[status] ?? "bg-secondary text-secondary-foreground"} variant="outline">{label}</Badge>;
@@ -335,7 +336,28 @@ export default function OrderDetail() {
     if (avail === "available") return <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">Available</Badge>;
     if (avail === "unavailable") return <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">Unavailable</Badge>;
     if (avail === "partial") return <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">Partial</Badge>;
+    if (avail === "substitution") return <Badge variant="outline" className="border-purple-200 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 gap-1"><ArrowLeftRight className="h-3 w-3" />Substitution</Badge>;
     return null;
+  };
+
+  const handleApproveSubstitution = (itemId: number, quantityOrdered: number) => {
+    updateOrderItem.mutate(
+      { orderId, itemId, data: { availability: "available", quantityConfirmed: quantityOrdered } },
+      { onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
+        queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+      }}
+    );
+  };
+
+  const handleRejectSubstitution = (itemId: number) => {
+    updateOrderItem.mutate(
+      { orderId, itemId, data: { availability: "unavailable", quantityConfirmed: 0 } },
+      { onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
+        queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+      }}
+    );
   };
 
   return (
@@ -420,6 +442,18 @@ export default function OrderDetail() {
                     Enter Vendor Confirmations
                   </Button>
                 </>
+              )}
+
+              {order.status === "substitution" && !isConfirming && (
+                <Button
+                  variant="outline"
+                  onClick={handleSendEmail}
+                  disabled={sendEmail.isPending}
+                  data-testid="button-send-email"
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  {sendEmail.isPending ? "Sending..." : "Resend Email"}
+                </Button>
               )}
 
               {(order.status === "confirmed" || order.status === "partial") && !isConfirming && receivedProductIds.size === 0 && (
@@ -537,6 +571,12 @@ export default function OrderDetail() {
                 <CardDescription className="text-amber-700 dark:text-amber-500 flex items-center gap-1 mt-1 font-medium bg-amber-50 dark:bg-amber-900/20 p-2 rounded-md inline-flex w-fit">
                   <Info className="h-4 w-4" />
                   Confirmation Mode Active. Update quantities and availability below.
+                </CardDescription>
+              )}
+              {order.status === "substitution" && !isConfirming && (
+                <CardDescription className="text-purple-700 dark:text-purple-400 flex items-center gap-2 mt-2 font-medium bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-3 rounded-md w-full">
+                  <ArrowLeftRight className="h-4 w-4 shrink-0" />
+                  The vendor has proposed substitutions for some out-of-stock items. Review and approve or reject each one below.
                 </CardDescription>
               )}
             </CardHeader>
@@ -672,6 +712,38 @@ export default function OrderDetail() {
                                     <SelectItem value="unavailable">Unavailable</SelectItem>
                                   </SelectContent>
                                 </Select>
+                              ) : item.availability === "substitution" && !isConfirming ? (
+                                <div className="space-y-1.5">
+                                  {renderAvailabilityBadge(item.availability, item.productId)}
+                                  {(item as any).substitutionName && (
+                                    <p className="text-xs text-purple-700 font-medium">
+                                      Sub: {(item as any).substitutionName}
+                                    </p>
+                                  )}
+                                  {(item as any).substitutionNotes && (
+                                    <p className="text-xs text-muted-foreground">{(item as any).substitutionNotes}</p>
+                                  )}
+                                  <div className="flex items-center gap-1 pt-0.5">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs border-green-200 text-green-700 hover:bg-green-50 gap-1"
+                                      disabled={updateOrderItem.isPending}
+                                      onClick={() => handleApproveSubstitution(item.id, item.quantityOrdered)}
+                                    >
+                                      <ThumbsUp className="h-3 w-3" /> Approve
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs border-red-200 text-red-700 hover:bg-red-50 gap-1"
+                                      disabled={updateOrderItem.isPending}
+                                      onClick={() => handleRejectSubstitution(item.id)}
+                                    >
+                                      <ThumbsDown className="h-3 w-3" /> Reject
+                                    </Button>
+                                  </div>
+                                </div>
                               ) : (
                                 renderAvailabilityBadge(item.availability, item.productId)
                               )}

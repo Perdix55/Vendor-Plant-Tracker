@@ -45,6 +45,8 @@ function mapItem(item: any) {
     quantityConfirmed: item.quantityConfirmed ?? null,
     availability: item.availability ?? null,
     notes: item.notes ?? null,
+    substitutionName: item.substitutionName ?? null,
+    substitutionNotes: item.substitutionNotes ?? null,
   };
 }
 
@@ -300,16 +302,34 @@ router.post("/orders/:orderId/items", async (req, res) => {
 // PATCH /orders/:orderId/items/:itemId
 router.patch("/orders/:orderId/items/:itemId", async (req, res) => {
   try {
+    const orderId = parseInt(req.params.orderId, 10);
     const itemId = parseInt(req.params.itemId, 10);
-    const { quantityOrdered, quantityConfirmed, availability, notes } = req.body;
+    const { quantityOrdered, quantityConfirmed, availability, notes, substitutionName, substitutionNotes } = req.body;
 
     const updateData: any = {};
     if (quantityOrdered !== undefined) updateData.quantityOrdered = quantityOrdered;
     if (quantityConfirmed !== undefined) updateData.quantityConfirmed = quantityConfirmed;
     if (availability !== undefined) updateData.availability = availability;
     if (notes !== undefined) updateData.notes = notes;
+    if (substitutionName !== undefined) updateData.substitutionName = substitutionName;
+    if (substitutionNotes !== undefined) updateData.substitutionNotes = substitutionNotes;
 
     await db.update(orderItemsTable).set(updateData).where(eq(orderItemsTable.id, itemId));
+
+    // Recalculate order status when availability changes
+    if (availability !== undefined && !isNaN(orderId)) {
+      const allItems = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, orderId));
+      const hasSubstitution = allItems.some((i) => i.availability === "substitution");
+      const hasUnavailable = allItems.some((i) => i.availability === "unavailable" || i.availability === "partial");
+      const allAvailable = allItems.every((i) => i.availability === "available");
+      let newStatus: string | null = null;
+      if (hasSubstitution) newStatus = "substitution";
+      else if (allAvailable) newStatus = "confirmed";
+      else if (hasUnavailable) newStatus = "partial";
+      if (newStatus) {
+        await db.update(ordersTable).set({ status: newStatus, updatedAt: new Date() }).where(eq(ordersTable.id, orderId));
+      }
+    }
 
     const rows = await db
       .select({
@@ -323,6 +343,8 @@ router.patch("/orders/:orderId/items/:itemId", async (req, res) => {
         quantityConfirmed: orderItemsTable.quantityConfirmed,
         availability: orderItemsTable.availability,
         notes: orderItemsTable.notes,
+        substitutionName: orderItemsTable.substitutionName,
+        substitutionNotes: orderItemsTable.substitutionNotes,
       })
       .from(orderItemsTable)
       .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))

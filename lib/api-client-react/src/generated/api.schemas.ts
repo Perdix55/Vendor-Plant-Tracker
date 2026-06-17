@@ -142,6 +142,7 @@ export const OrderSummaryStatus = {
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",
+  substitution: "substitution",
 } as const;
 
 export interface OrderSummary {
@@ -168,6 +169,7 @@ export const OrderStatus = {
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",
+  substitution: "substitution",
 } as const;
 
 export type OrderItemAvailability =
@@ -179,6 +181,7 @@ export const OrderItemAvailability = {
   available: "available",
   unavailable: "unavailable",
   partial: "partial",
+  substitution: "substitution",
 } as const;
 
 export interface OrderItem {
@@ -193,6 +196,8 @@ export interface OrderItem {
   quantityConfirmed?: number | null;
   availability?: OrderItemAvailability;
   notes?: string | null;
+  substitutionName?: string | null;
+  substitutionNotes?: string | null;
 }
 
 export interface Order {
@@ -235,6 +240,7 @@ export const UpdateOrderBodyStatus = {
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",
+  substitution: "substitution",
 } as const;
 
 export interface UpdateOrderBody {
@@ -253,6 +259,7 @@ export const UpdateOrderItemBodyAvailability = {
   available: "available",
   unavailable: "unavailable",
   partial: "partial",
+  substitution: "substitution",
 } as const;
 
 export interface UpdateOrderItemBody {
@@ -260,6 +267,8 @@ export interface UpdateOrderItemBody {
   quantityConfirmed?: number | null;
   availability?: UpdateOrderItemBodyAvailability;
   notes?: string | null;
+  substitutionName?: string | null;
+  substitutionNotes?: string | null;
 }
 
 export type ConfirmOrderBodyItemsItemAvailability =
@@ -269,6 +278,7 @@ export const ConfirmOrderBodyItemsItemAvailability = {
   available: "available",
   unavailable: "unavailable",
   partial: "partial",
+  substitution: "substitution",
 } as const;
 
 export type ConfirmOrderBodyItemsItem = {
@@ -276,6 +286,8 @@ export type ConfirmOrderBodyItemsItem = {
   availability: ConfirmOrderBodyItemsItemAvailability;
   quantityConfirmed?: number | null;
   notes?: string | null;
+  substitutionName?: string | null;
+  substitutionNotes?: string | null;
 };
 
 export interface ConfirmOrderBody {
@@ -382,6 +394,7 @@ export const ListOrdersStatus = {
   sent: "sent",
   confirmed: "confirmed",
   partial: "partial",
+  substitution: "substitution",
 } as const;
 
 export type ReceiveOrder200 = {

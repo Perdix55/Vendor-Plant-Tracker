@@ -14,8 +14,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Check, AlertCircle } from "lucide-react";
+import { CheckCircle2, Check, AlertCircle, ArrowLeftRight } from "lucide-react";
 import { format } from "date-fns";
+
+type ItemState = {
+  availability: ConfirmOrderBodyItemsItemAvailability;
+  quantityConfirmed: number;
+  notes: string;
+  substitutionName: string;
+  substitutionNotes: string;
+};
 
 export default function VendorConfirm() {
   const [, params] = useRoute("/confirm/:token");
@@ -28,9 +36,7 @@ export default function VendorConfirm() {
 
   const confirmMutation = useConfirmOrderByToken();
 
-  const [confirmData, setConfirmData] = useState<
-    Record<number, { availability: ConfirmOrderBodyItemsItemAvailability; quantityConfirmed: number; notes: string }>
-  >({});
+  const [confirmData, setConfirmData] = useState<Record<number, ItemState>>({});
   const [submitted, setSubmitted] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
@@ -41,16 +47,33 @@ export default function VendorConfirm() {
         availability: (item.availability as ConfirmOrderBodyItemsItemAvailability) ?? "available",
         quantityConfirmed: item.quantityConfirmed ?? item.quantityOrdered,
         notes: item.notes ?? "",
+        substitutionName: (item as any).substitutionName ?? "",
+        substitutionNotes: (item as any).substitutionNotes ?? "",
       };
     });
     setConfirmData(initial);
     setInitialized(true);
   }
 
-  const handleChange = (itemId: number, field: string, value: string | number) => {
+  const handleChange = (itemId: number, field: keyof ItemState, value: string | number) => {
     setConfirmData((prev) => ({
       ...prev,
       [itemId]: { ...prev[itemId], [field]: value },
+    }));
+  };
+
+  const handleAvailabilityChange = (itemId: number, val: string, orderedQty: number) => {
+    const avail = val as ConfirmOrderBodyItemsItemAvailability;
+    setConfirmData((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...prev[itemId],
+        availability: avail,
+        quantityConfirmed:
+          avail === "available" ? orderedQty :
+          avail === "unavailable" || avail === "substitution" ? 0 :
+          prev[itemId].quantityConfirmed,
+      },
     }));
   };
 
@@ -58,8 +81,10 @@ export default function VendorConfirm() {
     const items = Object.entries(confirmData).map(([idStr, d]) => ({
       itemId: parseInt(idStr),
       availability: d.availability,
-      quantityConfirmed: d.availability === "unavailable" ? 0 : d.quantityConfirmed,
+      quantityConfirmed: d.availability === "unavailable" || d.availability === "substitution" ? 0 : d.quantityConfirmed,
       notes: d.notes || undefined,
+      substitutionName: d.availability === "substitution" ? (d.substitutionName || undefined) : undefined,
+      substitutionNotes: d.availability === "substitution" ? (d.substitutionNotes || undefined) : undefined,
     }));
 
     confirmMutation.mutate(
@@ -101,7 +126,7 @@ export default function VendorConfirm() {
     );
   }
 
-  if (submitted || (order.status === "confirmed" || order.status === "partial")) {
+  if (submitted || order.status === "confirmed" || order.status === "partial" || order.status === "substitution") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card className="w-full max-w-md text-center">
@@ -114,6 +139,11 @@ export default function VendorConfirm() {
               Thank you, {order.vendorName}. Your availability responses for PO #{order.id} (week of{" "}
               {order.weekDate}) have been recorded.
             </p>
+            {order.status === "substitution" && (
+              <p className="text-purple-700 text-xs bg-purple-50 border border-purple-200 rounded-md p-2">
+                Your substitution proposals are pending buyer approval.
+              </p>
+            )}
             <p className="text-muted-foreground text-xs pt-2">You may close this window.</p>
           </CardContent>
         </Card>
@@ -123,7 +153,7 @@ export default function VendorConfirm() {
 
   return (
     <div className="min-h-screen bg-[#f5f0e8] py-10 px-4">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-1 pb-2">
           <div className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-primary mb-3">
@@ -159,7 +189,7 @@ export default function VendorConfirm() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Review Your Items</CardTitle>
             <CardDescription>
-              For each item below, indicate whether you can fulfill the order. Set partial quantities where needed.
+              For each item, indicate availability. If you can offer a substitution for an out-of-stock item, select "Substitution" and specify what you can provide.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -171,7 +201,7 @@ export default function VendorConfirm() {
                   <TableHead className="text-right">Ordered</TableHead>
                   <TableHead className="text-right">Confirm Qty</TableHead>
                   <TableHead>Your Availability</TableHead>
-                  <TableHead>Notes</TableHead>
+                  <TableHead>Notes / Substitution Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -179,11 +209,15 @@ export default function VendorConfirm() {
                   const row = confirmData[item.id];
                   if (!row) return null;
                   const isUnavailable = row.availability === "unavailable";
+                  const isSubstitution = row.availability === "substitution";
 
                   return (
                     <TableRow
                       key={item.id}
-                      className={isUnavailable ? "opacity-60 bg-muted/20" : ""}
+                      className={
+                        isUnavailable ? "opacity-60 bg-muted/20" :
+                        isSubstitution ? "bg-purple-50/50" : ""
+                      }
                       data-testid={`row-item-${item.id}`}
                     >
                       <TableCell className="pl-6 font-medium">{item.productName}</TableCell>
@@ -194,8 +228,8 @@ export default function VendorConfirm() {
                           type="number"
                           min="0"
                           max={item.quantityOrdered}
-                          disabled={isUnavailable}
-                          value={isUnavailable ? 0 : row.quantityConfirmed}
+                          disabled={isUnavailable || isSubstitution}
+                          value={isUnavailable || isSubstitution ? 0 : row.quantityConfirmed}
                           onChange={(e) =>
                             handleChange(item.id, "quantityConfirmed", parseInt(e.target.value) || 0)
                           }
@@ -206,12 +240,7 @@ export default function VendorConfirm() {
                       <TableCell>
                         <Select
                           value={row.availability}
-                          onValueChange={(val) => {
-                            handleChange(item.id, "availability", val);
-                            if (val === "available")
-                              handleChange(item.id, "quantityConfirmed", item.quantityOrdered);
-                            if (val === "unavailable") handleChange(item.id, "quantityConfirmed", 0);
-                          }}
+                          onValueChange={(val) => handleAvailabilityChange(item.id, val, item.quantityOrdered)}
                         >
                           <SelectTrigger
                             className={`h-8 w-36 text-xs ${
@@ -221,6 +250,8 @@ export default function VendorConfirm() {
                                 ? "border-red-200 text-red-700 bg-red-50"
                                 : row.availability === "partial"
                                 ? "border-amber-200 text-amber-700 bg-amber-50"
+                                : row.availability === "substitution"
+                                ? "border-purple-200 text-purple-700 bg-purple-50"
                                 : ""
                             }`}
                             data-testid={`select-avail-${item.id}`}
@@ -231,17 +262,41 @@ export default function VendorConfirm() {
                             <SelectItem value="available">Available</SelectItem>
                             <SelectItem value="partial">Partial</SelectItem>
                             <SelectItem value="unavailable">Unavailable</SelectItem>
+                            <SelectItem value="substitution">
+                              <span className="flex items-center gap-1">
+                                <ArrowLeftRight className="h-3 w-3" /> Substitution
+                              </span>
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <Input
-                          placeholder="Optional note..."
-                          value={row.notes}
-                          onChange={(e) => handleChange(item.id, "notes", e.target.value)}
-                          className="h-8 w-32 text-xs"
-                          data-testid={`input-notes-${item.id}`}
-                        />
+                        {isSubstitution ? (
+                          <div className="space-y-1 min-w-[220px]">
+                            <Input
+                              placeholder="Substitute item name *"
+                              value={row.substitutionName}
+                              onChange={(e) => handleChange(item.id, "substitutionName", e.target.value)}
+                              className="h-8 text-xs border-purple-200 focus-visible:ring-purple-300"
+                              data-testid={`input-sub-name-${item.id}`}
+                            />
+                            <Input
+                              placeholder="Additional notes (optional)"
+                              value={row.substitutionNotes}
+                              onChange={(e) => handleChange(item.id, "substitutionNotes", e.target.value)}
+                              className="h-8 text-xs"
+                              data-testid={`input-sub-notes-${item.id}`}
+                            />
+                          </div>
+                        ) : (
+                          <Input
+                            placeholder="Optional note..."
+                            value={row.notes}
+                            onChange={(e) => handleChange(item.id, "notes", e.target.value)}
+                            className="h-8 w-36 text-xs"
+                            data-testid={`input-notes-${item.id}`}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -250,6 +305,16 @@ export default function VendorConfirm() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Substitution notice */}
+        {Object.values(confirmData).some(r => r.availability === "substitution") && (
+          <div className="flex items-start gap-3 bg-purple-50 border border-purple-200 rounded-lg p-4 text-sm text-purple-800">
+            <ArrowLeftRight className="h-4 w-4 mt-0.5 shrink-0" />
+            <p>
+              Items marked as <strong>Substitution</strong> will be sent to the buyer for approval before the order is finalized.
+            </p>
+          </div>
+        )}
 
         {/* Submit */}
         <div className="flex justify-end pb-6">

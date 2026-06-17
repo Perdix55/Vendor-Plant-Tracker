@@ -16,6 +16,8 @@ function mapItem(item: any) {
     quantityConfirmed: item.quantityConfirmed ?? null,
     availability: item.availability ?? null,
     notes: item.notes ?? null,
+    substitutionName: item.substitutionName ?? null,
+    substitutionNotes: item.substitutionNotes ?? null,
   };
 }
 
@@ -57,6 +59,8 @@ router.get("/vendor-confirm/:token", async (req, res) => {
         quantityConfirmed: orderItemsTable.quantityConfirmed,
         availability: orderItemsTable.availability,
         notes: orderItemsTable.notes,
+        substitutionName: orderItemsTable.substitutionName,
+        substitutionNotes: orderItemsTable.substitutionNotes,
       })
       .from(orderItemsTable)
       .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
@@ -99,16 +103,22 @@ router.post("/vendor-confirm/:token/confirm", async (req, res) => {
       const updateData: any = { availability: item.availability };
       if (item.quantityConfirmed !== undefined) updateData.quantityConfirmed = item.quantityConfirmed;
       if (item.notes !== undefined) updateData.notes = item.notes;
+      if (item.substitutionName !== undefined) updateData.substitutionName = item.substitutionName;
+      if (item.substitutionNotes !== undefined) updateData.substitutionNotes = item.substitutionNotes;
+      // Substitutions have quantity 0 until buyer approves
+      if (item.availability === "substitution") updateData.quantityConfirmed = 0;
       await db.update(orderItemsTable).set(updateData).where(eq(orderItemsTable.id, item.itemId));
     }
 
     // Determine new order status
     const allItems = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, orderId));
+    const hasSubstitution = allItems.some((i) => i.availability === "substitution");
     const hasUnavailable = allItems.some((i) => i.availability === "unavailable" || i.availability === "partial");
     const allAvailable = allItems.every((i) => i.availability === "available");
 
     let newStatus = "sent";
-    if (allAvailable) newStatus = "confirmed";
+    if (hasSubstitution) newStatus = "substitution";
+    else if (allAvailable) newStatus = "confirmed";
     else if (hasUnavailable) newStatus = "partial";
 
     await db.update(ordersTable).set({ status: newStatus, updatedAt: new Date() }).where(eq(ordersTable.id, orderId));
@@ -143,6 +153,8 @@ router.post("/vendor-confirm/:token/confirm", async (req, res) => {
         quantityConfirmed: orderItemsTable.quantityConfirmed,
         availability: orderItemsTable.availability,
         notes: orderItemsTable.notes,
+        substitutionName: orderItemsTable.substitutionName,
+        substitutionNotes: orderItemsTable.substitutionNotes,
       })
       .from(orderItemsTable)
       .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))

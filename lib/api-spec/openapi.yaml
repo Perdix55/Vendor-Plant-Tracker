@@ -240,7 +240,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [draft, submitted, sent, confirmed, partial]
+            enum: [draft, submitted, sent, confirmed, partial, substitution]
         - name: weekDate
           in: query
           schema:
@@ -1122,7 +1122,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [draft, submitted, sent, confirmed, partial]
+          enum: [draft, submitted, sent, confirmed, partial, substitution]
         totalItems:
           type: integer
         confirmedItems:
@@ -1161,7 +1161,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [draft, submitted, sent, confirmed, partial]
+          enum: [draft, submitted, sent, confirmed, partial, substitution]
         notes:
           type: string
           nullable: true
@@ -1203,9 +1203,15 @@ components:
           nullable: true
         availability:
           type: string
-          enum: [pending, available, unavailable, partial]
+          enum: [pending, available, unavailable, partial, substitution]
           nullable: true
         notes:
+          type: string
+          nullable: true
+        substitutionName:
+          type: string
+          nullable: true
+        substitutionNotes:
           type: string
           nullable: true
       required: [id, orderId, productId, productName, quantityOrdered]
@@ -1237,7 +1243,7 @@ components:
       properties:
         status:
           type: string
-          enum: [draft, submitted, sent, confirmed, partial]
+          enum: [draft, submitted, sent, confirmed, partial, substitution]
         notes:
           type: string
           nullable: true
@@ -1270,9 +1276,15 @@ components:
           nullable: true
         availability:
           type: string
-          enum: [pending, available, unavailable, partial]
+          enum: [pending, available, unavailable, partial, substitution]
           nullable: true
         notes:
+          type: string
+          nullable: true
+        substitutionName:
+          type: string
+          nullable: true
+        substitutionNotes:
           type: string
           nullable: true
 
@@ -1288,11 +1300,17 @@ components:
                 type: integer
               availability:
                 type: string
-                enum: [available, unavailable, partial]
+                enum: [available, unavailable, partial, substitution]
               quantityConfirmed:
                 type: integer
                 nullable: true
               notes:
+                type: string
+                nullable: true
+              substitutionName:
+                type: string
+                nullable: true
+              substitutionNotes:
                 type: string
                 nullable: true
             required: [itemId, availability]
