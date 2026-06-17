@@ -69,9 +69,13 @@ export default function OrderDetail() {
   const [labelQtys, setLabelQtys] = useState<Record<number, number>>({});
   const [printingItemId, setPrintingItemId] = useState<number | null>(null);
 
+  // Per-item notes overrides for draft editing (auto-saved on blur)
+  const [notesOverrides, setNotesOverrides] = useState<Record<number, string>>({});
+
   const [showAddProducts, setShowAddProducts] = useState(false);
   const [addSearch, setAddSearch] = useState("");
   const [addQuantities, setAddQuantities] = useState<Record<number, number>>({});
+  const [addNotes, setAddNotes] = useState<Record<number, string>>({});
 
   const addOrderItem = useAddOrderItem();
 
@@ -110,10 +114,15 @@ export default function OrderDetail() {
     if (!toAdd.length) return;
     try {
       for (const [idStr, qty] of toAdd) {
-        await addOrderItem.mutateAsync({ orderId, data: { productId: parseInt(idStr), quantityOrdered: qty } });
+        const productId = parseInt(idStr);
+        await addOrderItem.mutateAsync({
+          orderId,
+          data: { productId, quantityOrdered: qty, notes: addNotes[productId] || null }
+        });
       }
       toast({ title: `Added ${toAdd.length} item${toAdd.length !== 1 ? "s" : ""} to order` });
       setAddQuantities({});
+      setAddNotes({});
       setAddSearch("");
       setShowAddProducts(false);
       queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
@@ -121,6 +130,15 @@ export default function OrderDetail() {
     } catch {
       toast({ title: "Error", description: "Failed to add some items.", variant: "destructive" });
     }
+  };
+
+  const handleNoteSave = (itemId: number, note: string) => {
+    const item = order?.items.find(i => i.id === itemId);
+    if (note === (item?.notes ?? "")) return;
+    updateOrderItem.mutate(
+      { orderId, itemId, data: { notes: note || null } },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) }) }
+    );
   };
 
   const printBarcodeLabels = useCallback(async (
@@ -526,16 +544,16 @@ export default function OrderDetail() {
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead className="w-[300px]">Product</TableHead>
+                    <TableHead className="w-[260px]">Product</TableHead>
                     <TableHead>Pack Size</TableHead>
                     <TableHead className="text-right">Unit Cost</TableHead>
                     <TableHead className="text-right">Ordered</TableHead>
                     <TableHead className="text-right">Line Total</TableHead>
+                    <TableHead className="w-[200px]">Notes</TableHead>
                     {order.status !== "draft" && (
                       <>
                         <TableHead className="text-right">Confirmed</TableHead>
                         <TableHead>Availability</TableHead>
-                        {isConfirming && <TableHead>Notes</TableHead>}
                         {receivedProductIds.size > 0 && !isConfirming && (
                           <TableHead className="text-right">Labels</TableHead>
                         )}
@@ -556,11 +574,6 @@ export default function OrderDetail() {
                       <TableRow key={item.id} className={isRowConfirming && confirmRow.availability === "unavailable" ? "opacity-70 bg-muted/30" : isEditingThisItem ? "bg-primary/5" : ""}>
                         <TableCell className="font-medium">
                           {item.productName}
-                          {item.notes && !isRowConfirming && order.status !== "draft" && (
-                            <p className="text-xs text-muted-foreground mt-1 block max-w-xs truncate" title={item.notes}>
-                              Note: {item.notes}
-                            </p>
-                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{item.packSize || "N/A"}</TableCell>
                         <TableCell className="text-right tabular-nums text-muted-foreground">
@@ -589,6 +602,29 @@ export default function OrderDetail() {
                           {item.unitCost != null
                             ? `$${(item.unitCost * item.quantityOrdered).toFixed(2)}`
                             : "—"}
+                        </TableCell>
+
+                        {/* Notes column — editable in draft, read-only otherwise */}
+                        <TableCell>
+                          {order.status === "draft" ? (
+                            <Input
+                              type="text"
+                              className="h-8 text-sm w-full"
+                              placeholder="—"
+                              value={notesOverrides[item.id] ?? (item.notes || "")}
+                              onChange={(e) => setNotesOverrides(prev => ({ ...prev, [item.id]: e.target.value }))}
+                              onBlur={(e) => handleNoteSave(item.id, e.target.value)}
+                            />
+                          ) : isRowConfirming ? (
+                            <Input
+                              placeholder="Reason..."
+                              value={confirmRow.notes || ""}
+                              onChange={(e) => handleConfirmItemChange(item.id, "notes", e.target.value)}
+                              className="h-8 text-sm w-full"
+                            />
+                          ) : (
+                            <span className="text-sm text-muted-foreground">{item.notes || "—"}</span>
+                          )}
                         </TableCell>
 
                         {order.status !== "draft" && (
@@ -640,16 +676,6 @@ export default function OrderDetail() {
                                 renderAvailabilityBadge(item.availability, item.productId)
                               )}
                             </TableCell>
-                            {isConfirming && (
-                              <TableCell>
-                                <Input 
-                                  placeholder="Reason..." 
-                                  value={confirmRow.notes || ""} 
-                                  onChange={(e) => handleConfirmItemChange(item.id, "notes", e.target.value)}
-                                  className="h-8 max-w-[150px]"
-                                />
-                              </TableCell>
-                            )}
                             {receivedProductIds.size > 0 && !isConfirming && (
                               <TableCell className="text-right">
                                 <div className="flex items-center gap-1 justify-end">
@@ -793,7 +819,8 @@ export default function OrderDetail() {
                         <TableRow>
                           <TableHead>Product</TableHead>
                           <TableHead className="w-[140px]">Pack Size</TableHead>
-                          <TableHead className="w-[120px] text-right">Quantity</TableHead>
+                          <TableHead className="w-[110px] text-right">Quantity</TableHead>
+                          <TableHead className="w-[200px]">Notes</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -821,6 +848,20 @@ export default function OrderDetail() {
                                 className="w-20 ml-auto text-right h-8"
                                 value={addQuantities[product.id] || ""}
                                 onChange={(e) => handleAddQtyChange(product.id, e.target.value)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="text"
+                                className="h-8 text-sm w-full"
+                                placeholder="—"
+                                value={addNotes[product.id] || ""}
+                                onChange={(e) => setAddNotes(prev => {
+                                  const next = { ...prev };
+                                  if (e.target.value) next[product.id] = e.target.value;
+                                  else delete next[product.id];
+                                  return next;
+                                })}
                               />
                             </TableCell>
                           </TableRow>
