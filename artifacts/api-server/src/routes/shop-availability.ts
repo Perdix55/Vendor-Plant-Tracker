@@ -58,6 +58,9 @@ router.post("/shop-availability/import", upload.single("file"), async (req, res)
     const colC = String(row[2] ?? "").trim();
     const colG = String(row[6] ?? "").trim();
 
+    // Skip all-uppercase section headers / business name rows that have no availability data
+    if (name === name.toUpperCase() && name !== name.toLowerCase() && !colC && !colG) continue;
+
     let status: "available" | "limited" | "out_of_stock" = "out_of_stock";
     if (colC === "*" || colG === "*") {
       status = "limited";
