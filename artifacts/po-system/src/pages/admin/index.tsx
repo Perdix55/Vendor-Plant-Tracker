@@ -1939,7 +1939,9 @@ type ImportResult = { imported: number; available: number; limited: number; outO
 
 function ShopAvailabilityTab() {
   const { toast } = useToast();
-  const [url, setUrl] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1955,22 +1957,31 @@ function ShopAvailabilityTab() {
       .finally(() => setLoadingCurrent(false));
   }, [result]);
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setFile(f);
+    setFileName(f?.name ?? null);
+    setResult(null);
+    setError(null);
+  }
+
   async function handleImport() {
-    if (!url.trim()) return;
+    if (!file) return;
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const resp = await fetch("/api/shop-availability/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
-      });
+      const formData = new FormData();
+      formData.append("file", file);
+      const resp = await fetch("/api/shop-availability/import", { method: "POST", body: formData });
       const data = await resp.json();
       if (!resp.ok) {
         setError(data.error ?? "Import failed");
       } else {
         setResult(data);
+        setFile(null);
+        setFileName(null);
+        if (fileRef.current) fileRef.current.value = "";
         toast({ title: `Imported ${data.imported} products`, description: `${data.available} available · ${data.limited} limited · ${data.outOfStock} out of stock` });
       }
     } catch {
@@ -1998,22 +2009,34 @@ function ShopAvailabilityTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Store className="h-5 w-5" />Weekly Shop Availability Import</CardTitle>
           <CardDescription>
-            Paste your Google Sheet URL below (must be set to "Anyone with the link can view"). Columns C and G are checked for availability: ✓ = available, * = limited, blank = out of stock.
+            Download your Google Sheet as a CSV or Excel file, then upload it here. Columns C and G are checked for availability: ✓ = available, * = limited, blank = out of stock.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://docs.google.com/spreadsheets/d/..."
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="font-mono text-sm"
+          <div
+            className="border-2 border-dashed rounded-lg px-6 py-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+            onClick={() => fileRef.current?.click()}
+          >
+            <FileSpreadsheet className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            {fileName ? (
+              <p className="text-sm font-medium">{fileName}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Click to select a CSV or Excel file</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">.csv, .xlsx, .xls accepted</p>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={handleFileChange}
             />
-            <Button onClick={handleImport} disabled={loading || !url.trim()} className="gap-2 shrink-0">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {loading ? "Importing…" : "Import"}
-            </Button>
           </div>
+
+          <Button onClick={handleImport} disabled={loading || !file} className="gap-2 w-full">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {loading ? "Importing…" : "Import File"}
+          </Button>
 
           {error && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive flex gap-2 items-start">
@@ -2053,7 +2076,7 @@ function ShopAvailabilityTab() {
             <div className="p-6 space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
           ) : displayList.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground text-sm">
-              {current?.length === 0 ? "No availability list imported yet. Paste a Google Sheet URL above to get started." : "No products match your search."}
+              {current?.length === 0 ? "No availability list imported yet. Upload a file above to get started." : "No products match your search."}
             </div>
           ) : (
             <div className="overflow-x-auto">
