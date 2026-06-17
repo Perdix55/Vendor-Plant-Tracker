@@ -21,6 +21,7 @@ import ShopPage from "@/pages/shop/index";
 import SalesOrders from "@/pages/sales-orders/index";
 import SalesOrderDetail from "@/pages/sales-orders/detail";
 import SalesOrderPrint from "@/pages/sales-orders/print";
+import NewSalesOrder from "@/pages/sales-orders/new";
 import LoginPage from "@/pages/login";
 import SetupPage from "@/pages/setup";
 
@@ -72,6 +73,7 @@ function Router() {
               <Route path="/inventory" component={Inventory} />
               <Route path="/admin" component={AdminVendors} />
               <Route path="/sales-orders" component={SalesOrders} />
+              <Route path="/sales-orders/new" component={NewSalesOrder} />
               <Route path="/sales-orders/:id" component={SalesOrderDetail} />
               <Route component={NotFound} />
             </Switch>
