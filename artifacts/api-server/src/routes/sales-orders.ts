@@ -160,6 +160,7 @@ async function getSalesOrderWithItems(id: number) {
     price: i.price ?? null,
     quantity: i.quantity,
     inventoryItemId: null,
+    shopListingId: i.shopListingId ?? null,
     createdAt: i.createdAt,
     _source: "shop" as const,
   }));

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import {
   useGetSalesOrder,
@@ -19,9 +19,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Check, X, Trash2, Minus, Plus, ShoppingBag, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, Pencil, Check, X, Trash2, Minus, Plus, ShoppingBag, Search, Loader2, Package, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+
+type CatalogItem = {
+  shopListingId: number;
+  productName: string;
+  price: string | null;
+  status: string;
+};
+
+type CatalogEntry = { cartItemId: number; qty: number };
 
 type InventorySuggestion = {
   id: number;
@@ -70,6 +79,159 @@ export default function SalesOrderDetail() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchWrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Catalog state ────────────────────────────────────────────────────────
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogCart, setCatalogCart] = useState<Record<number, CatalogEntry>>({});
+  const [catalogEditingId, setCatalogEditingId] = useState<number | null>(null);
+  const [catalogEditDraft, setCatalogEditDraft] = useState("");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogSuggestions, setCatalogSuggestions] = useState<CatalogItem[]>([]);
+  const [showCatalogDropdown, setShowCatalogDropdown] = useState(false);
+  const [catalogHighlight, setCatalogHighlight] = useState(-1);
+  const catalogRef = useRef<CatalogItem[]>([]);
+  const catalogCartRef = useRef<Record<number, CatalogEntry>>({});
+  const catalogSearchRef = useRef<HTMLInputElement>(null);
+  const catalogSearchWrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { catalogRef.current = catalog; }, [catalog]);
+  useEffect(() => { catalogCartRef.current = catalogCart; }, [catalogCart]);
+
+  // Fetch catalog when panel opens
+  useEffect(() => {
+    if (!showCatalog || catalog.length > 0) return;
+    setCatalogLoading(true);
+    fetch("/api/shop-availability/catalog")
+      .then((r) => r.json())
+      .then((data: CatalogItem[]) => setCatalog(data))
+      .catch(() => setCatalog([]))
+      .finally(() => setCatalogLoading(false));
+  }, [showCatalog]);
+
+  // Sync catalogCart from order's existing shop items
+  useEffect(() => {
+    if (!order) return;
+    const cart: Record<number, CatalogEntry> = {};
+    for (const raw of order.items) {
+      const item = raw as unknown as { id: number; quantity: number; _source?: string; shopListingId?: number | null };
+      if (item._source === "shop" && item.shopListingId) {
+        cart[item.shopListingId] = { cartItemId: item.id, qty: item.quantity };
+      }
+    }
+    setCatalogCart(cart);
+  }, [order]);
+
+  // Filter catalog for search dropdown
+  useEffect(() => {
+    const q = catalogSearch.trim().toLowerCase();
+    if (q.length < 2) { setCatalogSuggestions([]); setShowCatalogDropdown(false); return; }
+    const matches = catalogRef.current.filter((i) => i.productName.toLowerCase().includes(q)).slice(0, 8);
+    setCatalogSuggestions(matches);
+    setShowCatalogDropdown(matches.length > 0);
+    setCatalogHighlight(-1);
+  }, [catalogSearch, catalog]);
+
+  // Close catalog dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (catalogSearchWrapperRef.current && !catalogSearchWrapperRef.current.contains(e.target as Node)) {
+        setShowCatalogDropdown(false); setCatalogHighlight(-1);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // ── Catalog API helpers ──────────────────────────────────────────────────
+  const catalogApiAdd = async (item: CatalogItem, qty: number): Promise<CatalogEntry> => {
+    const res = await fetch(`/api/sales-orders/${salesOrderId}/shop-items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopListingId: item.shopListingId, productName: item.productName, price: item.price, quantity: qty }),
+    });
+    if (!res.ok) throw new Error("Failed to add item");
+    const data = await res.json();
+    return { cartItemId: data.id, qty };
+  };
+
+  const catalogApiUpdate = async (cartItemId: number, qty: number) => {
+    await fetch(`/api/sales-orders/${salesOrderId}/shop-items/${cartItemId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity: qty }),
+    });
+  };
+
+  const catalogApiDelete = async (cartItemId: number) => {
+    await fetch(`/api/sales-orders/${salesOrderId}/shop-items/${cartItemId}`, { method: "DELETE" });
+  };
+
+  const catalogSetQty = useCallback(async (item: CatalogItem, newQty: number) => {
+    const entry = catalogCartRef.current[item.shopListingId];
+    const q = Math.max(0, newQty);
+    if (q === 0 && entry) {
+      await catalogApiDelete(entry.cartItemId);
+      setCatalogCart((prev) => { const n = { ...prev }; delete n[item.shopListingId]; return n; });
+    } else if (q > 0 && !entry) {
+      const newEntry = await catalogApiAdd(item, q);
+      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: newEntry }));
+    } else if (entry && q !== entry.qty) {
+      await catalogApiUpdate(entry.cartItemId, q);
+      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: { ...entry, qty: q } }));
+    }
+    invalidate();
+  }, [salesOrderId]);
+
+  const catalogDelta = (item: CatalogItem, d: number) => {
+    const cur = catalogCartRef.current[item.shopListingId]?.qty ?? 0;
+    catalogSetQty(item, cur + d).catch(() => toast({ title: "Error updating quantity", variant: "destructive" }));
+  };
+
+  const catalogStartEdit = (item: CatalogItem) => {
+    const cur = catalogCartRef.current[item.shopListingId]?.qty ?? 0;
+    setCatalogEditingId(item.shopListingId);
+    setCatalogEditDraft(cur > 0 ? String(cur) : "");
+  };
+
+  const catalogConfirmEdit = async (item: CatalogItem) => {
+    const qty = parseInt(catalogEditDraft, 10);
+    setCatalogEditingId(null);
+    setCatalogEditDraft("");
+    if (!isNaN(qty)) await catalogSetQty(item, qty).catch(() => toast({ title: "Error updating quantity", variant: "destructive" }));
+  };
+
+  const catalogSelectSuggestion = async (item: CatalogItem) => {
+    setShowCatalogDropdown(false);
+    setCatalogSuggestions([]);
+    setCatalogSearch("");
+    setCatalogHighlight(-1);
+    const cur = catalogCartRef.current[item.shopListingId]?.qty ?? 0;
+    await catalogSetQty(item, cur + 1).catch(() => toast({ title: "Error adding item", variant: "destructive" }));
+    setTimeout(() => catalogSearchRef.current?.focus(), 50);
+  };
+
+  const catalogSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showCatalogDropdown || catalogSuggestions.length === 0) {
+      if (e.key === "Enter" && catalogSearch.trim()) {
+        setShowCatalogDropdown(false);
+        const q = catalogSearch.trim().toLowerCase();
+        setCatalogSearch("");
+        const match = catalogRef.current.find((i) => i.productName.toLowerCase().includes(q));
+        if (match) {
+          const cur = catalogCartRef.current[match.shopListingId]?.qty ?? 0;
+          catalogSetQty(match, cur + 1).catch(() => {});
+        }
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") { e.preventDefault(); setCatalogHighlight((i) => Math.min(i + 1, catalogSuggestions.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setCatalogHighlight((i) => Math.max(i - 1, -1)); }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      if (catalogHighlight >= 0 && catalogSuggestions[catalogHighlight]) catalogSelectSuggestion(catalogSuggestions[catalogHighlight]);
+    } else if (e.key === "Escape") { setShowCatalogDropdown(false); setCatalogHighlight(-1); }
+  };
 
   useEffect(() => {
     const q = searchInput.trim();
@@ -471,6 +633,142 @@ export default function SalesOrderDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Availability Catalog (open orders only) ─────────────────────── */}
+      {order.status === "open" && (
+        <Card>
+          <CardHeader className="pb-3">
+            <button
+              className="flex items-center justify-between w-full text-left"
+              onClick={() => setShowCatalog((v) => !v)}
+            >
+              <div className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base">Add from Availability Catalog</CardTitle>
+                {Object.keys(catalogCart).length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {Object.values(catalogCart).reduce((s, e) => s + e.qty, 0)} added
+                  </Badge>
+                )}
+              </div>
+              {showCatalog ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+          </CardHeader>
+
+          {showCatalog && (
+            <CardContent className="pt-0">
+              {/* Search bar */}
+              <div ref={catalogSearchWrapperRef} className="relative mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    ref={catalogSearchRef}
+                    placeholder="Search catalog…"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    onKeyDown={catalogSearchKeyDown}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                {showCatalogDropdown && catalogSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 overflow-hidden">
+                    {catalogSuggestions.map((item, i) => (
+                      <button
+                        key={item.shopListingId}
+                        className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors ${i === catalogHighlight ? "bg-muted" : ""}`}
+                        onMouseDown={(e) => { e.preventDefault(); catalogSelectSuggestion(item); }}
+                        onMouseEnter={() => setCatalogHighlight(i)}
+                      >
+                        <span className="flex-1 font-medium truncate">{item.productName}</span>
+                        {item.price && <span className="text-muted-foreground text-xs shrink-0">${item.price}</span>}
+                        {catalogCart[item.shopListingId] && (
+                          <span className="text-blue-600 font-semibold text-xs shrink-0">× {catalogCart[item.shopListingId].qty}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Catalog list */}
+              {catalogLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                </div>
+              ) : catalog.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground text-sm">No catalog items available.</div>
+              ) : (
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead className="text-center w-36">Qty</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {catalog.map((item) => {
+                        const entry = catalogCart[item.shopListingId];
+                        const qty = entry?.qty ?? 0;
+                        const isEditing = catalogEditingId === item.shopListingId;
+                        return (
+                          <TableRow key={item.shopListingId} className={qty > 0 ? "bg-blue-50/40" : ""}>
+                            <TableCell className="font-medium">{item.productName}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {item.price ? `$${item.price}` : "—"}
+                            </TableCell>
+                            <TableCell>
+                              {isEditing ? (
+                                <div className="flex items-center gap-1 justify-center">
+                                  <Input
+                                    type="number"
+                                    value={catalogEditDraft}
+                                    onChange={(e) => setCatalogEditDraft(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") catalogConfirmEdit(item);
+                                      if (e.key === "Escape") { setCatalogEditingId(null); setCatalogEditDraft(""); }
+                                    }}
+                                    className="h-7 w-16 text-center text-sm"
+                                    autoFocus
+                                  />
+                                  <button onClick={() => catalogConfirmEdit(item)} className="text-green-600"><Check className="h-3.5 w-3.5" /></button>
+                                  <button onClick={() => { setCatalogEditingId(null); setCatalogEditDraft(""); }} className="text-muted-foreground"><X className="h-3.5 w-3.5" /></button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1 justify-center">
+                                  <button
+                                    onClick={() => catalogDelta(item, -1)}
+                                    className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => catalogStartEdit(item)}
+                                    className={`w-8 text-center font-medium text-sm hover:underline cursor-pointer ${qty > 0 ? "text-blue-700" : "text-muted-foreground"}`}
+                                  >
+                                    {qty}
+                                  </button>
+                                  <button
+                                    onClick={() => catalogDelta(item, 1)}
+                                    className="h-6 w-6 rounded border flex items-center justify-center hover:bg-muted"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
