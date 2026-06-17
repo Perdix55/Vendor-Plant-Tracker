@@ -232,6 +232,7 @@ export const CreateOrderBody = zod.object({
     zod.object({
       productId: zod.number(),
       quantityOrdered: zod.number(),
+      notes: zod.string().nullish(),
     }),
   ),
 });
@@ -376,6 +377,7 @@ export const AddOrderItemParams = zod.object({
 export const AddOrderItemBody = zod.object({
   productId: zod.number(),
   quantityOrdered: zod.number(),
+  notes: zod.string().nullish(),
 });
 
 /**

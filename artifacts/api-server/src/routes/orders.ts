@@ -181,6 +181,7 @@ router.post("/orders", async (req, res) => {
           orderId: order.id,
           productId: item.productId,
           quantityOrdered: item.quantityOrdered,
+          notes: item.notes ?? null,
         }))
       );
     }

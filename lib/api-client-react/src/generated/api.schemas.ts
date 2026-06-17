@@ -214,6 +214,7 @@ export interface Order {
 export interface AddOrderItemBody {
   productId: number;
   quantityOrdered: number;
+  notes?: string | null;
 }
 
 export interface CreateOrderBody {

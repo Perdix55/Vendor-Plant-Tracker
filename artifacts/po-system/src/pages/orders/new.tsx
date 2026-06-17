@@ -38,6 +38,8 @@ export default function NewOrder() {
   
   // Product quantities state: Record<productId, quantity>
   const [quantities, setQuantities] = useState<Record<number, number>>({});
+  // Per-item notes state: Record<productId, note>
+  const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
 
   const { data: vendors, isLoading: isLoadingVendors } = useListVendors();
   
@@ -90,7 +92,8 @@ export default function NewOrder() {
       .filter(([_, qty]) => qty > 0)
       .map(([id, qty]) => ({
         productId: parseInt(id),
-        quantityOrdered: qty
+        quantityOrdered: qty,
+        notes: itemNotes[parseInt(id)] || null,
       }));
 
     if (items.length === 0) {
@@ -248,7 +251,8 @@ export default function NewOrder() {
                       <TableHead>Product</TableHead>
                       <TableHead className="w-[120px]">Pack Size</TableHead>
                       <TableHead className="w-[90px] text-right">Price</TableHead>
-                      <TableHead className="w-[120px] text-right">Quantity</TableHead>
+                      <TableHead className="w-[110px] text-right">Quantity</TableHead>
+                      <TableHead className="w-[200px]">Notes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -277,6 +281,23 @@ export default function NewOrder() {
                             value={quantities[product.id] || ""}
                             onChange={(e) => handleQuantityChange(product.id, e.target.value)}
                             data-testid={`input-qty-${product.id}`}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="text"
+                            className="w-full text-sm"
+                            placeholder="—"
+                            value={itemNotes[product.id] || ""}
+                            onChange={(e) => setItemNotes(prev => {
+                              const next = { ...prev };
+                              if (e.target.value) {
+                                next[product.id] = e.target.value;
+                              } else {
+                                delete next[product.id];
+                              }
+                              return next;
+                            })}
                           />
                         </TableCell>
                       </TableRow>
