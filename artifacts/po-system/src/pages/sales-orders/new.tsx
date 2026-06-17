@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateSalesOrder, getListSalesOrdersQueryKey } from "@workspace/api-client-react";
+import { useCreateSalesOrder, useUpdateSalesOrder, getListSalesOrdersQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Minus, Plus, Pencil, Package, Search, ShoppingCart, Loader2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Pencil, Package, Search, ShoppingCart, Loader2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type CatalogItem = {
@@ -24,6 +24,13 @@ export default function NewSalesOrder() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createSalesOrder = useCreateSalesOrder();
+  const updateSalesOrder = useUpdateSalesOrder();
+
+  // Track saved values to detect unsaved changes
+  const [savedName, setSavedName] = useState("");
+  const [savedNeededBy, setSavedNeededBy] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
 
   // Order creation state
   const [customerName, setCustomerName] = useState("");
@@ -188,11 +195,31 @@ export default function NewSalesOrder() {
         data: { customerName: customerName.trim(), neededBy: neededBy || null },
       });
       setOrderId(order.id);
+      setSavedName(customerName.trim());
+      setSavedNeededBy(neededBy);
       setTimeout(() => searchRef.current?.focus(), 150);
     } catch {
       toast({ title: "Failed to create order", variant: "destructive" });
     }
     setCreating(false);
+  };
+
+  const handleSaveDetails = async () => {
+    if (!orderId || !customerName.trim()) return;
+    setSaving(true);
+    try {
+      await updateSalesOrder.mutateAsync({
+        salesOrderId: orderId,
+        data: { customerName: customerName.trim(), neededBy: neededBy || null },
+      });
+      setSavedName(customerName.trim());
+      setSavedNeededBy(neededBy);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2000);
+    } catch {
+      toast({ title: "Failed to save changes", variant: "destructive" });
+    }
+    setSaving(false);
   };
 
   const handleDone = () => {
@@ -249,8 +276,12 @@ export default function NewSalesOrder() {
                 placeholder="e.g. Jane Smith"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !orderId && handleStart()}
-                disabled={!!orderId}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (!orderId) handleStart();
+                    else handleSaveDetails();
+                  }
+                }}
               />
             </div>
             <div className="space-y-1.5 w-44">
@@ -262,7 +293,6 @@ export default function NewSalesOrder() {
                 type="date"
                 value={neededBy}
                 onChange={(e) => setNeededBy(e.target.value)}
-                disabled={!!orderId}
               />
             </div>
             {!orderId && (
@@ -274,8 +304,19 @@ export default function NewSalesOrder() {
                 {creating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Starting…</> : "Start Order →"}
               </Button>
             )}
-            {orderId && (
-              <p className="text-sm text-muted-foreground pb-2">Order #{orderId} created</p>
+            {orderId && (customerName.trim() !== savedName || neededBy !== savedNeededBy) && (
+              <Button
+                onClick={handleSaveDetails}
+                disabled={!customerName.trim() || saving}
+                className="shrink-0"
+              >
+                {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : "Save Changes"}
+              </Button>
+            )}
+            {orderId && savedFlash && (
+              <span className="flex items-center gap-1.5 text-sm text-green-700 pb-2 shrink-0">
+                <Check className="h-4 w-4" /> Saved
+              </span>
             )}
           </div>
         </CardContent>
