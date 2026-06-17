@@ -20,6 +20,7 @@ import VendorConfirm from "@/pages/confirm/index";
 import ShopPage from "@/pages/shop/index";
 import SalesOrders from "@/pages/sales-orders/index";
 import SalesOrderDetail from "@/pages/sales-orders/detail";
+import SalesOrderPrint from "@/pages/sales-orders/print";
 import LoginPage from "@/pages/login";
 import SetupPage from "@/pages/setup";
 
@@ -56,6 +57,7 @@ function Router() {
       <Route path="/setup" component={SetupPage} />
       <Route path="/confirm/:token" component={VendorConfirm} />
       <Route path="/shop" component={ShopPage} />
+      <Route path="/sales-orders/:id/print" component={SalesOrderPrint} />
       <Route>
         <AuthGuard>
           <Layout>

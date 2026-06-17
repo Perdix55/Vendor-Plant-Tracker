@@ -106,6 +106,9 @@ export default function SalesOrderDetail() {
     await updateOrder.mutateAsync({ salesOrderId, data: { status } });
     invalidate();
     toast({ title: "Status updated" });
+    if (status === "completed") {
+      window.open(`${import.meta.env.BASE_URL}sales-orders/${salesOrderId}/print`, "_blank");
+    }
   };
 
   const selectSuggestion = async (inv: InventorySuggestion) => {
