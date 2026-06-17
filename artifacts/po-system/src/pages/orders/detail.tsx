@@ -613,7 +613,17 @@ export default function OrderDetail() {
                     return (
                       <TableRow key={item.id} className={isRowConfirming && confirmRow.availability === "unavailable" ? "opacity-70 bg-muted/30" : isEditingThisItem ? "bg-primary/5" : ""}>
                         <TableCell className="font-medium">
-                          {item.productName}
+                          {(item as any).substitutionName && item.availability === "available" ? (
+                            <div>
+                              <span>{(item as any).substitutionName}</span>
+                              <p className="text-xs text-muted-foreground font-normal mt-0.5 line-through">{item.productName}</p>
+                            </div>
+                          ) : (item as any).substitutionName && item.availability === "unavailable" ? (
+                            <div>
+                              <span>{item.productName}</span>
+                              <p className="text-xs text-muted-foreground font-normal mt-0.5">Sub rejected: {(item as any).substitutionName}</p>
+                            </div>
+                          ) : item.productName}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{item.packSize || "N/A"}</TableCell>
                         <TableCell className="text-right tabular-nums text-muted-foreground">
