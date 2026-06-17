@@ -1,39 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Quagga from "@ericblade/quagga2";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAddSalesOrderItem, useCreateSalesOrder, useUpdateSalesOrderItem, useDeleteSalesOrderItem } from "@workspace/api-client-react";
+import { useCreateSalesOrder } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Trash2, Camera, CameraOff, Leaf, CheckCircle2, ShoppingCart, ScanLine, Package, Pencil } from "lucide-react";
+import { Minus, Plus, Camera, CameraOff, Leaf, CheckCircle2, ShoppingCart, ScanLine, Package, Pencil } from "lucide-react";
 
 type CatalogItem = {
   shopListingId: number;
   productName: string;
   price: string | null;
   status: string;
-  inventoryItemId: number | null;
-  vendorName: string | null;
-  packSize: string | null;
-  quantityOnHand: number | null;
 };
 
-type InventorySuggestion = {
-  id: number;
-  productName: string;
-  vendorName: string;
-  packSize: string | null;
-  quantityOnHand: number;
-};
-
-type CartItem = {
-  id: number;
-  inventoryItemId: number;
-  productName: string;
-  vendorName: string;
-  packSize: string | null;
-  quantity: number;
-};
+type CatalogEntry = { cartItemId: number; qty: number };
 
 type Step = "name" | "scan" | "done";
 
@@ -41,44 +22,40 @@ export default function ShopPage() {
   const [step, setStep] = useState<Step>("name");
   const [customerName, setCustomerName] = useState("");
   const [orderId, setOrderId] = useState<number | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [barcodeInput, setBarcodeInput] = useState("");
+
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  // keyed by shopListingId
+  const [catalogCart, setCatalogCart] = useState<Record<number, CatalogEntry>>({});
+  const [editingListingId, setEditingListingId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
   const [scanFeedback, setScanFeedback] = useState<{ text: string; ok: boolean } | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
-  const [isLooking, setIsLooking] = useState(false);
-  const [suggestions, setSuggestions] = useState<InventorySuggestion[]>([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<CatalogItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-  // keyed by shopListingId so items with the same inventoryItemId stay independent
-  const [catalogCart, setCatalogCart] = useState<Record<number, { cartItemId: number; qty: number }>>({});
-  const [editingListingId, setEditingListingId] = useState<number | null>(null);
-  const [editDraft, setEditDraft] = useState("");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const inputWrapperRef = useRef<HTMLDivElement>(null);
-  // Quagga needs a div container — it creates the video + canvas elements itself
   const cameraContainerRef = useRef<HTMLDivElement>(null);
   const quaggaRunning = useRef(false);
   const cooldownRef = useRef(false);
   const lastScannedRef = useRef("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Keep a stable ref to orderId + cart so Quagga callbacks see current values
   const orderIdRef = useRef<number | null>(null);
-  const cartRef = useRef<CartItem[]>([]);
+  const catalogRef = useRef<CatalogItem[]>([]);
+  const catalogCartRef = useRef<Record<number, CatalogEntry>>({});
 
   const queryClient = useQueryClient();
   const createSalesOrder = useCreateSalesOrder();
-  const addItem = useAddSalesOrderItem();
-  const updateItem = useUpdateSalesOrderItem();
-  const deleteItem = useDeleteSalesOrderItem();
 
   // Keep refs in sync
   useEffect(() => { orderIdRef.current = orderId; }, [orderId]);
-  useEffect(() => { cartRef.current = cart; }, [cart]);
+  useEffect(() => { catalogRef.current = catalog; }, [catalog]);
+  useEffect(() => { catalogCartRef.current = catalogCart; }, [catalogCart]);
 
   // Fetch catalog when order starts
   useEffect(() => {
@@ -91,40 +68,31 @@ export default function ShopPage() {
       .finally(() => setCatalogLoading(false));
   }, [orderId]);
 
-  // Auto-focus text input when scan step opens
+  // Auto-focus input when scan step opens
   useEffect(() => {
     if (step !== "scan") return;
     const t = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(t);
   }, [step]);
 
-  // Debounced autocomplete fetch
+  // Filter catalog by search query
   useEffect(() => {
-    const q = barcodeInput.trim();
+    const q = searchQuery.trim().toLowerCase();
     if (q.length < 2) {
-      setSuggestions([]);
+      setFilteredSuggestions([]);
       setShowDropdown(false);
       setHighlightedIndex(-1);
       return;
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(q)}`);
-        const rows: InventorySuggestion[] = await resp.json();
-        setSuggestions(rows.slice(0, 8));
-        setShowDropdown(rows.length > 0);
-        setHighlightedIndex(-1);
-      } catch {
-        // silently ignore
-      }
-    }, 280);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [barcodeInput]);
+    const matches = catalogRef.current
+      .filter((item) => item.productName.toLowerCase().includes(q))
+      .slice(0, 8);
+    setFilteredSuggestions(matches);
+    setShowDropdown(matches.length > 0);
+    setHighlightedIndex(-1);
+  }, [searchQuery, catalog]);
 
-  // Close dropdown when clicking outside the input wrapper
+  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (inputWrapperRef.current && !inputWrapperRef.current.contains(e.target as Node)) {
@@ -136,7 +104,7 @@ export default function ShopPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // ── Quagga camera controls ─────────────────────────────────────────────────
+  // ── Camera ──────────────────────────────────────────────────────────────────
 
   const stopCamera = useCallback(() => {
     if (!quaggaRunning.current) return;
@@ -152,44 +120,25 @@ export default function ShopPage() {
     if (!cameraContainerRef.current || quaggaRunning.current) return;
     setCameraError("");
     setCameraReady(false);
-
     Quagga.init(
       {
         inputStream: {
           type: "LiveStream",
           target: cameraContainerRef.current,
-          constraints: {
-            facingMode: "environment",   // rear camera on phones
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
+          constraints: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
         },
-        decoder: {
-          // Only CODE128 — our labels always use CODE128.
-          // Enabling ean_reader / ean_8_reader causes them to grab 8-digit
-          // CODE128 barcodes first and return truncated / wrong values.
-          readers: ["code_128_reader"],
-          multiple: false,
-        },
+        decoder: { readers: ["code_128_reader"], multiple: false },
         locate: true,
-        frequency: 10,   // decode attempts per second
+        frequency: 10,
       },
       (err) => {
-        if (err) {
-          setCameraError("Camera not available or permission denied.");
-          setCameraOpen(false);
-          return;
-        }
+        if (err) { setCameraError("Camera not available or permission denied."); setCameraOpen(false); return; }
         Quagga.start();
         quaggaRunning.current = true;
         setCameraReady(true);
-
         Quagga.onDetected((result) => {
           const code = result.codeResult.code;
-          if (!code) return;
-          if (cooldownRef.current) return;
-          if (code === lastScannedRef.current) return;
-
+          if (!code || cooldownRef.current || code === lastScannedRef.current) return;
           cooldownRef.current = true;
           lastScannedRef.current = code;
           handleBarcodeDetected(code);
@@ -197,183 +146,68 @@ export default function ShopPage() {
         });
       }
     );
-  }, []);   // no deps — reads from refs
+  }, []);
 
   const toggleCamera = () => {
-    if (cameraOpen) {
-      stopCamera();
-      setCameraOpen(false);
-    } else {
-      setCameraOpen(true);
-      // DOM needs a tick to render the container before Quagga can attach
-      setTimeout(startCamera, 200);
-    }
+    if (cameraOpen) { stopCamera(); setCameraOpen(false); }
+    else { setCameraOpen(true); setTimeout(startCamera, 200); }
     setTimeout(() => inputRef.current?.focus(), 350);
   };
 
-  // ── Autocomplete selection ─────────────────────────────────────────────────
-
-  const selectSuggestion = async (item: InventorySuggestion) => {
-    setShowDropdown(false);
-    setSuggestions([]);
-    setBarcodeInput("");
-    setHighlightedIndex(-1);
-    setIsLooking(true);
-    try {
-      await addOrUpdateCartItem(item);
-    } catch {
-      showFeedback("Error adding item", false);
-    }
-    setIsLooking(false);
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
-  // ── Barcode lookup & cart mutation ─────────────────────────────────────────
+  // ── Shop order item API calls ──────────────────────────────────────────────
 
   const showFeedback = (text: string, ok: boolean) => {
     setScanFeedback({ text, ok });
     setTimeout(() => setScanFeedback(null), 2500);
   };
 
-  // Shared: add (or increment) an already-resolved inventory item.
-  // If the item is in the catalog, route through catalogCart; otherwise use cart[].
-  const addOrUpdateCartItem = async (inv: Pick<InventorySuggestion, "id" | "productName" | "vendorName" | "packSize">) => {
-    const oid = orderIdRef.current;
-    if (!oid) return;
-    // Find matching catalog item by inventoryItemId
-    const catalogItem = catalog.find((c) => c.inventoryItemId === inv.id);
-    if (catalogItem) {
-      const current = catalogCart[catalogItem.shopListingId]?.qty ?? 0;
-      await handleCatalogSetQty(catalogItem, current + 1);
-      showFeedback(`+1 → ${inv.productName}`, true);
-      return;
-    }
-    // Fallback: item not in catalog — use plain cart
-    const existing = cartRef.current.find((c) => c.inventoryItemId === inv.id);
-    if (existing) {
-      const newQty = existing.quantity + 1;
-      await updateItem.mutateAsync({ salesOrderId: oid, itemId: existing.id, data: { quantity: newQty } });
-      setCart((prev) => prev.map((c) => (c.id === existing.id ? { ...c, quantity: newQty } : c)));
-      showFeedback(`+1 → ${inv.productName}`, true);
-    } else {
-      const added = await addItem.mutateAsync({ salesOrderId: oid, data: { inventoryItemId: inv.id, quantity: 1 } });
-      setCart((prev) => [
-        ...prev,
-        { id: added.id, inventoryItemId: inv.id, productName: inv.productName, vendorName: inv.vendorName, packSize: inv.packSize, quantity: 1 },
-      ]);
-      showFeedback(`Added: ${inv.productName}`, true);
-    }
+  const apiAddItem = async (oid: number, item: CatalogItem, qty: number): Promise<CatalogEntry> => {
+    const res = await fetch(`/api/sales-orders/${oid}/shop-items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopListingId: item.shopListingId, productName: item.productName, price: item.price, quantity: qty }),
+    });
+    if (!res.ok) throw new Error("Failed to add item");
+    const data = await res.json();
+    return { cartItemId: data.id, qty };
   };
 
-  // Fetch by barcode string then add — used by camera + text-submit
-  const lookupAndAdd = async (barcode: string): Promise<void> => {
-    const oid = orderIdRef.current;
-    if (!barcode.trim()) return;
-    if (!oid) { showFeedback("No active order — please restart", false); return; }
-    const resp = await fetch(`/api/inventory/lookup?q=${encodeURIComponent(barcode.trim())}`);
-    const items: InventorySuggestion[] = await resp.json();
-    if (!items.length) { showFeedback(`Not found: "${barcode}"`, false); return; }
-    await addOrUpdateCartItem(items[0]);
+  const apiUpdateItem = async (oid: number, cartItemId: number, qty: number): Promise<void> => {
+    await fetch(`/api/sales-orders/${oid}/shop-items/${cartItemId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity: qty }),
+    });
   };
 
-  // Called from Quagga callback (fire and forget)
-  const handleBarcodeDetected = (barcode: string) => {
-    lookupAndAdd(barcode).catch(() => showFeedback("Error looking up item", false));
+  const apiDeleteItem = async (oid: number, cartItemId: number): Promise<void> => {
+    await fetch(`/api/sales-orders/${oid}/shop-items/${cartItemId}`, { method: "DELETE" });
   };
-
-  // Called when user presses Enter or the Add button
-  const handleBarcodeSubmit = async () => {
-    // If a suggestion is highlighted, select it instead of doing a lookup
-    if (showDropdown && highlightedIndex >= 0 && suggestions[highlightedIndex]) {
-      await selectSuggestion(suggestions[highlightedIndex]);
-      return;
-    }
-    const barcode = barcodeInput.trim();
-    if (!barcode || !orderId) return;
-    setShowDropdown(false);
-    setBarcodeInput("");
-    setIsLooking(true);
-    try {
-      await lookupAndAdd(barcode);
-    } catch {
-      showFeedback("Error looking up item", false);
-    }
-    setIsLooking(false);
-    inputRef.current?.focus();
-  };
-
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showDropdown || suggestions.length === 0) {
-      if (e.key === "Enter") handleBarcodeSubmit();
-      return;
-    }
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightedIndex((i) => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightedIndex((i) => Math.max(i - 1, -1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (highlightedIndex >= 0 && suggestions[highlightedIndex]) {
-        selectSuggestion(suggestions[highlightedIndex]);
-      } else {
-        handleBarcodeSubmit();
-      }
-    } else if (e.key === "Escape") {
-      setShowDropdown(false);
-      setHighlightedIndex(-1);
-    }
-  };
-
-  // ── Cart item controls ─────────────────────────────────────────────────────
-
-  const handleQtyChange = async (item: CartItem, delta: number) => {
-    if (!orderId) return;
-    const newQty = Math.max(0, item.quantity + delta);
-    if (newQty === 0) {
-      await deleteItem.mutateAsync({ salesOrderId: orderId, itemId: item.id });
-      setCart((prev) => prev.filter((c) => c.id !== item.id));
-    } else {
-      await updateItem.mutateAsync({ salesOrderId: orderId, itemId: item.id, data: { quantity: newQty } });
-      setCart((prev) => prev.map((c) => (c.id === item.id ? { ...c, quantity: newQty } : c)));
-    }
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
-  const handleRemove = async (item: CartItem) => {
-    if (!orderId) return;
-    await deleteItem.mutateAsync({ salesOrderId: orderId, itemId: item.id });
-    setCart((prev) => prev.filter((c) => c.id !== item.id));
-    setTimeout(() => inputRef.current?.focus(), 50);
-  };
-
-  // ── Catalog qty helpers ────────────────────────────────────────────────────
 
   const handleCatalogSetQty = async (item: CatalogItem, newQty: number) => {
-    if (!orderId || !item.inventoryItemId) return;
-    const entry = catalogCart[item.shopListingId];
-    const clamped = Math.max(0, newQty);
-    if (clamped === 0 && entry) {
-      await deleteItem.mutateAsync({ salesOrderId: orderId, itemId: entry.cartItemId });
+    const oid = orderId;
+    if (!oid) return;
+    const entry = catalogCartRef.current[item.shopListingId];
+    const q = Math.max(0, newQty);
+    if (q === 0 && entry) {
+      await apiDeleteItem(oid, entry.cartItemId);
       setCatalogCart((prev) => { const n = { ...prev }; delete n[item.shopListingId]; return n; });
-    } else if (clamped > 0 && !entry) {
-      const added = await addItem.mutateAsync({ salesOrderId: orderId, data: { inventoryItemId: item.inventoryItemId, quantity: clamped } });
-      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: { cartItemId: added.id, qty: clamped } }));
-    } else if (entry && clamped !== entry.qty) {
-      await updateItem.mutateAsync({ salesOrderId: orderId, itemId: entry.cartItemId, data: { quantity: clamped } });
-      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: { ...entry, qty: clamped } }));
+    } else if (q > 0 && !entry) {
+      const newEntry = await apiAddItem(oid, item, q);
+      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: newEntry }));
+    } else if (entry && q !== entry.qty) {
+      await apiUpdateItem(oid, entry.cartItemId, q);
+      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: { ...entry, qty: q } }));
     }
   };
 
-  const handleCatalogDelta = async (item: CatalogItem, delta: number) => {
-    const current = catalogCart[item.shopListingId]?.qty ?? 0;
-    await handleCatalogSetQty(item, current + delta);
+  const handleCatalogDelta = (item: CatalogItem, delta: number) => {
+    const current = catalogCartRef.current[item.shopListingId]?.qty ?? 0;
+    handleCatalogSetQty(item, current + delta).catch(() => showFeedback("Error updating quantity", false));
   };
 
   const startEdit = (item: CatalogItem) => {
-    if (!item.inventoryItemId) return;
-    const current = catalogCart[item.shopListingId]?.qty ?? 0;
+    const current = catalogCartRef.current[item.shopListingId]?.qty ?? 0;
     setEditingListingId(item.shopListingId);
     setEditDraft(current > 0 ? String(current) : "");
   };
@@ -382,7 +216,51 @@ export default function ShopPage() {
     const qty = parseInt(editDraft, 10);
     setEditingListingId(null);
     setEditDraft("");
-    if (!isNaN(qty)) await handleCatalogSetQty(item, qty);
+    if (!isNaN(qty)) await handleCatalogSetQty(item, qty).catch(() => showFeedback("Error updating quantity", false));
+  };
+
+  // ── Barcode / search ───────────────────────────────────────────────────────
+
+  const addCatalogItemByMatch = async (query: string) => {
+    const q = query.toLowerCase();
+    const match = catalogRef.current.find((item) => item.productName.toLowerCase().includes(q));
+    if (!match) { showFeedback(`Not found: "${query}"`, false); return; }
+    const current = catalogCartRef.current[match.shopListingId]?.qty ?? 0;
+    await handleCatalogSetQty(match, current + 1);
+    showFeedback(`+1 → ${match.productName}`, true);
+  };
+
+  const handleBarcodeDetected = (barcode: string) => {
+    addCatalogItemByMatch(barcode).catch(() => showFeedback("Error looking up item", false));
+  };
+
+  const selectSuggestion = async (item: CatalogItem) => {
+    setShowDropdown(false);
+    setFilteredSuggestions([]);
+    setSearchQuery("");
+    setHighlightedIndex(-1);
+    const current = catalogCartRef.current[item.shopListingId]?.qty ?? 0;
+    await handleCatalogSetQty(item, current + 1).catch(() => showFeedback("Error adding item", false));
+    showFeedback(`+1 → ${item.productName}`, true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown || filteredSuggestions.length === 0) {
+      if (e.key === "Enter" && searchQuery.trim()) {
+        setShowDropdown(false);
+        setSearchQuery("");
+        addCatalogItemByMatch(searchQuery.trim()).catch(() => {});
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") { e.preventDefault(); setHighlightedIndex((i) => Math.min(i + 1, filteredSuggestions.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightedIndex((i) => Math.max(i - 1, -1)); }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && filteredSuggestions[highlightedIndex]) selectSuggestion(filteredSuggestions[highlightedIndex]);
+      else if (searchQuery.trim()) { setShowDropdown(false); setSearchQuery(""); addCatalogItemByMatch(searchQuery.trim()).catch(() => {}); }
+    } else if (e.key === "Escape") { setShowDropdown(false); setHighlightedIndex(-1); }
   };
 
   const handleStart = async () => {
@@ -438,6 +316,7 @@ export default function ShopPage() {
 
   // ── Done step ──────────────────────────────────────────────────────────────
   if (step === "done") {
+    const orderedItems = catalog.filter((ci) => (catalogCart[ci.shopListingId]?.qty ?? 0) > 0);
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-6 text-center">
@@ -450,22 +329,16 @@ export default function ShopPage() {
           </div>
           <div className="rounded-lg border bg-card p-4 text-left space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Order Summary</p>
-            {Object.keys(catalogCart).length === 0 && cart.length === 0 && <p className="text-sm text-muted-foreground">No items</p>}
-            {catalog.filter((ci) => catalogCart[ci.shopListingId]?.qty).map((ci) => (
+            {orderedItems.length === 0 && <p className="text-sm text-muted-foreground">No items</p>}
+            {orderedItems.map((ci) => (
               <div key={ci.shopListingId} className="flex justify-between text-sm">
-                <span>{ci.productName}{ci.packSize ? ` (${ci.packSize})` : ""}</span>
+                <span>{ci.productName}</span>
                 <span className="font-semibold">×{catalogCart[ci.shopListingId].qty}</span>
-              </div>
-            ))}
-            {cart.map((item) => (
-              <div key={item.id} className="flex justify-between text-sm">
-                <span>{item.productName}{item.packSize ? ` (${item.packSize})` : ""}</span>
-                <span className="font-semibold">×{item.quantity}</span>
               </div>
             ))}
           </div>
           <Button variant="outline" className="w-full" onClick={() => {
-            setStep("name"); setCustomerName(""); setCart([]); setCatalogCart({}); setOrderId(null);
+            setStep("name"); setCustomerName(""); setCatalogCart({}); setOrderId(null);
             lastScannedRef.current = "";
           }}>
             Start a New Order
@@ -475,10 +348,9 @@ export default function ShopPage() {
     );
   }
 
-  // ── Scan step ──────────────────────────────────────────────────────────────
-  const catalogUnits = Object.values(catalogCart).reduce((s, e) => s + e.qty, 0);
-  const totalUnits = catalogUnits + cart.reduce((s, c) => s + c.quantity, 0);
-  const inCartCount = Object.values(catalogCart).filter((e) => e.qty > 0).length + cart.length;
+  // ── Scan / browse step ─────────────────────────────────────────────────────
+  const totalUnits = Object.values(catalogCart).reduce((s, e) => s + e.qty, 0);
+  const inCartCount = Object.values(catalogCart).filter((e) => e.qty > 0).length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -511,23 +383,22 @@ export default function ShopPage() {
             <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
             <Input
               ref={inputRef}
-              placeholder="Scan barcode or search…"
-              value={barcodeInput}
-              onChange={(e) => { setBarcodeInput(e.target.value); setShowDropdown(true); }}
-              onKeyDown={handleInputKeyDown}
-              onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
+              placeholder="Search or scan barcode…"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
+              onKeyDown={handleSearchKeyDown}
+              onFocus={() => { if (filteredSuggestions.length > 0) setShowDropdown(true); }}
               className="pl-9 h-10 text-sm"
-              disabled={isLooking}
               data-testid="input-barcode"
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
             />
-            {showDropdown && suggestions.length > 0 && (
+            {showDropdown && filteredSuggestions.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border bg-popover shadow-lg overflow-hidden">
-                {suggestions.map((item, idx) => (
+                {filteredSuggestions.map((item, idx) => (
                   <button
-                    key={item.id}
+                    key={item.shopListingId}
                     type="button"
                     onMouseDown={(e) => { e.preventDefault(); selectSuggestion(item); }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${idx === highlightedIndex ? "bg-accent" : "hover:bg-muted"}`}
@@ -535,17 +406,19 @@ export default function ShopPage() {
                     <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.productName}</p>
-                      <p className="text-xs text-muted-foreground truncate">{item.vendorName}{item.packSize ? ` · ${item.packSize}` : ""}</p>
+                      {item.price && <p className="text-xs text-muted-foreground">{item.price}</p>}
                     </div>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <Button onClick={handleBarcodeSubmit} disabled={!barcodeInput.trim() || isLooking} className="h-10 px-4" data-testid="button-add-barcode">
-            {isLooking ? "…" : "Add"}
-          </Button>
-          <Button variant={cameraOpen ? "secondary" : "outline"} size="icon" className="h-10 w-10 shrink-0" onClick={toggleCamera}>
+          <Button
+            variant={cameraOpen ? "secondary" : "outline"}
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            onClick={toggleCamera}
+          >
             {cameraOpen ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
           </Button>
         </div>
@@ -569,14 +442,12 @@ export default function ShopPage() {
       <div className="flex-1 overflow-y-auto">
         {catalogLoading ? (
           <div className="px-4 py-6 space-y-3">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />
-            ))}
+            {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />)}
           </div>
         ) : catalog.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm gap-2 px-4 text-center">
             <Package className="h-10 w-10 opacity-20" />
-            <p>No products listed yet. Use the search bar above to add items by barcode or name.</p>
+            <p>No products listed. Import a weekly availability sheet in Admin → Shop.</p>
           </div>
         ) : (
           <div className="divide-y">
@@ -584,14 +455,12 @@ export default function ShopPage() {
               const qty = catalogCart[item.shopListingId]?.qty ?? 0;
               const isEditing = editingListingId === item.shopListingId;
               const isLimited = item.status === "limited";
-              const noInventory = !item.inventoryItemId;
 
               return (
                 <div
                   key={item.shopListingId}
                   className={`flex items-center gap-3 px-4 py-3 transition-colors ${qty > 0 ? "bg-green-50/60" : ""}`}
                 >
-                  {/* Left: name + meta */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-medium leading-tight">{item.productName}</p>
@@ -599,16 +468,13 @@ export default function ShopPage() {
                         <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-medium leading-none">Limited</span>
                       )}
                     </div>
-                    {(item.price || item.packSize) && (
+                    {item.price && (
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {item.price ? <span className="font-medium text-foreground">{item.price}</span> : null}
-                        {item.price && item.packSize ? " · " : ""}
-                        {item.packSize ?? ""}
+                        <span className="font-medium text-foreground">{item.price}</span>
                       </p>
                     )}
                   </div>
 
-                  {/* Right: qty controls */}
                   <div className="flex items-center gap-1 shrink-0">
                     {isEditing ? (
                       <>
@@ -632,9 +498,8 @@ export default function ShopPage() {
                     ) : (
                       <>
                         <button
-                          disabled={noInventory}
                           onClick={() => handleCatalogDelta(item, -1)}
-                          className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-30"
+                          className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
@@ -642,16 +507,14 @@ export default function ShopPage() {
                           {qty}
                         </span>
                         <button
-                          disabled={noInventory}
                           onClick={() => handleCatalogDelta(item, 1)}
-                          className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-30"
+                          className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                         <button
-                          disabled={noInventory}
                           onClick={() => startEdit(item)}
-                          className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 ml-0.5"
+                          className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors ml-0.5"
                           title="Enter quantity"
                         >
                           <Pencil className="h-3.5 w-3.5" />

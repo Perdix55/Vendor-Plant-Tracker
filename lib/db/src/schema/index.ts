@@ -8,3 +8,4 @@ export * from "./salesOrders";
 export * from "./users";
 export * from "./priceListImports";
 export * from "./shopListings";
+export * from "./shopOrderItems";
