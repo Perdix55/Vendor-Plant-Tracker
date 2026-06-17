@@ -805,6 +805,7 @@ export default function OrderDetail() {
                     </div>
                   </div>
 
+                  <div className="max-h-[380px] overflow-y-auto">
                   {!vendorProducts ? (
                     <div className="p-6 space-y-3">
                       {[1,2,3,4].map(i => <Skeleton key={i} className="h-10 w-full" />)}
@@ -815,7 +816,7 @@ export default function OrderDetail() {
                     </div>
                   ) : (
                     <Table>
-                      <TableHeader className="bg-muted/30">
+                      <TableHeader className="bg-muted/30 sticky top-0 z-10">
                         <TableRow>
                           <TableHead>Product</TableHead>
                           <TableHead className="w-[140px]">Pack Size</TableHead>
@@ -869,6 +870,7 @@ export default function OrderDetail() {
                       </TableBody>
                     </Table>
                   )}
+                  </div>
 
                   <div className="flex items-center justify-between px-6 py-3 border-t bg-background">
                     <span className="text-sm text-muted-foreground">
