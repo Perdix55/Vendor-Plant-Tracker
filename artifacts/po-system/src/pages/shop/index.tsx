@@ -337,12 +337,17 @@ export default function ShopPage() {
               </div>
             ))}
           </div>
-          <Button variant="outline" className="w-full" onClick={() => {
-            setStep("name"); setCustomerName(""); setCatalogCart({}); setOrderId(null);
-            lastScannedRef.current = "";
-          }}>
-            Start a New Order
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button className="w-full" onClick={() => setStep("scan")}>
+              Edit Order
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => {
+              setStep("name"); setCustomerName(""); setCatalogCart({}); setOrderId(null);
+              lastScannedRef.current = "";
+            }}>
+              Start a New Order
+            </Button>
+          </div>
         </div>
       </div>
     );
