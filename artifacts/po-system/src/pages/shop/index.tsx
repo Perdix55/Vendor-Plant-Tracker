@@ -53,7 +53,9 @@ export default function ShopPage() {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
-  const [editingInvId, setEditingInvId] = useState<number | null>(null);
+  // keyed by shopListingId so items with the same inventoryItemId stay independent
+  const [catalogCart, setCatalogCart] = useState<Record<number, { cartItemId: number; qty: number }>>({});
+  const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -233,10 +235,20 @@ export default function ShopPage() {
     setTimeout(() => setScanFeedback(null), 2500);
   };
 
-  // Shared: add (or increment) an already-resolved inventory item in the cart
+  // Shared: add (or increment) an already-resolved inventory item.
+  // If the item is in the catalog, route through catalogCart; otherwise use cart[].
   const addOrUpdateCartItem = async (inv: Pick<InventorySuggestion, "id" | "productName" | "vendorName" | "packSize">) => {
     const oid = orderIdRef.current;
     if (!oid) return;
+    // Find matching catalog item by inventoryItemId
+    const catalogItem = catalog.find((c) => c.inventoryItemId === inv.id);
+    if (catalogItem) {
+      const current = catalogCart[catalogItem.shopListingId]?.qty ?? 0;
+      await handleCatalogSetQty(catalogItem, current + 1);
+      showFeedback(`+1 → ${inv.productName}`, true);
+      return;
+    }
+    // Fallback: item not in catalog — use plain cart
     const existing = cartRef.current.find((c) => c.inventoryItemId === inv.id);
     if (existing) {
       const newQty = existing.quantity + 1;
@@ -338,39 +350,37 @@ export default function ShopPage() {
 
   // ── Catalog qty helpers ────────────────────────────────────────────────────
 
-  const getCartItemByInvId = (invId: number) => cart.find((c) => c.inventoryItemId === invId);
-
   const handleCatalogSetQty = async (item: CatalogItem, newQty: number) => {
     if (!orderId || !item.inventoryItemId) return;
-    const existing = getCartItemByInvId(item.inventoryItemId);
+    const entry = catalogCart[item.shopListingId];
     const clamped = Math.max(0, newQty);
-    if (clamped === 0 && existing) {
-      await deleteItem.mutateAsync({ salesOrderId: orderId, itemId: existing.id });
-      setCart((prev) => prev.filter((c) => c.id !== existing.id));
-    } else if (clamped > 0 && !existing) {
+    if (clamped === 0 && entry) {
+      await deleteItem.mutateAsync({ salesOrderId: orderId, itemId: entry.cartItemId });
+      setCatalogCart((prev) => { const n = { ...prev }; delete n[item.shopListingId]; return n; });
+    } else if (clamped > 0 && !entry) {
       const added = await addItem.mutateAsync({ salesOrderId: orderId, data: { inventoryItemId: item.inventoryItemId, quantity: clamped } });
-      setCart((prev) => [...prev, { id: added.id, inventoryItemId: item.inventoryItemId!, productName: item.productName, vendorName: item.vendorName ?? "", packSize: item.packSize, quantity: clamped }]);
-    } else if (existing && clamped !== existing.quantity) {
-      await updateItem.mutateAsync({ salesOrderId: orderId, itemId: existing.id, data: { quantity: clamped } });
-      setCart((prev) => prev.map((c) => (c.id === existing.id ? { ...c, quantity: clamped } : c)));
+      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: { cartItemId: added.id, qty: clamped } }));
+    } else if (entry && clamped !== entry.qty) {
+      await updateItem.mutateAsync({ salesOrderId: orderId, itemId: entry.cartItemId, data: { quantity: clamped } });
+      setCatalogCart((prev) => ({ ...prev, [item.shopListingId]: { ...entry, qty: clamped } }));
     }
   };
 
   const handleCatalogDelta = async (item: CatalogItem, delta: number) => {
-    const current = item.inventoryItemId ? (getCartItemByInvId(item.inventoryItemId)?.quantity ?? 0) : 0;
+    const current = catalogCart[item.shopListingId]?.qty ?? 0;
     await handleCatalogSetQty(item, current + delta);
   };
 
   const startEdit = (item: CatalogItem) => {
     if (!item.inventoryItemId) return;
-    const current = getCartItemByInvId(item.inventoryItemId)?.quantity ?? 0;
-    setEditingInvId(item.inventoryItemId);
+    const current = catalogCart[item.shopListingId]?.qty ?? 0;
+    setEditingListingId(item.shopListingId);
     setEditDraft(current > 0 ? String(current) : "");
   };
 
   const confirmEdit = async (item: CatalogItem) => {
     const qty = parseInt(editDraft, 10);
-    setEditingInvId(null);
+    setEditingListingId(null);
     setEditDraft("");
     if (!isNaN(qty)) await handleCatalogSetQty(item, qty);
   };
@@ -440,7 +450,13 @@ export default function ShopPage() {
           </div>
           <div className="rounded-lg border bg-card p-4 text-left space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Order Summary</p>
-            {cart.length === 0 && <p className="text-sm text-muted-foreground">No items</p>}
+            {Object.keys(catalogCart).length === 0 && cart.length === 0 && <p className="text-sm text-muted-foreground">No items</p>}
+            {catalog.filter((ci) => catalogCart[ci.shopListingId]?.qty).map((ci) => (
+              <div key={ci.shopListingId} className="flex justify-between text-sm">
+                <span>{ci.productName}{ci.packSize ? ` (${ci.packSize})` : ""}</span>
+                <span className="font-semibold">×{catalogCart[ci.shopListingId].qty}</span>
+              </div>
+            ))}
             {cart.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
                 <span>{item.productName}{item.packSize ? ` (${item.packSize})` : ""}</span>
@@ -449,7 +465,7 @@ export default function ShopPage() {
             ))}
           </div>
           <Button variant="outline" className="w-full" onClick={() => {
-            setStep("name"); setCustomerName(""); setCart([]); setOrderId(null);
+            setStep("name"); setCustomerName(""); setCart([]); setCatalogCart({}); setOrderId(null);
             lastScannedRef.current = "";
           }}>
             Start a New Order
@@ -460,8 +476,9 @@ export default function ShopPage() {
   }
 
   // ── Scan step ──────────────────────────────────────────────────────────────
-  const totalUnits = cart.reduce((s, c) => s + c.quantity, 0);
-  const inCartCount = cart.length;
+  const catalogUnits = Object.values(catalogCart).reduce((s, e) => s + e.qty, 0);
+  const totalUnits = catalogUnits + cart.reduce((s, c) => s + c.quantity, 0);
+  const inCartCount = Object.values(catalogCart).filter((e) => e.qty > 0).length + cart.length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -564,9 +581,8 @@ export default function ShopPage() {
         ) : (
           <div className="divide-y">
             {catalog.map((item) => {
-              const cartItem = item.inventoryItemId ? getCartItemByInvId(item.inventoryItemId) : undefined;
-              const qty = cartItem?.quantity ?? 0;
-              const isEditing = editingInvId === item.inventoryItemId;
+              const qty = catalogCart[item.shopListingId]?.qty ?? 0;
+              const isEditing = editingListingId === item.shopListingId;
               const isLimited = item.status === "limited";
               const noInventory = !item.inventoryItemId;
 
@@ -578,19 +594,18 @@ export default function ShopPage() {
                   {/* Left: name + meta */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className={`text-sm font-medium leading-tight ${noInventory ? "text-muted-foreground" : ""}`}>
-                        {item.productName}
-                      </p>
+                      <p className="text-sm font-medium leading-tight">{item.productName}</p>
                       {isLimited && (
                         <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-medium leading-none">Limited</span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.price ? <span className="font-medium text-foreground">{item.price}</span> : null}
-                      {item.price && item.packSize ? " · " : ""}
-                      {item.packSize ?? ""}
-                      {noInventory ? <span className="ml-1 italic">(not in inventory)</span> : ""}
-                    </p>
+                    {(item.price || item.packSize) && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {item.price ? <span className="font-medium text-foreground">{item.price}</span> : null}
+                        {item.price && item.packSize ? " · " : ""}
+                        {item.packSize ?? ""}
+                      </p>
+                    )}
                   </div>
 
                   {/* Right: qty controls */}
@@ -605,7 +620,7 @@ export default function ShopPage() {
                           onChange={(e) => setEditDraft(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") confirmEdit(item);
-                            if (e.key === "Escape") { setEditingInvId(null); setEditDraft(""); }
+                            if (e.key === "Escape") { setEditingListingId(null); setEditDraft(""); }
                           }}
                           onBlur={() => confirmEdit(item)}
                           className="w-16 h-8 text-center text-sm px-1"
