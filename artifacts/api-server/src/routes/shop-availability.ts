@@ -3,6 +3,7 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 import { db } from "@workspace/db";
 import { shopListingsTable } from "@workspace/db";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -121,6 +122,34 @@ router.get("/shop-availability", async (req, res) => {
     res.json(rows);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch shop availability");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /shop-availability/catalog
+// Returns available/limited shop listings joined to their best-match inventory item
+router.get("/shop-availability/catalog", async (req, res) => {
+  try {
+    const rows = await db.execute(sql`
+      SELECT DISTINCT ON (sl.id)
+        sl.id            AS "shopListingId",
+        sl.product_name  AS "productName",
+        sl.price         AS "price",
+        sl.status        AS "status",
+        ii.id            AS "inventoryItemId",
+        v.name           AS "vendorName",
+        p.pack_size      AS "packSize",
+        ii.quantity_on_hand AS "quantityOnHand"
+      FROM shop_listings sl
+      LEFT JOIN products p  ON LOWER(p.name) = LOWER(sl.product_name)
+      LEFT JOIN inventory_items ii ON ii.product_id = p.id
+      LEFT JOIN vendors v   ON v.id = ii.vendor_id
+      WHERE sl.status != 'out_of_stock'
+      ORDER BY sl.id, ii.quantity_on_hand DESC NULLS LAST
+    `);
+    res.json(rows.rows);
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch shop catalog");
     res.status(500).json({ error: "Internal server error" });
   }
 });
