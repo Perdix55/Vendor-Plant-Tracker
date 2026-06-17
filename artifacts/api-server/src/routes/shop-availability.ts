@@ -40,11 +40,20 @@ router.post("/shop-availability/import", upload.single("file"), async (req, res)
 
   const listings: { productName: string; status: "available" | "limited" | "out_of_stock" }[] = [];
 
+  const LEGEND_KEYWORDS = ["legend", "availability legend", "key:", "key :", "✓ =", "✔ =", "* =", "checkmark", "= available", "= limited"];
+  const SKIP_PATTERNS = [/@/, /^\+?[\d\s\-().]{7,}$/, /^www\./i, /^http/i, /^fax/i, /^phone/i, /^tel/i, /^email/i, /^address/i];
+
   for (const row of rows) {
     const name = String(row[0] ?? "").trim();
     if (!name) continue;
     const nameLower = name.toLowerCase();
+
+    // Stop at the legend row and skip everything after it
+    if (LEGEND_KEYWORDS.some((kw) => nameLower.includes(kw))) break;
+
+    // Skip header-like labels and business contact info
     if (nameLower === "name" || nameLower === "product" || nameLower === "item") continue;
+    if (SKIP_PATTERNS.some((re) => re.test(name))) continue;
 
     const colC = String(row[2] ?? "").trim();
     const colG = String(row[6] ?? "").trim();
