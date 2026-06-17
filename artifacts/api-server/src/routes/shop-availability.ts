@@ -38,10 +38,11 @@ router.post("/shop-availability/import", upload.single("file"), async (req, res)
     return res.status(400).json({ error: "Could not read the file. Make sure it is a valid CSV or Excel file." });
   }
 
-  const listings: { productName: string; status: "available" | "limited" | "out_of_stock" }[] = [];
+  const listings: { productName: string; status: "available" | "limited" | "out_of_stock"; priceB: string | null; priceF: string | null }[] = [];
 
   const LEGEND_KEYWORDS = ["legend", "availability legend", "key:", "key :", "✓ =", "✔ =", "* =", "checkmark", "= available", "= limited"];
-  const SKIP_PATTERNS = [/@/, /^\+?[\d\s\-().]{7,}$/, /^www\./i, /^http/i, /^fax/i, /^phone/i, /^tel/i, /^email/i, /^address/i];
+  // Phone pattern now also handles slashes between numbers (e.g. 214-824-4440/800-408-0323)
+  const SKIP_PATTERNS = [/@/, /^[\d\s\-().\/]{7,}$/, /^www\./i, /^http/i, /^fax/i, /^phone/i, /^tel/i, /^email/i, /^address/i];
 
   for (const row of rows) {
     const name = String(row[0] ?? "").trim();
@@ -55,7 +56,9 @@ router.post("/shop-availability/import", upload.single("file"), async (req, res)
     if (nameLower === "name" || nameLower === "product" || nameLower === "item") continue;
     if (SKIP_PATTERNS.some((re) => re.test(name))) continue;
 
+    const colB = String(row[1] ?? "").trim();
     const colC = String(row[2] ?? "").trim();
+    const colF = String(row[5] ?? "").trim();
     const colG = String(row[6] ?? "").trim();
 
     // Skip all-uppercase section headers / business name rows that have no availability data
@@ -72,7 +75,12 @@ router.post("/shop-availability/import", upload.single("file"), async (req, res)
       }
     }
 
-    listings.push({ productName: name, status });
+    listings.push({
+      productName: name,
+      status,
+      priceB: colB || null,
+      priceF: colF || null,
+    });
   }
 
   if (listings.length === 0) {
