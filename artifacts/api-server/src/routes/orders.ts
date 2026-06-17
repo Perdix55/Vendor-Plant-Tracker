@@ -84,6 +84,8 @@ async function fetchOrderWithItems(orderId: number) {
       quantityConfirmed: orderItemsTable.quantityConfirmed,
       availability: orderItemsTable.availability,
       notes: orderItemsTable.notes,
+      substitutionName: orderItemsTable.substitutionName,
+      substitutionNotes: orderItemsTable.substitutionNotes,
     })
     .from(orderItemsTable)
     .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
@@ -267,6 +269,8 @@ router.get("/orders/:orderId/items", async (req, res) => {
         quantityConfirmed: orderItemsTable.quantityConfirmed,
         availability: orderItemsTable.availability,
         notes: orderItemsTable.notes,
+        substitutionName: orderItemsTable.substitutionName,
+        substitutionNotes: orderItemsTable.substitutionNotes,
       })
       .from(orderItemsTable)
       .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
