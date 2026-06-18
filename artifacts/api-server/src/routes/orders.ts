@@ -521,8 +521,10 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
     const fromEmailSetting = settingsRows.find(r => r.key === "fromEmail")?.value ?? null;
 
     const connectors = new ReplitConnectors();
+    const fromAddress = "sales@vickerygreenhouse.com";
     const replyToLine = fromEmailSetting ? `Reply-To: ${fromEmailSetting}\r\n` : "";
     const emailB64 = Buffer.from(
+      `From: Vickery Wholesale Greenhouse <${fromAddress}>\r\n` +
       `To: ${order.vendorEmail}\r\n` +
       `Subject: Purchase Order Confirmation Request - ${order.vendorName} - Week of ${weekDateDisplay}\r\n` +
       replyToLine +
