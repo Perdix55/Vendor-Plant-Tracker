@@ -1949,6 +1949,11 @@ function ShopAvailabilityTab() {
   const [loadingCurrent, setLoadingCurrent] = useState(true);
   const [search, setSearch] = useState("");
 
+  // Google Sheets URL import
+  const [sheetsUrl, setSheetsUrl] = useState("");
+  const [sheetsLoading, setSheetsLoading] = useState(false);
+  const [sheetsError, setSheetsError] = useState<string | null>(null);
+
   useEffect(() => {
     fetch("/api/shop-availability")
       .then((r) => r.json())
@@ -1991,6 +1996,32 @@ function ShopAvailabilityTab() {
     }
   }
 
+  async function handleSheetsImport() {
+    if (!sheetsUrl.trim()) return;
+    setSheetsLoading(true);
+    setSheetsError(null);
+    setResult(null);
+    try {
+      const resp = await fetch("/api/shop-availability/import-from-sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: sheetsUrl.trim() }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        setSheetsError(data.error ?? "Import failed");
+      } else {
+        setResult(data);
+        setSheetsUrl("");
+        toast({ title: `Imported ${data.imported} products from Google Sheets`, description: `${data.available} available · ${data.limited} limited · ${data.outOfStock} out of stock` });
+      }
+    } catch {
+      setSheetsError("Network error — check your connection and try again.");
+    } finally {
+      setSheetsLoading(false);
+    }
+  }
+
   const statusBadge = (status: string) => {
     if (status === "available") return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">Available</Badge>;
     if (status === "limited") return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">Limited</Badge>;
@@ -2009,10 +2040,42 @@ function ShopAvailabilityTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Store className="h-5 w-5" />Weekly Shop Availability Import</CardTitle>
           <CardDescription>
-            Download your Google Sheet as a CSV or Excel file, then upload it here. Columns C and G are checked for availability: ✓ = available, * = limited, blank = out of stock.
+            Paste your Google Sheets link to import all tabs at once, or upload a downloaded file. All tabs except "Master_Combined" are parsed. ✓ = available, * = limited, blank/false = out of stock.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Google Sheets URL import */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Import from Google Sheets</Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://docs.google.com/spreadsheets/d/…"
+                value={sheetsUrl}
+                onChange={(e) => { setSheetsUrl(e.target.value); setSheetsError(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSheetsImport(); }}
+                className="flex-1 text-sm"
+                disabled={sheetsLoading}
+              />
+              <Button onClick={handleSheetsImport} disabled={sheetsLoading || !sheetsUrl.trim()} className="gap-2 shrink-0">
+                {sheetsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}
+                {sheetsLoading ? "Importing…" : "Import"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">The sheet must be shared publicly ("Anyone with the link can view").</p>
+            {sheetsError && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive flex gap-2 items-start">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{sheetsError}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex-1 border-t" />
+            <span>or upload a file</span>
+            <div className="flex-1 border-t" />
+          </div>
+
           <div
             className="border-2 border-dashed rounded-lg px-6 py-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
             onClick={() => fileRef.current?.click()}
