@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Minus, Plus, Pencil, Package, Search, ShoppingCart, Loader2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,6 +16,7 @@ type CatalogItem = {
   productName: string;
   price: string | null;
   status: string;
+  category: string | null;
 };
 
 type CatalogEntry = { cartItemId: number; qty: number };
@@ -44,6 +46,9 @@ export default function NewSalesOrder() {
   const [catalogCart, setCatalogCart] = useState<Record<number, CatalogEntry>>({});
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
+
+  // Category filter
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -227,10 +232,13 @@ export default function NewSalesOrder() {
     navigate(`/sales-orders/${orderId}`);
   };
 
-  // ── Stats ────────────────────────────────────────────────────────────────────
+  // ── Stats & derived ──────────────────────────────────────────────────────────
 
   const totalUnits = Object.values(catalogCart).reduce((s, e) => s + e.qty, 0);
   const inCartCount = Object.values(catalogCart).filter((e) => e.qty > 0).length;
+
+  const categories = Array.from(new Set(catalog.map((i) => i.category).filter(Boolean))) as string[];
+  const filteredCatalog = selectedCategory === "all" ? catalog : catalog.filter((i) => i.category === selectedCategory);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -327,7 +335,22 @@ export default function NewSalesOrder() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-4">
-              <CardTitle className="text-base">Availability Catalog</CardTitle>
+              <div className="flex items-center gap-3 min-w-0">
+                <CardTitle className="text-base shrink-0">Availability Catalog</CardTitle>
+                {categories.length > 0 && (
+                  <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setSearchQuery(""); }}>
+                    <SelectTrigger className="h-8 w-52 text-sm">
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
               <div ref={searchWrapperRef} className="relative w-72">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
@@ -371,14 +394,14 @@ export default function NewSalesOrder() {
               <div className="px-6 py-4 space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />)}
               </div>
-            ) : catalog.length === 0 ? (
+            ) : filteredCatalog.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                 <Package className="h-10 w-10 opacity-20" />
-                <p className="text-sm">No products listed. Import a weekly availability sheet in Admin → Shop.</p>
+                <p className="text-sm">{catalog.length === 0 ? "No products listed. Import a weekly availability sheet in Admin → Shop." : "No products in this category."}</p>
               </div>
             ) : (
               <div className="divide-y">
-                {catalog.map((item) => {
+                {filteredCatalog.map((item) => {
                   const qty = catalogCart[item.shopListingId]?.qty ?? 0;
                   const isEditing = editingListingId === item.shopListingId;
                   return (

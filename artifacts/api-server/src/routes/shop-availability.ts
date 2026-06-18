@@ -10,7 +10,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 
 type Availability = "available" | "limited" | "out_of_stock";
 
-type Listing = { productName: string; status: Availability; price: string | null };
+type Listing = { productName: string; status: Availability; price: string | null; category: string | null };
 
 function resolveStatus(val: string): Availability {
   const v = val.trim();
@@ -35,7 +35,7 @@ function shouldSkipName(n: string): boolean {
   return false;
 }
 
-function parseSheet(rows: unknown[][]): Listing[] {
+function parseSheet(rows: unknown[][], category: string | null): Listing[] {
   const listings: Listing[] = [];
   let hitLegend = false;
 
@@ -49,10 +49,9 @@ function parseSheet(rows: unknown[][]): Listing[] {
       if (LEGEND_KEYWORDS.some((kw) => nl.includes(kw))) { hitLegend = true; break; }
       const colB = String(row[1] ?? "").trim();
       const colC = String(row[2] ?? "").trim();
-      // Skip all-caps category headers (no price AND no status)
       const isHeader = nameA === nameA.toUpperCase() && nameA !== nameA.toLowerCase() && !colC && !colB;
       if (!shouldSkipName(nameA) && !isHeader) {
-        listings.push({ productName: nameA, status: resolveStatus(colC), price: colB || null });
+        listings.push({ productName: nameA, status: resolveStatus(colC), price: colB || null, category });
       }
     }
 
@@ -65,7 +64,7 @@ function parseSheet(rows: unknown[][]): Listing[] {
       const colG = String(row[6] ?? "").trim();
       const isHeader = nameE === nameE.toUpperCase() && nameE !== nameE.toLowerCase() && !colG && !colF;
       if (!shouldSkipName(nameE) && !isHeader) {
-        listings.push({ productName: nameE, status: resolveStatus(colG), price: colF || null });
+        listings.push({ productName: nameE, status: resolveStatus(colG), price: colF || null, category });
       }
     }
   }
@@ -78,7 +77,7 @@ function parseWorkbook(wb: XLSX.WorkBook): Listing[] {
     if (name.toLowerCase().includes("master")) continue;
     const ws = wb.Sheets[name];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }) as unknown[][];
-    listings.push(...parseSheet(rows));
+    listings.push(...parseSheet(rows, name));
   }
   return listings;
 }
@@ -187,6 +186,7 @@ router.get("/shop-availability/catalog", async (req, res) => {
         sl.product_name  AS "productName",
         sl.price         AS "price",
         sl.status        AS "status",
+        sl.category      AS "category",
         ii.id            AS "inventoryItemId",
         v.name           AS "vendorName",
         p.pack_size      AS "packSize",

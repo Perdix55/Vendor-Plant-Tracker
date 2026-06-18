@@ -28,6 +28,7 @@ type CatalogItem = {
   productName: string;
   price: string | null;
   status: string;
+  category: string | null;
 };
 
 type CatalogEntry = { cartItemId: number; qty: number };
@@ -85,6 +86,7 @@ export default function SalesOrderDetail() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogCart, setCatalogCart] = useState<Record<number, CatalogEntry>>({});
+  const [catalogCategory, setCatalogCategory] = useState<string>("all");
   const [catalogEditingId, setCatalogEditingId] = useState<number | null>(null);
   const [catalogEditDraft, setCatalogEditDraft] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -142,6 +144,10 @@ export default function SalesOrderDetail() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // ── Catalog derived ─────────────────────────────────────────────────────
+  const catalogCategories = Array.from(new Set(catalog.map((i) => i.category).filter(Boolean))) as string[];
+  const filteredCatalog = catalogCategory === "all" ? catalog : catalog.filter((i) => i.category === catalogCategory);
 
   // ── Catalog API helpers ──────────────────────────────────────────────────
   const catalogApiAdd = async (item: CatalogItem, qty: number): Promise<CatalogEntry> => {
@@ -657,7 +663,23 @@ export default function SalesOrderDetail() {
 
           {showCatalog && (
             <CardContent className="pt-0">
-              {/* Search bar */}
+              {/* Category filter + Search bar */}
+              <div className="flex items-center gap-3 mb-4">
+                {catalogCategories.length > 0 && (
+                  <Select value={catalogCategory} onValueChange={(v) => { setCatalogCategory(v); setCatalogSearch(""); }}>
+                    <SelectTrigger className="h-9 w-52 text-sm shrink-0">
+                      <SelectValue placeholder="All categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All categories</SelectItem>
+                      {catalogCategories.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <div className="flex-1" />
+              </div>
               <div ref={catalogSearchWrapperRef} className="relative mb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -695,8 +717,10 @@ export default function SalesOrderDetail() {
                 <div className="space-y-2">
                   {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                 </div>
-              ) : catalog.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground text-sm">No catalog items available.</div>
+              ) : filteredCatalog.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground text-sm">
+                  {catalog.length === 0 ? "No catalog items available." : "No products in this category."}
+                </div>
               ) : (
                 <div className="border rounded-md overflow-hidden">
                   <Table>
@@ -708,7 +732,7 @@ export default function SalesOrderDetail() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {catalog.map((item) => {
+                      {filteredCatalog.map((item) => {
                         const entry = catalogCart[item.shopListingId];
                         const qty = entry?.qty ?? 0;
                         const isEditing = catalogEditingId === item.shopListingId;
