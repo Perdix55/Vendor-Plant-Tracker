@@ -416,7 +416,7 @@ export default function ShopPage() {
                     <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{item.productName}</p>
-                      {item.price && <p className="text-xs text-muted-foreground">{item.price}</p>}
+                      {item.price && <p className="text-xs text-muted-foreground">${item.price}</p>}
                     </div>
                   </button>
                 ))}
@@ -521,7 +521,7 @@ export default function ShopPage() {
                     </div>
                     {item.price && (
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        <span className="font-medium text-foreground">{item.price}</span>
+                        <span className="font-medium text-foreground">${item.price}</span>
                       </p>
                     )}
                   </div>
