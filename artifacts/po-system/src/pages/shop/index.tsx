@@ -12,6 +12,7 @@ type CatalogItem = {
   productName: string;
   price: string | null;
   status: string;
+  category: string | null;
 };
 
 type CatalogEntry = { cartItemId: number; qty: number };
@@ -29,6 +30,8 @@ export default function ShopPage() {
   const [catalogCart, setCatalogCart] = useState<Record<number, CatalogEntry>>({});
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [scanFeedback, setScanFeedback] = useState<{ text: string; ok: boolean } | null>(null);
@@ -356,6 +359,8 @@ export default function ShopPage() {
   // ── Scan / browse step ─────────────────────────────────────────────────────
   const totalUnits = Object.values(catalogCart).reduce((s, e) => s + e.qty, 0);
   const inCartCount = Object.values(catalogCart).filter((e) => e.qty > 0).length;
+  const categories = Array.from(new Set(catalog.map((i) => i.category).filter(Boolean))) as string[];
+  const filteredCatalog = selectedCategory === "all" ? catalog : catalog.filter((i) => i.category === selectedCategory);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -443,20 +448,61 @@ export default function ShopPage() {
         )}
       </div>
 
+      {/* Category tabs */}
+      {categories.length > 0 && (
+        <div className="bg-card border-b shrink-0 overflow-x-auto scrollbar-none">
+          <div className="flex gap-1.5 px-4 py-2.5 w-max min-w-full">
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                selectedCategory === "all"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              All
+            </button>
+            {categories.map((cat) => {
+              const cartCount = catalog
+                .filter((i) => i.category === cat)
+                .reduce((s, i) => s + (catalogCart[i.shopListingId]?.qty ?? 0), 0);
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+                    selectedCategory === cat
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {cat}
+                  {cartCount > 0 && (
+                    <span className={`text-xs font-bold rounded-full px-1.5 py-0 leading-5 ${selectedCategory === cat ? "bg-white/20 text-white" : "bg-green-100 text-green-800"}`}>
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Product catalog */}
       <div className="flex-1 overflow-y-auto">
         {catalogLoading ? (
           <div className="px-4 py-6 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-14 rounded-lg bg-muted animate-pulse" />)}
           </div>
-        ) : catalog.length === 0 ? (
+        ) : filteredCatalog.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm gap-2 px-4 text-center">
             <Package className="h-10 w-10 opacity-20" />
-            <p>No products listed. Import a weekly availability sheet in Admin → Shop.</p>
+            <p>{catalog.length === 0 ? "No products listed. Import a weekly availability sheet in Admin → Shop." : "No products in this category."}</p>
           </div>
         ) : (
           <div className="divide-y">
-            {catalog.map((item) => {
+            {filteredCatalog.map((item) => {
               const qty = catalogCart[item.shopListingId]?.qty ?? 0;
               const isEditing = editingListingId === item.shopListingId;
               const isLimited = item.status === "limited";
