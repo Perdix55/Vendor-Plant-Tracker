@@ -323,6 +323,7 @@ export default function OrderDetail() {
       confirmed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
       partial: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",
       substitution: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800",
+      received: "bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800",
     };
     const label = status === "submitted" ? "Created" : status.charAt(0).toUpperCase() + status.slice(1);
     return <Badge className={styles[status] ?? "bg-secondary text-secondary-foreground"} variant="outline">{label}</Badge>;

@@ -143,6 +143,7 @@ export const OrderSummaryStatus = {
   confirmed: "confirmed",
   partial: "partial",
   substitution: "substitution",
+  received: "received",
 } as const;
 
 export interface OrderSummary {
@@ -170,6 +171,7 @@ export const OrderStatus = {
   confirmed: "confirmed",
   partial: "partial",
   substitution: "substitution",
+  received: "received",
 } as const;
 
 export type OrderItemAvailability =
@@ -241,6 +243,7 @@ export const UpdateOrderBodyStatus = {
   confirmed: "confirmed",
   partial: "partial",
   substitution: "substitution",
+  received: "received",
 } as const;
 
 export interface UpdateOrderBody {
@@ -395,6 +398,7 @@ export const ListOrdersStatus = {
   confirmed: "confirmed",
   partial: "partial",
   substitution: "substitution",
+  received: "received",
 } as const;
 
 export type ReceiveOrder200 = {

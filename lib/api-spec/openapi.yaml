@@ -240,7 +240,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [draft, submitted, sent, confirmed, partial, substitution]
+            enum: [draft, submitted, sent, confirmed, partial, substitution, received]
         - name: weekDate
           in: query
           schema:
@@ -1122,7 +1122,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [draft, submitted, sent, confirmed, partial, substitution]
+          enum: [draft, submitted, sent, confirmed, partial, substitution, received]
         totalItems:
           type: integer
         confirmedItems:
@@ -1161,7 +1161,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [draft, submitted, sent, confirmed, partial, substitution]
+          enum: [draft, submitted, sent, confirmed, partial, substitution, received]
         notes:
           type: string
           nullable: true
@@ -1243,7 +1243,7 @@ components:
       properties:
         status:
           type: string
-          enum: [draft, submitted, sent, confirmed, partial, substitution]
+          enum: [draft, submitted, sent, confirmed, partial, substitution, received]
         notes:
           type: string
           nullable: true

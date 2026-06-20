@@ -424,6 +424,8 @@ router.post("/orders/:orderId/receive", async (req, res) => {
       }
     }
 
+    await db.update(ordersTable).set({ status: "received", updatedAt: new Date() }).where(eq(ordersTable.id, orderId));
+
     res.json({ received: items.length });
   } catch (err) {
     req.log.error({ err }, "Failed to receive order");
