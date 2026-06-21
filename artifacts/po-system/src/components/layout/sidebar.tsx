@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, ShoppingCart, PlusCircle, Settings, PackageSearch, ShoppingBag, LogOut, UserCircle } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingCart, PlusCircle, Settings, PackageSearch, ShoppingBag, LogOut, UserCircle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/auth-context";
 import type { SafeUser } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
+import { HelpModal } from "@/components/help/HelpModal";
 
 type NavItem = {
   title: string;
@@ -56,6 +58,7 @@ export function Sidebar() {
   const [location, navigate] = useLocation();
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const visibleItems = user
     ? sidebarNavItems.filter((item) => item.permission === null || item.permission(user))
@@ -116,6 +119,13 @@ export function Sidebar() {
             </span>
           </Link>
           <button
+            onClick={() => setHelpOpen(true)}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Help
+          </button>
+          <button
             onClick={handleLogout}
             className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             data-testid="button-sidebar-logout"
@@ -125,6 +135,7 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+      <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
     </div>
   );
 }
