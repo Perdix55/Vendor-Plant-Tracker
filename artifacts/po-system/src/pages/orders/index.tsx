@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, parse, parseISO, startOfDay, endOfDay, isValid } from "date-fns";
 import * as XLSX from "xlsx";
 
 export default function Orders() {
@@ -49,13 +49,13 @@ export default function Orders() {
       if (dateFrom || dateTo) {
         const dateStr = o.shipDate ?? o.weekDate;
         if (!dateStr) return false;
-        try {
-          const d = startOfDay(parseISO(dateStr));
-          if (dateFrom && d < startOfDay(parseISO(dateFrom))) return false;
-          if (dateTo && d > endOfDay(parseISO(dateTo))) return false;
-        } catch {
-          return false;
-        }
+        // weekDate is stored as MM/dd/yyyy; shipDate may be ISO or MM/dd/yyyy
+        let d = parse(dateStr, "MM/dd/yyyy", new Date());
+        if (!isValid(d)) d = parseISO(dateStr);
+        if (!isValid(d)) return false;
+        d = startOfDay(d);
+        if (dateFrom && d < startOfDay(parseISO(dateFrom))) return false;
+        if (dateTo && d > endOfDay(parseISO(dateTo))) return false;
       }
 
       return true;
@@ -71,8 +71,8 @@ export default function Orders() {
       "PO #": `#${o.id}`,
       Vendor: o.vendorName,
       "Order Date": o.weekDate,
-      "Ship Date": o.shipDate ? format(parseISO(o.shipDate), "MM/dd/yyyy") : "",
-      "Arrive Date": o.arriveDate ? format(parseISO(o.arriveDate), "MM/dd/yyyy") : "",
+      "Ship Date": o.shipDate ? (() => { const d = parse(o.shipDate, "MM/dd/yyyy", new Date()); return isValid(d) ? format(d, "MM/dd/yyyy") : o.shipDate; })() : "",
+      "Arrive Date": o.arriveDate ? (() => { const d = parse(o.arriveDate, "MM/dd/yyyy", new Date()); return isValid(d) ? format(d, "MM/dd/yyyy") : o.arriveDate; })() : "",
       Status: o.status.charAt(0).toUpperCase() + o.status.slice(1),
       "Total Items": o.totalItems,
       "Confirmed Items": o.confirmedItems,
@@ -300,14 +300,14 @@ export default function Orders() {
                       <span>{order.weekDate}</span>
                       {order.shipDate && (
                         <span className="text-xs text-muted-foreground mt-0.5">
-                          Ship: {format(parseISO(order.shipDate), "MM/dd")}
+                          Ship: {order.shipDate}
                         </span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
                     {order.arriveDate ? (
-                      <span className="text-sm">{format(parseISO(order.arriveDate), "MM/dd/yyyy")}</span>
+                      <span className="text-sm">{order.arriveDate}</span>
                     ) : (
                       <span className="text-muted-foreground text-xs">—</span>
                     )}
