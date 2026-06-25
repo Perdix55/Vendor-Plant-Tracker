@@ -1129,6 +1129,8 @@ components:
           type: integer
         totalQuantity:
           type: integer
+        receivedQuantity:
+          type: integer
         notes:
           type: string
           nullable: true
@@ -1137,7 +1139,7 @@ components:
           nullable: true
         createdAt:
           type: string
-      required: [id, vendorId, vendorName, weekDate, status, totalItems, confirmedItems, totalQuantity, createdAt]
+      required: [id, vendorId, vendorName, weekDate, status, totalItems, confirmedItems, totalQuantity, receivedQuantity, createdAt]
 
     Order:
       type: object

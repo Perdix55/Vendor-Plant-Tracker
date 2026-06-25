@@ -124,14 +124,15 @@ router.get("/orders", async (req, res) => {
 
     const orderIds = orders.map((o) => o.id);
     let itemCounts: Record<number, { total: number; confirmed: number; totalQty: number }> = {};
+    let receivedQty: Record<number, number> = {};
 
     if (orderIds.length > 0) {
+      const idList = sql.join(orderIds.map((id) => sql`${id}`), sql`, `);
+
       const items = await db
         .select()
         .from(orderItemsTable)
-        .where(
-          sql`${orderItemsTable.orderId} = ANY(ARRAY[${sql.join(orderIds.map((id) => sql`${id}`), sql`, `)}]::int[])`
-        );
+        .where(sql`${orderItemsTable.orderId} = ANY(ARRAY[${idList}]::int[])`);
       for (const item of items) {
         if (!itemCounts[item.orderId]) itemCounts[item.orderId] = { total: 0, confirmed: 0, totalQty: 0 };
         itemCounts[item.orderId].total++;
@@ -139,6 +140,19 @@ router.get("/orders", async (req, res) => {
         if (item.availability === "available" || item.availability === "partial") {
           itemCounts[item.orderId].confirmed++;
         }
+      }
+
+      const txns = await db
+        .select({ orderId: inventoryTransactionsTable.orderId, quantity: inventoryTransactionsTable.quantity })
+        .from(inventoryTransactionsTable)
+        .where(
+          and(
+            sql`${inventoryTransactionsTable.orderId} = ANY(ARRAY[${idList}]::int[])`,
+            eq(inventoryTransactionsTable.type, "receive")
+          )
+        );
+      for (const t of txns) {
+        if (t.orderId) receivedQty[t.orderId] = (receivedQty[t.orderId] ?? 0) + t.quantity;
       }
     }
 
@@ -156,6 +170,7 @@ router.get("/orders", async (req, res) => {
         totalItems: itemCounts[o.id]?.total ?? 0,
         confirmedItems: itemCounts[o.id]?.confirmed ?? 0,
         totalQuantity: itemCounts[o.id]?.totalQty ?? 0,
+        receivedQuantity: receivedQty[o.id] ?? 0,
         createdAt: o.createdAt instanceof Date ? o.createdAt.toISOString() : o.createdAt,
       }))
     );

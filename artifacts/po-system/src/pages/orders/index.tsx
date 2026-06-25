@@ -76,7 +76,8 @@ export default function Orders() {
       Status: o.status.charAt(0).toUpperCase() + o.status.slice(1),
       "Total Items": o.totalItems,
       "Confirmed Items": o.confirmedItems,
-      "Total Qty": o.totalQuantity,
+      "Ordered Qty": o.totalQuantity,
+      "Received Qty": o.receivedQuantity,
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -252,7 +253,8 @@ export default function Orders() {
                 <TableHead>Ship Date</TableHead>
                 <TableHead>Arrive Date</TableHead>
                 <TableHead>Items</TableHead>
-                <TableHead>Total Qty</TableHead>
+                <TableHead>Ordered Qty</TableHead>
+                <TableHead>Received Qty</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -263,6 +265,7 @@ export default function Orders() {
                   <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
@@ -281,7 +284,8 @@ export default function Orders() {
                 <TableHead>Ship Date</TableHead>
                 <TableHead>Arrive Date</TableHead>
                 <TableHead>Items</TableHead>
-                <TableHead>Total Qty</TableHead>
+                <TableHead>Ordered Qty</TableHead>
+                <TableHead>Received Qty</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -326,6 +330,15 @@ export default function Orders() {
                     )}
                   </TableCell>
                   <TableCell>{order.totalQuantity}</TableCell>
+                  <TableCell>
+                    {order.receivedQuantity > 0 ? (
+                      <span className={`font-medium ${order.receivedQuantity < order.totalQuantity ? "text-amber-600 dark:text-amber-500" : "text-teal-700 dark:text-teal-400"}`}>
+                        {order.receivedQuantity}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={order.status} />
                   </TableCell>

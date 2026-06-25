@@ -157,6 +157,7 @@ export interface OrderSummary {
   totalItems: number;
   confirmedItems: number;
   totalQuantity: number;
+  receivedQuantity: number;
   notes?: string | null;
   emailSentAt?: string | null;
   createdAt: string;
