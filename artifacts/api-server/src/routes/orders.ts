@@ -47,6 +47,7 @@ function mapItem(item: any) {
     notes: item.notes ?? null,
     substitutionName: item.substitutionName ?? null,
     substitutionNotes: item.substitutionNotes ?? null,
+    receivedQuantity: item.receivedQuantity ?? 0,
   };
 }
 
