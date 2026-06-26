@@ -4,6 +4,7 @@ import {
   useGetOrder,
   useReceiveOrder,
   getGetOrderQueryKey,
+  getListOrdersQueryKey,
   getListInventoryQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -78,6 +79,8 @@ export default function ReceiveOrder() {
     try {
       await receiveOrder.mutateAsync({ orderId, data: { items } });
       await queryClient.invalidateQueries({ queryKey: getListInventoryQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getGetOrderQueryKey(orderId) });
       toast({ title: "Shipment received!", description: `${items.length} item(s) added to inventory.` });
       setLocation(`/orders/${orderId}`);
     } catch {
