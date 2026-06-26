@@ -1216,7 +1216,10 @@ components:
         substitutionNotes:
           type: string
           nullable: true
-      required: [id, orderId, productId, productName, quantityOrdered]
+        receivedQuantity:
+          type: integer
+          description: Total units received for this line item from inventory transactions
+      required: [id, orderId, productId, productName, quantityOrdered, receivedQuantity]
 
     CreateOrderBody:
       type: object

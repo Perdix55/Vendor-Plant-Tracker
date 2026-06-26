@@ -201,6 +201,8 @@ export interface OrderItem {
   notes?: string | null;
   substitutionName?: string | null;
   substitutionNotes?: string | null;
+  /** Total units received for this line item from inventory transactions */
+  receivedQuantity: number;
 }
 
 export interface Order {

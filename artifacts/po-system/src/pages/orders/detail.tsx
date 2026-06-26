@@ -595,6 +595,7 @@ export default function OrderDetail() {
                       <>
                         <TableHead className="text-right">Confirmed</TableHead>
                         <TableHead>Availability</TableHead>
+                        <TableHead className="text-right">Received</TableHead>
                         {receivedProductIds.size > 0 && !isConfirming && (
                           <TableHead className="text-right">Labels</TableHead>
                         )}
@@ -757,6 +758,15 @@ export default function OrderDetail() {
                                 </div>
                               ) : (
                                 renderAvailabilityBadge(item.availability, item.productId)
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {item.receivedQuantity > 0 ? (
+                                <span className={`font-medium ${item.receivedQuantity < item.quantityOrdered ? "text-amber-600 dark:text-amber-500" : "text-teal-700 dark:text-teal-400"}`}>
+                                  {item.receivedQuantity}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">—</span>
                               )}
                             </TableCell>
                             {receivedProductIds.size > 0 && !isConfirming && (

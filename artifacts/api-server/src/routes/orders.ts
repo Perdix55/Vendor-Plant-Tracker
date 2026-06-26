@@ -91,7 +91,26 @@ async function fetchOrderWithItems(orderId: number) {
     .innerJoin(productsTable, eq(productsTable.id, orderItemsTable.productId))
     .where(eq(orderItemsTable.orderId, orderId));
 
-  return { order: rows[0], items };
+  const txns = await db
+    .select({ productId: inventoryTransactionsTable.productId, quantity: inventoryTransactionsTable.quantity })
+    .from(inventoryTransactionsTable)
+    .where(
+      and(
+        eq(inventoryTransactionsTable.orderId, orderId),
+        eq(inventoryTransactionsTable.type, "receive")
+      )
+    );
+  const receivedByProduct: Record<number, number> = {};
+  for (const t of txns) {
+    receivedByProduct[t.productId] = (receivedByProduct[t.productId] ?? 0) + t.quantity;
+  }
+
+  const itemsWithReceived = items.map((item) => ({
+    ...item,
+    receivedQuantity: receivedByProduct[item.productId] ?? 0,
+  }));
+
+  return { order: rows[0], items: itemsWithReceived };
 }
 
 // GET /orders

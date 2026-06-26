@@ -307,6 +307,11 @@ export const GetOrderResponse = zod.object({
       notes: zod.string().nullish(),
       substitutionName: zod.string().nullish(),
       substitutionNotes: zod.string().nullish(),
+      receivedQuantity: zod
+        .number()
+        .describe(
+          "Total units received for this line item from inventory transactions",
+        ),
     }),
   ),
   createdAt: zod.string(),
@@ -383,6 +388,11 @@ export const UpdateOrderResponse = zod.object({
       notes: zod.string().nullish(),
       substitutionName: zod.string().nullish(),
       substitutionNotes: zod.string().nullish(),
+      receivedQuantity: zod
+        .number()
+        .describe(
+          "Total units received for this line item from inventory transactions",
+        ),
     }),
   ),
   createdAt: zod.string(),
@@ -423,6 +433,11 @@ export const ListOrderItemsResponseItem = zod.object({
   notes: zod.string().nullish(),
   substitutionName: zod.string().nullish(),
   substitutionNotes: zod.string().nullish(),
+  receivedQuantity: zod
+    .number()
+    .describe(
+      "Total units received for this line item from inventory transactions",
+    ),
 });
 export const ListOrderItemsResponse = zod.array(ListOrderItemsResponseItem);
 
@@ -478,6 +493,11 @@ export const UpdateOrderItemResponse = zod.object({
   notes: zod.string().nullish(),
   substitutionName: zod.string().nullish(),
   substitutionNotes: zod.string().nullish(),
+  receivedQuantity: zod
+    .number()
+    .describe(
+      "Total units received for this line item from inventory transactions",
+    ),
 });
 
 /**
@@ -580,6 +600,11 @@ export const ConfirmOrderResponse = zod.object({
       notes: zod.string().nullish(),
       substitutionName: zod.string().nullish(),
       substitutionNotes: zod.string().nullish(),
+      receivedQuantity: zod
+        .number()
+        .describe(
+          "Total units received for this line item from inventory transactions",
+        ),
     }),
   ),
   createdAt: zod.string(),
@@ -652,6 +677,11 @@ export const GetOrderByTokenResponse = zod.object({
       notes: zod.string().nullish(),
       substitutionName: zod.string().nullish(),
       substitutionNotes: zod.string().nullish(),
+      receivedQuantity: zod
+        .number()
+        .describe(
+          "Total units received for this line item from inventory transactions",
+        ),
     }),
   ),
   createdAt: zod.string(),
@@ -729,6 +759,11 @@ export const ConfirmOrderByTokenResponse = zod.object({
       notes: zod.string().nullish(),
       substitutionName: zod.string().nullish(),
       substitutionNotes: zod.string().nullish(),
+      receivedQuantity: zod
+        .number()
+        .describe(
+          "Total units received for this line item from inventory transactions",
+        ),
     }),
   ),
   createdAt: zod.string(),
