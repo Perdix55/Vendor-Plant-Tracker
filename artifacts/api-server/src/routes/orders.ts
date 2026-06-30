@@ -516,8 +516,10 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
         vendorName: vendorsTable.name,
         vendorEmail: vendorsTable.email,
         weekDate: ordersTable.weekDate,
+        shipDate: ordersTable.shipDate,
         status: ordersTable.status,
         confirmToken: ordersTable.confirmToken,
+        sourceLocation: vendorsTable.sourceLocation,
       })
       .from(ordersTable)
       .innerJoin(vendorsTable, eq(vendorsTable.id, ordersTable.vendorId))
@@ -547,11 +549,18 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
     // Format week date nicely
     const weekDateDisplay = order.weekDate;
 
+    const shippingInstruction = buildShippingInstruction(
+      order.sourceLocation,
+      order.shipDate ?? order.weekDate,
+      order.weekDate,
+    );
+
     const emailBody = buildEmailHtml({
       vendorName: order.vendorName,
       weekDate: weekDateDisplay,
       confirmUrl,
       orderId,
+      shippingInstruction,
     });
 
     const settingsRows = await db.select().from(settingsTable);
@@ -599,11 +608,35 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
   }
 });
 
-function buildEmailHtml({ vendorName, weekDate, confirmUrl, orderId }: {
+function nextThursdayFrom(refDate: Date): string {
+  const d = new Date(refDate);
+  const daysUntil = (4 - d.getDay() + 7) % 7 || 7;
+  d.setDate(d.getDate() + daysUntil);
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+
+function buildShippingInstruction(
+  sourceLocation: string | null,
+  shipDate: string,
+  weekDate: string,
+): string {
+  const loc = (sourceLocation ?? "Florida").toLowerCase();
+  if (loc === "california") {
+    const thursday = nextThursdayFrom(new Date());
+    return `Please ship the attached order to Superior Dock by Thursday ${thursday}.`;
+  }
+  if (loc === "canada") {
+    return `Please ship the attached order with Northland the week of ${weekDate}.`;
+  }
+  return `Please ship on ${shipDate} with JT Carriers.`;
+}
+
+function buildEmailHtml({ vendorName, weekDate, confirmUrl, orderId, shippingInstruction }: {
   vendorName: string;
   weekDate: string;
   confirmUrl: string;
   orderId: number;
+  shippingInstruction: string;
 }) {
   return `<!DOCTYPE html>
 <html>
@@ -627,6 +660,9 @@ function buildEmailHtml({ vendorName, weekDate, confirmUrl, orderId }: {
               <p style="margin:0 0 16px;color:#3d2b1f;font-size:16px;">Dear ${vendorName},</p>
               <p style="margin:0 0 24px;color:#5a4a3a;font-size:15px;line-height:1.6;">
                 Please review and confirm your availability for Purchase Order #${orderId} for the week of <strong>${weekDate}</strong>.
+              </p>
+              <p style="margin:0 0 24px;color:#5a4a3a;font-size:15px;line-height:1.6;">
+                ${shippingInstruction}
               </p>
               <p style="margin:0 0 32px;color:#5a4a3a;font-size:15px;line-height:1.6;">
                 Click the button below to open the order and mark each item as available, unavailable, or partial. No login is required.
