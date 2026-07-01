@@ -26,6 +26,8 @@ tags:
     description: Sales orders (customer-facing)
   - name: inventory
     description: Inventory management
+  - name: customers
+    description: Customer directory
 
 paths:
   /healthz:
@@ -133,6 +135,112 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Vendor"
+
+  /customers:
+    get:
+      operationId: listCustomers
+      tags: [customers]
+      summary: List all customers
+      responses:
+        "200":
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+    post:
+      operationId: createCustomer
+      tags: [customers]
+      summary: Create a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerBody"
+      responses:
+        "201":
+          description: Created customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+
+  /customers/import:
+    post:
+      operationId: importCustomers
+      tags: [customers]
+      summary: Bulk import customers from a spreadsheet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportCustomersBody"
+      responses:
+        "201":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportCustomersResult"
+
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get a customer by ID
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+    patch:
+      operationId: updateCustomer
+      tags: [customers]
+      summary: Update a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerBody"
+      responses:
+        "200":
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+    delete:
+      operationId: deleteCustomer
+      tags: [customers]
+      summary: Delete a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Customer deleted
 
   /vendors/{vendorId}/products:
     get:
@@ -989,6 +1097,122 @@ components:
         productsCreated:
           type: integer
       required: [vendor, productsCreated]
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+        customerNumber:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        billTo:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        primaryContact:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        shipTo:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, name, createdAt]
+
+    CreateCustomerBody:
+      type: object
+      properties:
+        customerNumber:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        billTo:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        primaryContact:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        shipTo:
+          type: string
+          nullable: true
+      required: [name]
+
+    UpdateCustomerBody:
+      type: object
+      properties:
+        customerNumber:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        billTo:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        primaryContact:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        shipTo:
+          type: string
+          nullable: true
+
+    ImportCustomersBody:
+      type: object
+      properties:
+        customers:
+          type: array
+          items:
+            type: object
+            properties:
+              customerNumber:
+                type: integer
+                nullable: true
+              name:
+                type: string
+              billTo:
+                type: string
+                nullable: true
+              email:
+                type: string
+                nullable: true
+              primaryContact:
+                type: string
+                nullable: true
+              phone:
+                type: string
+                nullable: true
+              shipTo:
+                type: string
+                nullable: true
+            required: [name]
+      required: [customers]
+
+    ImportCustomersResult:
+      type: object
+      properties:
+        customersCreated:
+          type: integer
+      required: [customersCreated]
 
     ReceiveOrderBody:
       type: object

@@ -13,6 +13,7 @@ import salesOrdersRouter from "./sales-orders";
 import reportsRouter from "./reports";
 import shopAvailabilityRouter from "./shop-availability";
 import shopOrderItemsRouter from "./shop-order-items";
+import customersRouter from "./customers";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(salesOrdersRouter);
 router.use(reportsRouter);
 router.use(shopAvailabilityRouter);
 router.use(shopOrderItemsRouter);
+router.use(customersRouter);
 
 export default router;

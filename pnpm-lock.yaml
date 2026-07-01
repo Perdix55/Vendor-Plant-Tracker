@@ -730,6 +730,10 @@ importers:
         version: 25.3.5
 
   scripts:
+    dependencies:
+      xlsx:
+        specifier: ^0.18.5
+        version: 0.18.5
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

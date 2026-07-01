@@ -45,6 +45,7 @@ PostgreSQL via `DATABASE_URL`. Tables:
 - `order_items` — line items per order with availability confirmation
 - `inventory_items` — one row per (product, vendor), tracks quantityOnHand
 - `inventory_transactions` — ledger of receives/sales/adjustments (type: receive | sale | adjustment | write_off)
+- `customers` — customer directory (customerNumber, name, billTo, email, primaryContact, phone, shipTo), used by sales orders; managed via Admin > Customers tab
 
 ## Order Workflow
 
@@ -74,6 +75,9 @@ PostgreSQL via `DATABASE_URL`. Tables:
 - `GET /api/summary/dashboard` — stats overview
 - `GET /api/summary/recent-orders` — recent orders
 - `GET /api/summary/vendor-activity` — per-vendor order totals
+- `GET/POST /api/customers` — list / create customers
+- `POST /api/customers/import` — bulk import customers from spreadsheet
+- `GET/PATCH/DELETE /api/customers/:customerId` — customer CRUD
 
 ## Frontend Pages
 

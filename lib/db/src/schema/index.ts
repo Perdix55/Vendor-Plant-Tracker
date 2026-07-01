@@ -9,3 +9,4 @@ export * from "./users";
 export * from "./priceListImports";
 export * from "./shopListings";
 export * from "./shopOrderItems";
+export * from "./customers";

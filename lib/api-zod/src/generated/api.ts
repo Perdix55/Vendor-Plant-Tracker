@@ -118,6 +118,107 @@ export const UpdateVendorResponse = zod.object({
 });
 
 /**
+ * @summary List all customers
+ */
+export const ListCustomersResponseItem = zod.object({
+  id: zod.number(),
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  billTo: zod.string().nullish(),
+  email: zod.string().nullish(),
+  primaryContact: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  shipTo: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListCustomersResponse = zod.array(ListCustomersResponseItem);
+
+/**
+ * @summary Create a new customer
+ */
+export const CreateCustomerBody = zod.object({
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  billTo: zod.string().nullish(),
+  email: zod.string().nullish(),
+  primaryContact: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  shipTo: zod.string().nullish(),
+});
+
+/**
+ * @summary Bulk import customers from a spreadsheet
+ */
+export const ImportCustomersBody = zod.object({
+  customers: zod.array(
+    zod.object({
+      customerNumber: zod.number().nullish(),
+      name: zod.string(),
+      billTo: zod.string().nullish(),
+      email: zod.string().nullish(),
+      primaryContact: zod.string().nullish(),
+      phone: zod.string().nullish(),
+      shipTo: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get a customer by ID
+ */
+export const GetCustomerParams = zod.object({
+  customerId: zod.coerce.number(),
+});
+
+export const GetCustomerResponse = zod.object({
+  id: zod.number(),
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  billTo: zod.string().nullish(),
+  email: zod.string().nullish(),
+  primaryContact: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  shipTo: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update a customer
+ */
+export const UpdateCustomerParams = zod.object({
+  customerId: zod.coerce.number(),
+});
+
+export const UpdateCustomerBody = zod.object({
+  customerNumber: zod.number().nullish(),
+  name: zod.string().optional(),
+  billTo: zod.string().nullish(),
+  email: zod.string().nullish(),
+  primaryContact: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  shipTo: zod.string().nullish(),
+});
+
+export const UpdateCustomerResponse = zod.object({
+  id: zod.number(),
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  billTo: zod.string().nullish(),
+  email: zod.string().nullish(),
+  primaryContact: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  shipTo: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a customer
+ */
+export const DeleteCustomerParams = zod.object({
+  customerId: zod.coerce.number(),
+});
+
+/**
  * @summary List products for a vendor
  */
 export const ListVendorProductsParams = zod.object({

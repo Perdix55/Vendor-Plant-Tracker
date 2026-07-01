@@ -67,6 +67,56 @@ export interface ImportVendorResult {
   productsCreated: number;
 }
 
+export interface Customer {
+  id: number;
+  customerNumber?: number | null;
+  name: string;
+  billTo?: string | null;
+  email?: string | null;
+  primaryContact?: string | null;
+  phone?: string | null;
+  shipTo?: string | null;
+  createdAt: string;
+}
+
+export interface CreateCustomerBody {
+  customerNumber?: number | null;
+  name: string;
+  billTo?: string | null;
+  email?: string | null;
+  primaryContact?: string | null;
+  phone?: string | null;
+  shipTo?: string | null;
+}
+
+export interface UpdateCustomerBody {
+  customerNumber?: number | null;
+  name?: string;
+  billTo?: string | null;
+  email?: string | null;
+  primaryContact?: string | null;
+  phone?: string | null;
+  shipTo?: string | null;
+}
+
+export type ImportCustomersBodyCustomersItem = {
+  customerNumber?: number | null;
+  name: string;
+  billTo?: string | null;
+  email?: string | null;
+  primaryContact?: string | null;
+  phone?: string | null;
+  shipTo?: string | null;
+};
+
+export interface ImportCustomersBody {
+  customers: ImportCustomersBodyCustomersItem[];
+}
+
+export interface ImportCustomersResult {
+  customersCreated: number;
+}
+
 export type ReceiveOrderBodyItemsItem = {
   productId: number;
   quantityReceived: number;

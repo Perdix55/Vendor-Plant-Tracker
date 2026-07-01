@@ -11,9 +11,15 @@ import {
   useDeleteProduct,
   useGetSettings,
   useUpdateSettings,
+  useListCustomers,
+  useCreateCustomer,
+  useUpdateCustomer,
+  useDeleteCustomer,
   getListVendorsQueryKey,
   getListVendorProductsQueryKey,
+  getListCustomersQueryKey,
 } from "@workspace/api-client-react";
+import type { Customer } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert, ArrowDownToLine, CheckCircle2, XCircle, BarChart2, Loader2, Copy, ChevronDown, ChevronUp, Lightbulb } from "lucide-react";
+import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert, ArrowDownToLine, CheckCircle2, XCircle, BarChart2, Loader2, Copy, ChevronDown, ChevronUp, Lightbulb, Users, Search } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -997,6 +1003,399 @@ function VendorEmailTab() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+const CUSTOMERS_PAGE_SIZE = 50;
+
+type CustomerFormState = {
+  customerNumber: string;
+  name: string;
+  billTo: string;
+  email: string;
+  primaryContact: string;
+  phone: string;
+  shipTo: string;
+};
+
+const EMPTY_CUSTOMER_FORM: CustomerFormState = {
+  customerNumber: "",
+  name: "",
+  billTo: "",
+  email: "",
+  primaryContact: "",
+  phone: "",
+  shipTo: "",
+};
+
+function customerToForm(c: Customer): CustomerFormState {
+  return {
+    customerNumber: c.customerNumber != null ? String(c.customerNumber) : "",
+    name: c.name ?? "",
+    billTo: c.billTo ?? "",
+    email: c.email ?? "",
+    primaryContact: c.primaryContact ?? "",
+    phone: c.phone ?? "",
+    shipTo: c.shipTo ?? "",
+  };
+}
+
+function CustomerFormFields({ form, setForm, idPrefix }: { form: CustomerFormState; setForm: (f: CustomerFormState) => void; idPrefix: string }) {
+  return (
+    <div className="grid gap-4 py-2 sm:grid-cols-2">
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor={`${idPrefix}-name`}>Customer Name <span className="text-destructive">*</span></Label>
+        <Input
+          id={`${idPrefix}-name`}
+          placeholder="e.g. 108 Catering"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          data-testid={`input-${idPrefix}-name`}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor={`${idPrefix}-number`}>Customer Number <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Input
+          id={`${idPrefix}-number`}
+          type="number"
+          placeholder="e.g. 100"
+          value={form.customerNumber}
+          onChange={(e) => setForm({ ...form, customerNumber: e.target.value })}
+          data-testid={`input-${idPrefix}-number`}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor={`${idPrefix}-email`}>Main Email <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Input
+          id={`${idPrefix}-email`}
+          type="email"
+          placeholder="customer@example.com"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          data-testid={`input-${idPrefix}-email`}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor={`${idPrefix}-contact`}>Primary Contact <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Input
+          id={`${idPrefix}-contact`}
+          placeholder="e.g. Jane Doe"
+          value={form.primaryContact}
+          onChange={(e) => setForm({ ...form, primaryContact: e.target.value })}
+          data-testid={`input-${idPrefix}-contact`}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor={`${idPrefix}-phone`}>Main Phone <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Input
+          id={`${idPrefix}-phone`}
+          placeholder="e.g. 972-908-3933"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          data-testid={`input-${idPrefix}-phone`}
+        />
+      </div>
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor={`${idPrefix}-billto`}>Bill To <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Textarea
+          id={`${idPrefix}-billto`}
+          placeholder="Billing address"
+          value={form.billTo}
+          onChange={(e) => setForm({ ...form, billTo: e.target.value })}
+          className="min-h-[60px]"
+          data-testid={`input-${idPrefix}-billto`}
+        />
+      </div>
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor={`${idPrefix}-shipto`}>Ship To <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Textarea
+          id={`${idPrefix}-shipto`}
+          placeholder="Shipping address"
+          value={form.shipTo}
+          onChange={(e) => setForm({ ...form, shipTo: e.target.value })}
+          className="min-h-[60px]"
+          data-testid={`input-${idPrefix}-shipto`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AddCustomerDialog({ onSuccess }: { onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<CustomerFormState>(EMPTY_CUSTOMER_FORM);
+  const createCustomer = useCreateCustomer();
+  const { toast } = useToast();
+
+  const handleClose = (v: boolean) => {
+    if (!v) setForm(EMPTY_CUSTOMER_FORM);
+    setOpen(v);
+  };
+
+  const handleSubmit = () => {
+    if (!form.name.trim()) return;
+    const customerNumber = form.customerNumber.trim() ? parseInt(form.customerNumber, 10) : null;
+    createCustomer.mutate(
+      {
+        data: {
+          customerNumber: customerNumber != null && !isNaN(customerNumber) ? customerNumber : null,
+          name: form.name.trim(),
+          billTo: form.billTo.trim() || null,
+          email: form.email.trim() || null,
+          primaryContact: form.primaryContact.trim() || null,
+          phone: form.phone.trim() || null,
+          shipTo: form.shipTo.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Customer added", description: `${form.name.trim()} has been added.` });
+          handleClose(false);
+          onSuccess();
+        },
+        onError: () => toast({ title: "Error", description: "Failed to add customer.", variant: "destructive" }),
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="gap-1.5" data-testid="button-add-customer">
+          <Plus className="h-4 w-4" />
+          Add Customer
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add New Customer</DialogTitle>
+          <DialogDescription>Enter the customer's details below.</DialogDescription>
+        </DialogHeader>
+        <CustomerFormFields form={form} setForm={setForm} idPrefix="new-customer" />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!form.name.trim() || createCustomer.isPending}
+            data-testid="button-confirm-add-customer"
+          >
+            {createCustomer.isPending ? "Adding..." : "Add Customer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditCustomerDialog({ customer, open, onOpenChange, onSuccess }: { customer: Customer; open: boolean; onOpenChange: (v: boolean) => void; onSuccess: () => void }) {
+  const [form, setForm] = useState<CustomerFormState>(() => customerToForm(customer));
+  const updateCustomer = useUpdateCustomer();
+  const deleteCustomer = useDeleteCustomer();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (open) setForm(customerToForm(customer));
+  }, [open, customer]);
+
+  const handleSave = () => {
+    if (!form.name.trim()) return;
+    const customerNumber = form.customerNumber.trim() ? parseInt(form.customerNumber, 10) : null;
+    updateCustomer.mutate(
+      {
+        customerId: customer.id,
+        data: {
+          customerNumber: customerNumber != null && !isNaN(customerNumber) ? customerNumber : null,
+          name: form.name.trim(),
+          billTo: form.billTo.trim() || null,
+          email: form.email.trim() || null,
+          primaryContact: form.primaryContact.trim() || null,
+          phone: form.phone.trim() || null,
+          shipTo: form.shipTo.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Customer saved" });
+          onOpenChange(false);
+          onSuccess();
+        },
+        onError: () => toast({ title: "Error", description: "Failed to save customer.", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    if (!window.confirm(`Delete customer "${customer.name}"? This cannot be undone.`)) return;
+    deleteCustomer.mutate(
+      { customerId: customer.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Customer deleted" });
+          onOpenChange(false);
+          onSuccess();
+        },
+        onError: () => toast({ title: "Error", description: "Failed to delete customer.", variant: "destructive" }),
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Edit Customer</DialogTitle>
+          <DialogDescription>Update this customer's details.</DialogDescription>
+        </DialogHeader>
+        <CustomerFormFields form={form} setForm={setForm} idPrefix="edit-customer" />
+        <DialogFooter className="flex items-center sm:justify-between">
+          <Button
+            variant="ghost"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
+            onClick={handleDelete}
+            disabled={deleteCustomer.isPending}
+            data-testid="button-delete-customer"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button
+              onClick={handleSave}
+              disabled={!form.name.trim() || updateCustomer.isPending}
+              data-testid="button-save-customer"
+            >
+              {updateCustomer.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CustomersTab() {
+  const { data: customers, isLoading } = useListCustomers();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() });
+
+  const filtered = (customers ?? []).filter((c) => {
+    if (!search.trim()) return true;
+    const term = search.trim().toLowerCase();
+    return (
+      c.name.toLowerCase().includes(term) ||
+      (c.email ?? "").toLowerCase().includes(term) ||
+      (c.phone ?? "").toLowerCase().includes(term) ||
+      (c.primaryContact ?? "").toLowerCase().includes(term) ||
+      String(c.customerNumber ?? "").includes(term)
+    );
+  });
+
+  useEffect(() => { setPage(0); }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / CUSTOMERS_PAGE_SIZE));
+  const pageItems = filtered.slice(page * CUSTOMERS_PAGE_SIZE, (page + 1) * CUSTOMERS_PAGE_SIZE);
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Customers</CardTitle>
+              <Badge variant="outline" className="text-xs">{(customers ?? []).length}</Badge>
+            </div>
+            <AddCustomerDialog onSuccess={invalidate} />
+          </div>
+          <CardDescription>
+            Customer directory used for sales orders. Click a row to edit.
+          </CardDescription>
+          <div className="relative pt-2">
+            <Search className="absolute left-2.5 top-[1.65rem] h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by name, email, phone, or customer #..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              data-testid="input-search-customers"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="w-[90px]">Customer #</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Phone</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pageItems.map((customer) => (
+                    <TableRow
+                      key={customer.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setEditingCustomer(customer)}
+                      data-testid={`row-customer-${customer.id}`}
+                    >
+                      <TableCell className="text-muted-foreground">{customer.customerNumber ?? "—"}</TableCell>
+                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell className="text-sm">{customer.email || <span className="text-muted-foreground italic">No email</span>}</TableCell>
+                      <TableCell className="text-sm">{customer.primaryContact || "—"}</TableCell>
+                      <TableCell className="text-sm">{customer.phone || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                  {pageItems.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No customers found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              {filtered.length > CUSTOMERS_PAGE_SIZE && (
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    Showing {page * CUSTOMERS_PAGE_SIZE + 1}–{Math.min((page + 1) * CUSTOMERS_PAGE_SIZE, filtered.length)} of {filtered.length}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))} data-testid="button-customers-prev-page">
+                      Previous
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} data-testid="button-customers-next-page">
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+      {editingCustomer && (
+        <EditCustomerDialog
+          customer={editingCustomer}
+          open={!!editingCustomer}
+          onOpenChange={(v) => { if (!v) setEditingCustomer(null); }}
+          onSuccess={invalidate}
+        />
+      )}
     </div>
   );
 }
@@ -2191,6 +2590,10 @@ export default function AdminPage() {
             <Package className="h-4 w-4" />
             Products
           </TabsTrigger>
+          <TabsTrigger value="customers" className="gap-1.5">
+            <Users className="h-4 w-4" />
+            Customers
+          </TabsTrigger>
           <TabsTrigger value="users" className="gap-1.5">
             <UserCog className="h-4 w-4" />
             Users
@@ -2213,6 +2616,9 @@ export default function AdminPage() {
         </TabsContent>
         <TabsContent value="products">
           <VendorProductsTab />
+        </TabsContent>
+        <TabsContent value="customers">
+          <CustomersTab />
         </TabsContent>
         <TabsContent value="users">
           <UsersTab />
