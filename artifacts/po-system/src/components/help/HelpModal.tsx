@@ -201,22 +201,50 @@ const articles: Article[] = [
       "The change saves automatically.",
     ],
   },
+  {
+    id: "so-customer-lookup",
+    title: "Look up an existing customer on a new sales order",
+    category: "Sales Orders",
+    tags: ["customer", "lookup", "search", "autocomplete", "matched", "sales"],
+    steps: [
+      "Click Sales Orders in the left sidebar, then click New Sales Order.",
+      "Click into the Customer Name field and start typing.",
+      "A dropdown appears showing matching customers by name or customer number (e.g. \"John Doe #1024\").",
+      "Select a match with the mouse, or use the Arrow Up/Down keys and Enter to select it.",
+      "A \"Matched\" badge appears in the field once a real customer record is linked.",
+      "Click Start Order (or press Enter) to open the catalog and begin adding items.",
+    ],
+    notes: "If you skip the suggestions and just type a name, the order is saved with that text only — it won't be linked to a customer record and won't show a Matched badge.",
+  },
 
   // ── Shop (Customer Page) ─────────────────────────────────────────────────
+  {
+    id: "shop-customer-login",
+    title: "Customer sign-in for the shop page",
+    category: "Shop",
+    tags: ["login", "sign in", "customer number", "password", "account setup", "forgot password"],
+    steps: [
+      "Customer navigates to /customer-login.",
+      "They enter their Customer Number and Password and click Sign In.",
+      "First-time customers (no password set yet) are automatically switched to Account Setup — they set a password and provide an email.",
+      "If they forgot their password, they click Forgot Password to request a reset link by email (or add an email first if none is on file).",
+      "After a successful sign-in, the customer is taken to /shop, where an open sales order is created for them automatically if they don't already have one.",
+    ],
+    notes: "Customers must already exist in the customers list (Admin → Customers) before they can log in.",
+  },
   {
     id: "shop-order",
     title: "Place an order on the customer shop page",
     category: "Shop",
     tags: ["shop", "customer", "order", "scan", "barcode", "public"],
     steps: [
-      "Navigate to /shop or share that link with the customer.",
-      "Enter your name and click Start Shopping.",
+      "Sign in at /customer-login — you'll land on /shop automatically.",
       "Use the category tabs to browse by plant type (Color, 6in, Bromeliads, etc.).",
       "Tap + to add items, or use the search bar to find a specific product.",
       "You can also scan a barcode using the camera button.",
       "When done, click Finish to submit the order.",
     ],
-    notes: "The shop page requires no login — share the /shop URL directly with customers.",
+    notes: "The shop page requires the customer to sign in first at /customer-login.",
   },
 
   // ── Admin ────────────────────────────────────────────────────────────────
