@@ -4,10 +4,12 @@ import { z } from "zod/v4";
 import { inventoryItemsTable } from "./inventory";
 import { productsTable } from "./products";
 import { vendorsTable } from "./vendors";
+import { customersTable } from "./customers";
 
 export const salesOrdersTable = pgTable("sales_orders", {
   id: serial("id").primaryKey(),
   customerName: text("customer_name").notNull(),
+  customerId: integer("customer_id").references(() => customersTable.id, { onDelete: "set null" }),
   status: text("status").notNull().default("open"),
   notes: text("notes"),
   neededBy: date("needed_by"),

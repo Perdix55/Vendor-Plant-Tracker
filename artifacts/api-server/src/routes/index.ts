@@ -14,6 +14,7 @@ import reportsRouter from "./reports";
 import shopAvailabilityRouter from "./shop-availability";
 import shopOrderItemsRouter from "./shop-order-items";
 import customersRouter from "./customers";
+import customerAuthRouter from "./customer-auth";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(reportsRouter);
 router.use(shopAvailabilityRouter);
 router.use(shopOrderItemsRouter);
 router.use(customersRouter);
+router.use(customerAuthRouter);
 
 export default router;

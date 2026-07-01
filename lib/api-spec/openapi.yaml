@@ -242,6 +242,124 @@ paths:
         "204":
           description: Customer deleted
 
+  /customer-auth/me:
+    get:
+      operationId: getCustomerAuthMe
+      tags: [customerAuth]
+      summary: Get the currently logged-in customer
+      responses:
+        "200":
+          description: Current customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSession"
+        "401":
+          description: Not logged in
+
+  /customer-auth/login:
+    post:
+      operationId: customerLogin
+      tags: [customerAuth]
+      summary: Log in with customer number and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerLoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSession"
+        "401":
+          description: Invalid credentials or password not set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAuthError"
+
+  /customer-auth/set-password:
+    post:
+      operationId: customerSetPassword
+      tags: [customerAuth]
+      summary: Set a password for a customer that has never logged in before
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerSetPasswordBody"
+      responses:
+        "200":
+          description: Password set and logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSession"
+        "400":
+          description: Validation error, or email required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAuthError"
+        "404":
+          description: Customer number not found
+
+  /customer-auth/forgot-password:
+    post:
+      operationId: customerForgotPassword
+      tags: [customerAuth]
+      summary: Request a password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerForgotPasswordBody"
+      responses:
+        "200":
+          description: Reset email sent, or email needed before it can be sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerForgotPasswordResult"
+        "404":
+          description: Customer number not found
+
+  /customer-auth/reset-password:
+    post:
+      operationId: customerResetPassword
+      tags: [customerAuth]
+      summary: Reset password using a reset token from email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerResetPasswordBody"
+      responses:
+        "200":
+          description: Password reset and logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerSession"
+        "400":
+          description: Invalid or expired reset token
+
+  /customer-auth/logout:
+    post:
+      operationId: customerLogout
+      tags: [customerAuth]
+      summary: Log out the current customer
+      responses:
+        "200":
+          description: Logged out
+
   /vendors/{vendorId}/products:
     get:
       operationId: listVendorProducts
@@ -1214,6 +1332,83 @@ components:
           type: integer
       required: [customersCreated]
 
+    CustomerSession:
+      type: object
+      properties:
+        id:
+          type: integer
+        customerNumber:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        email:
+          type: string
+          nullable: true
+      required: [id, name]
+
+    CustomerAuthError:
+      type: object
+      properties:
+        error:
+          type: string
+        needsSetup:
+          type: boolean
+        needsEmail:
+          type: boolean
+      required: [error]
+
+    CustomerLoginBody:
+      type: object
+      properties:
+        customerNumber:
+          type: integer
+        password:
+          type: string
+      required: [customerNumber, password]
+
+    CustomerSetPasswordBody:
+      type: object
+      properties:
+        customerNumber:
+          type: integer
+        password:
+          type: string
+        email:
+          type: string
+          nullable: true
+      required: [customerNumber, password]
+
+    CustomerForgotPasswordBody:
+      type: object
+      properties:
+        customerNumber:
+          type: integer
+        email:
+          type: string
+          nullable: true
+      required: [customerNumber]
+
+    CustomerForgotPasswordResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        needsEmail:
+          type: boolean
+        message:
+          type: string
+      required: [ok]
+
+    CustomerResetPasswordBody:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+      required: [token, password]
+
     ReceiveOrderBody:
       type: object
       properties:
@@ -1632,6 +1827,9 @@ components:
           type: integer
         customerName:
           type: string
+        customerId:
+          type: integer
+          nullable: true
         status:
           type: string
         notes:
@@ -1656,6 +1854,9 @@ components:
           type: integer
         customerName:
           type: string
+        customerId:
+          type: integer
+          nullable: true
         status:
           type: string
         notes:

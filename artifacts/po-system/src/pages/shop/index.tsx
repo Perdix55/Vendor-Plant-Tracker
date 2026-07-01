@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocation } from "wouter";
 import Quagga from "@ericblade/quagga2";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCreateSalesOrder } from "@workspace/api-client-react";
+import { useCustomerAuth } from "@/contexts/customer-auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Camera, CameraOff, Leaf, CheckCircle2, ShoppingCart, ScanLine, Package, Pencil } from "lucide-react";
+import { Minus, Plus, Camera, CameraOff, Leaf, CheckCircle2, ShoppingCart, ScanLine, Package, Pencil, LogOut } from "lucide-react";
 
 type CatalogItem = {
   shopListingId: number;
@@ -17,12 +19,14 @@ type CatalogItem = {
 
 type CatalogEntry = { cartItemId: number; qty: number };
 
-type Step = "name" | "scan" | "done";
+type Step = "scan" | "done";
 
 export default function ShopPage() {
-  const [step, setStep] = useState<Step>("name");
-  const [customerName, setCustomerName] = useState("");
+  const [step, setStep] = useState<Step>("scan");
   const [orderId, setOrderId] = useState<number | null>(null);
+  const { customer, isLoading: customerLoading, logout } = useCustomerAuth();
+  const [, navigate] = useLocation();
+  const customerName = customer?.name ?? "";
 
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
@@ -266,52 +270,47 @@ export default function ShopPage() {
     } else if (e.key === "Escape") { setShowDropdown(false); setHighlightedIndex(-1); }
   };
 
-  const handleStart = async () => {
-    if (!customerName.trim()) return;
-    const order = await createSalesOrder.mutateAsync({ data: { customerName: customerName.trim() } });
-    setOrderId(order.id);
-    setStep("scan");
-  };
-
   const handleFinish = () => {
     stopCamera();
     setStep("done");
     queryClient.invalidateQueries({ queryKey: ["listSalesOrders"] });
   };
 
-  // ── Name step ──────────────────────────────────────────────────────────────
-  if (step === "name") {
+  // ── Auth gate ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!customerLoading && !customer) {
+      navigate("/customer-login");
+    }
+  }, [customerLoading, customer, navigate]);
+
+  // Start a new order automatically once the customer is known
+  useEffect(() => {
+    if (!customer || orderIdRef.current || createSalesOrder.isPending) return;
+    createSalesOrder
+      .mutateAsync({ data: { customerName: customer.name } })
+      .then((order) => setOrderId(order.id))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer]);
+
+  if (customerLoading || !customer) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-8 text-center">
-          <div className="space-y-3">
-            <div className="flex justify-center">
-              <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-                <Leaf className="h-8 w-8 text-primary-foreground" />
-              </div>
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!orderId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-4 text-center">
+          <div className="flex justify-center">
+            <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+              <Leaf className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Vickery Wholesale</h1>
-            <p className="text-muted-foreground text-sm">Enter your name to start an order</p>
           </div>
-          <div className="space-y-3">
-            <Input
-              placeholder="Your name"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleStart()}
-              autoFocus
-              className="text-center text-lg h-12"
-              data-testid="input-customer-name"
-            />
-            <Button
-              className="w-full h-12 text-base"
-              onClick={handleStart}
-              disabled={!customerName.trim() || createSalesOrder.isPending}
-              data-testid="button-start-shopping"
-            >
-              {createSalesOrder.isPending ? "Starting..." : "Start Shopping →"}
-            </Button>
-          </div>
+          <p className="text-muted-foreground text-sm">Starting your order…</p>
         </div>
       </div>
     );
@@ -345,7 +344,7 @@ export default function ShopPage() {
               Edit Order
             </Button>
             <Button variant="outline" className="w-full" onClick={() => {
-              setStep("name"); setCustomerName(""); setCatalogCart({}); setOrderId(null);
+              setStep("scan"); setCatalogCart({}); setOrderId(null);
               lastScannedRef.current = "";
             }}>
               Start a New Order
@@ -382,6 +381,16 @@ export default function ShopPage() {
             data-testid="button-finish-order"
           >
             Finish
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => { logout(); navigate("/customer-login"); }}
+            data-testid="button-customer-logout"
+            title="Log out"
+          >
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -117,6 +117,46 @@ export interface ImportCustomersResult {
   customersCreated: number;
 }
 
+export interface CustomerSession {
+  id: number;
+  customerNumber?: number | null;
+  name: string;
+  email?: string | null;
+}
+
+export interface CustomerAuthError {
+  error: string;
+  needsSetup?: boolean;
+  needsEmail?: boolean;
+}
+
+export interface CustomerLoginBody {
+  customerNumber: number;
+  password: string;
+}
+
+export interface CustomerSetPasswordBody {
+  customerNumber: number;
+  password: string;
+  email?: string | null;
+}
+
+export interface CustomerForgotPasswordBody {
+  customerNumber: number;
+  email?: string | null;
+}
+
+export interface CustomerForgotPasswordResult {
+  ok: boolean;
+  needsEmail?: boolean;
+  message?: string;
+}
+
+export interface CustomerResetPasswordBody {
+  token: string;
+  password: string;
+}
+
 export type ReceiveOrderBodyItemsItem = {
   productId: number;
   quantityReceived: number;
@@ -394,6 +434,7 @@ export interface SalesOrderLineItem {
 export interface SalesOrderSummary {
   id: number;
   customerName: string;
+  customerId?: number | null;
   status: string;
   notes?: string | null;
   neededBy?: string | null;
@@ -405,6 +446,7 @@ export interface SalesOrderSummary {
 export interface SalesOrderDetail {
   id: number;
   customerName: string;
+  customerId?: number | null;
   status: string;
   notes?: string | null;
   neededBy?: string | null;

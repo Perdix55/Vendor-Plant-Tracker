@@ -1,9 +1,17 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { shopOrderItemsTable } from "@workspace/db";
+import { shopOrderItemsTable, salesOrdersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { requireStaffOrCustomer } from "../middleware/customerAuth";
 
 const router = Router();
+
+async function canAccessSalesOrder(req: import("express").Request, orderId: number): Promise<boolean> {
+  if (req.session?.userId) return true;
+  if (!req.session?.customerId) return false;
+  const [order] = await db.select().from(salesOrdersTable).where(eq(salesOrdersTable.id, orderId));
+  return !!order && order.customerId === req.session.customerId;
+}
 
 // GET /sales-orders/:orderId/shop-items
 router.get("/sales-orders/:orderId/shop-items", async (req, res) => {
@@ -22,9 +30,12 @@ router.get("/sales-orders/:orderId/shop-items", async (req, res) => {
 });
 
 // POST /sales-orders/:orderId/shop-items
-router.post("/sales-orders/:orderId/shop-items", async (req, res) => {
+router.post("/sales-orders/:orderId/shop-items", requireStaffOrCustomer, async (req, res) => {
   const orderId = Number(req.params.orderId);
   if (isNaN(orderId)) return res.status(400).json({ error: "Invalid order id" });
+  if (!(await canAccessSalesOrder(req, orderId))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
   const { shopListingId, productName, price, quantity } = req.body as {
     shopListingId: number;
     productName: string;
@@ -47,10 +58,13 @@ router.post("/sales-orders/:orderId/shop-items", async (req, res) => {
 });
 
 // PUT /sales-orders/:orderId/shop-items/:itemId
-router.put("/sales-orders/:orderId/shop-items/:itemId", async (req, res) => {
+router.put("/sales-orders/:orderId/shop-items/:itemId", requireStaffOrCustomer, async (req, res) => {
   const orderId = Number(req.params.orderId);
   const itemId = Number(req.params.itemId);
   if (isNaN(orderId) || isNaN(itemId)) return res.status(400).json({ error: "Invalid id" });
+  if (!(await canAccessSalesOrder(req, orderId))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
   const { quantity } = req.body as { quantity: number };
   if (quantity == null) return res.status(400).json({ error: "quantity required" });
   try {
@@ -68,10 +82,13 @@ router.put("/sales-orders/:orderId/shop-items/:itemId", async (req, res) => {
 });
 
 // DELETE /sales-orders/:orderId/shop-items/:itemId
-router.delete("/sales-orders/:orderId/shop-items/:itemId", async (req, res) => {
+router.delete("/sales-orders/:orderId/shop-items/:itemId", requireStaffOrCustomer, async (req, res) => {
   const orderId = Number(req.params.orderId);
   const itemId = Number(req.params.itemId);
   if (isNaN(orderId) || isNaN(itemId)) return res.status(400).json({ error: "Invalid id" });
+  if (!(await canAccessSalesOrder(req, orderId))) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
   try {
     await db
       .delete(shopOrderItemsTable)

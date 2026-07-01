@@ -6,7 +6,8 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 function mapCustomer(c: typeof customersTable.$inferSelect) {
-  return { ...c, createdAt: c.createdAt.toISOString() };
+  const { passwordHash: _passwordHash, resetToken: _resetToken, resetTokenExpiresAt: _resetTokenExpiresAt, ...safe } = c;
+  return { ...safe, createdAt: safe.createdAt.toISOString() };
 }
 
 // GET /customers

@@ -219,6 +219,76 @@ export const DeleteCustomerParams = zod.object({
 });
 
 /**
+ * @summary Get the currently logged-in customer
+ */
+export const GetCustomerAuthMeResponse = zod.object({
+  id: zod.number(),
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  email: zod.string().nullish(),
+});
+
+/**
+ * @summary Log in with customer number and password
+ */
+export const CustomerLoginBody = zod.object({
+  customerNumber: zod.number(),
+  password: zod.string(),
+});
+
+export const CustomerLoginResponse = zod.object({
+  id: zod.number(),
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  email: zod.string().nullish(),
+});
+
+/**
+ * @summary Set a password for a customer that has never logged in before
+ */
+export const CustomerSetPasswordBody = zod.object({
+  customerNumber: zod.number(),
+  password: zod.string(),
+  email: zod.string().nullish(),
+});
+
+export const CustomerSetPasswordResponse = zod.object({
+  id: zod.number(),
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  email: zod.string().nullish(),
+});
+
+/**
+ * @summary Request a password reset email
+ */
+export const CustomerForgotPasswordBody = zod.object({
+  customerNumber: zod.number(),
+  email: zod.string().nullish(),
+});
+
+export const CustomerForgotPasswordResponse = zod.object({
+  ok: zod.boolean(),
+  needsEmail: zod.boolean().optional(),
+  message: zod.string().optional(),
+});
+
+/**
+ * @summary Reset password using a reset token from email
+ */
+export const CustomerResetPasswordBody = zod.object({
+  token: zod.string(),
+  password: zod.string(),
+});
+
+export const CustomerResetPasswordResponse = zod.object({
+  id: zod.number(),
+  customerNumber: zod.number().nullish(),
+  name: zod.string(),
+  email: zod.string().nullish(),
+});
+
+/**
  * @summary List products for a vendor
  */
 export const ListVendorProductsParams = zod.object({
@@ -964,6 +1034,7 @@ export const ListSalesOrdersQueryParams = zod.object({
 export const ListSalesOrdersResponseItem = zod.object({
   id: zod.number(),
   customerName: zod.string(),
+  customerId: zod.number().nullish(),
   status: zod.string(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
@@ -992,6 +1063,7 @@ export const GetSalesOrderParams = zod.object({
 export const GetSalesOrderResponse = zod.object({
   id: zod.number(),
   customerName: zod.string(),
+  customerId: zod.number().nullish(),
   status: zod.string(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
@@ -1030,6 +1102,7 @@ export const UpdateSalesOrderBody = zod.object({
 export const UpdateSalesOrderResponse = zod.object({
   id: zod.number(),
   customerName: zod.string(),
+  customerId: zod.number().nullish(),
   status: zod.string(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),

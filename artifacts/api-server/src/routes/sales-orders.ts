@@ -8,9 +8,11 @@ import {
   productsTable,
   vendorsTable,
   shopListingsTable,
+  customersTable,
 } from "@workspace/db";
 import { eq, ilike, desc, sql, or, and, ne, count } from "drizzle-orm";
 import { inventoryTransactionsTable } from "@workspace/db";
+import { requireStaffOrCustomer } from "../middleware/customerAuth";
 
 const router = Router();
 
@@ -64,14 +66,21 @@ router.get("/inventory/lookup", async (req, res) => {
 });
 
 // GET /sales-orders
-router.get("/sales-orders", async (req, res) => {
+router.get("/sales-orders", requireStaffOrCustomer, async (req, res) => {
   try {
     const status = req.query.status as string | undefined;
+    const customerId = req.session?.customerId;
+
+    const conditions = [
+      status ? eq(salesOrdersTable.status, status) : undefined,
+      customerId ? eq(salesOrdersTable.customerId, customerId) : undefined,
+    ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     const rows = await db
       .select({
         id: salesOrdersTable.id,
         customerName: salesOrdersTable.customerName,
+        customerId: salesOrdersTable.customerId,
         status: salesOrdersTable.status,
         notes: salesOrdersTable.notes,
         neededBy: salesOrdersTable.neededBy,
@@ -79,7 +88,7 @@ router.get("/sales-orders", async (req, res) => {
         updatedAt: salesOrdersTable.updatedAt,
       })
       .from(salesOrdersTable)
-      .where(status ? eq(salesOrdersTable.status, status) : undefined)
+      .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(salesOrdersTable.createdAt));
 
     // Count items per order from both tables
@@ -102,16 +111,27 @@ router.get("/sales-orders", async (req, res) => {
 });
 
 // POST /sales-orders
-router.post("/sales-orders", async (req, res) => {
+router.post("/sales-orders", requireStaffOrCustomer, async (req, res) => {
   try {
     const { customerName, notes, neededBy } = req.body as { customerName: string; notes?: string; neededBy?: string | null };
-    if (!customerName?.trim()) {
+
+    let finalCustomerName = customerName?.trim();
+    let customerId: number | null = null;
+
+    if (req.session?.customerId) {
+      const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, req.session.customerId));
+      if (!customer) return res.status(401).json({ error: "Unauthorized" });
+      customerId = customer.id;
+      finalCustomerName = customer.name;
+    }
+
+    if (!finalCustomerName) {
       return res.status(400).json({ error: "customerName is required" });
     }
 
     const [order] = await db
       .insert(salesOrdersTable)
-      .values({ customerName: customerName.trim(), notes, neededBy: neededBy ?? null })
+      .values({ customerName: finalCustomerName, customerId, notes, neededBy: neededBy ?? null })
       .returning();
 
     res.status(201).json({ ...order, items: [] });
@@ -173,11 +193,14 @@ async function getSalesOrderWithItems(id: number) {
 }
 
 // GET /sales-orders/:id
-router.get("/sales-orders/:salesOrderId", async (req, res) => {
-  const id = parseInt(req.params.salesOrderId, 10);
+router.get("/sales-orders/:salesOrderId", requireStaffOrCustomer, async (req, res) => {
+  const id = parseInt(String(req.params.salesOrderId), 10);
   try {
     const order = await getSalesOrderWithItems(id);
     if (!order) return res.status(404).json({ error: "Sales order not found" });
+    if (req.session?.customerId && order.customerId !== req.session.customerId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     res.json(order);
   } catch (err) {
     req.log.error({ err }, "Failed to get sales order");

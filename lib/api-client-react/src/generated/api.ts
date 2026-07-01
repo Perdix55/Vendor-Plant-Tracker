@@ -27,6 +27,13 @@ import type {
   CreateSalesOrderBody,
   CreateVendorBody,
   Customer,
+  CustomerAuthError,
+  CustomerForgotPasswordBody,
+  CustomerForgotPasswordResult,
+  CustomerLoginBody,
+  CustomerResetPasswordBody,
+  CustomerSession,
+  CustomerSetPasswordBody,
   DashboardSummary,
   HealthStatus,
   ImportCustomersBody,
@@ -1065,6 +1072,510 @@ export const useDeleteCustomer = <
   TContext
 > => {
   return useMutation(getDeleteCustomerMutationOptions(options));
+};
+
+/**
+ * @summary Get the currently logged-in customer
+ */
+export const getGetCustomerAuthMeUrl = () => {
+  return `/api/customer-auth/me`;
+};
+
+export const getCustomerAuthMe = async (
+  options?: RequestInit,
+): Promise<CustomerSession> => {
+  return customFetch<CustomerSession>(getGetCustomerAuthMeUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCustomerAuthMeQueryKey = () => {
+  return [`/api/customer-auth/me`] as const;
+};
+
+export const getGetCustomerAuthMeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCustomerAuthMe>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCustomerAuthMe>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCustomerAuthMeQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCustomerAuthMe>>
+  > = ({ signal }) => getCustomerAuthMe({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCustomerAuthMe>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCustomerAuthMeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCustomerAuthMe>>
+>;
+export type GetCustomerAuthMeQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the currently logged-in customer
+ */
+
+export function useGetCustomerAuthMe<
+  TData = Awaited<ReturnType<typeof getCustomerAuthMe>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCustomerAuthMe>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCustomerAuthMeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Log in with customer number and password
+ */
+export const getCustomerLoginUrl = () => {
+  return `/api/customer-auth/login`;
+};
+
+export const customerLogin = async (
+  customerLoginBody: CustomerLoginBody,
+  options?: RequestInit,
+): Promise<CustomerSession> => {
+  return customFetch<CustomerSession>(getCustomerLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(customerLoginBody),
+  });
+};
+
+export const getCustomerLoginMutationOptions = <
+  TError = ErrorType<CustomerAuthError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerLogin>>,
+    TError,
+    { data: BodyType<CustomerLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof customerLogin>>,
+  TError,
+  { data: BodyType<CustomerLoginBody> },
+  TContext
+> => {
+  const mutationKey = ["customerLogin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof customerLogin>>,
+    { data: BodyType<CustomerLoginBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return customerLogin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CustomerLoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof customerLogin>>
+>;
+export type CustomerLoginMutationBody = BodyType<CustomerLoginBody>;
+export type CustomerLoginMutationError = ErrorType<CustomerAuthError>;
+
+/**
+ * @summary Log in with customer number and password
+ */
+export const useCustomerLogin = <
+  TError = ErrorType<CustomerAuthError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerLogin>>,
+    TError,
+    { data: BodyType<CustomerLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof customerLogin>>,
+  TError,
+  { data: BodyType<CustomerLoginBody> },
+  TContext
+> => {
+  return useMutation(getCustomerLoginMutationOptions(options));
+};
+
+/**
+ * @summary Set a password for a customer that has never logged in before
+ */
+export const getCustomerSetPasswordUrl = () => {
+  return `/api/customer-auth/set-password`;
+};
+
+export const customerSetPassword = async (
+  customerSetPasswordBody: CustomerSetPasswordBody,
+  options?: RequestInit,
+): Promise<CustomerSession> => {
+  return customFetch<CustomerSession>(getCustomerSetPasswordUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(customerSetPasswordBody),
+  });
+};
+
+export const getCustomerSetPasswordMutationOptions = <
+  TError = ErrorType<CustomerAuthError | void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerSetPassword>>,
+    TError,
+    { data: BodyType<CustomerSetPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof customerSetPassword>>,
+  TError,
+  { data: BodyType<CustomerSetPasswordBody> },
+  TContext
+> => {
+  const mutationKey = ["customerSetPassword"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof customerSetPassword>>,
+    { data: BodyType<CustomerSetPasswordBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return customerSetPassword(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CustomerSetPasswordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof customerSetPassword>>
+>;
+export type CustomerSetPasswordMutationBody = BodyType<CustomerSetPasswordBody>;
+export type CustomerSetPasswordMutationError =
+  ErrorType<CustomerAuthError | void>;
+
+/**
+ * @summary Set a password for a customer that has never logged in before
+ */
+export const useCustomerSetPassword = <
+  TError = ErrorType<CustomerAuthError | void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerSetPassword>>,
+    TError,
+    { data: BodyType<CustomerSetPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof customerSetPassword>>,
+  TError,
+  { data: BodyType<CustomerSetPasswordBody> },
+  TContext
+> => {
+  return useMutation(getCustomerSetPasswordMutationOptions(options));
+};
+
+/**
+ * @summary Request a password reset email
+ */
+export const getCustomerForgotPasswordUrl = () => {
+  return `/api/customer-auth/forgot-password`;
+};
+
+export const customerForgotPassword = async (
+  customerForgotPasswordBody: CustomerForgotPasswordBody,
+  options?: RequestInit,
+): Promise<CustomerForgotPasswordResult> => {
+  return customFetch<CustomerForgotPasswordResult>(
+    getCustomerForgotPasswordUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(customerForgotPasswordBody),
+    },
+  );
+};
+
+export const getCustomerForgotPasswordMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerForgotPassword>>,
+    TError,
+    { data: BodyType<CustomerForgotPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof customerForgotPassword>>,
+  TError,
+  { data: BodyType<CustomerForgotPasswordBody> },
+  TContext
+> => {
+  const mutationKey = ["customerForgotPassword"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof customerForgotPassword>>,
+    { data: BodyType<CustomerForgotPasswordBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return customerForgotPassword(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CustomerForgotPasswordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof customerForgotPassword>>
+>;
+export type CustomerForgotPasswordMutationBody =
+  BodyType<CustomerForgotPasswordBody>;
+export type CustomerForgotPasswordMutationError = ErrorType<void>;
+
+/**
+ * @summary Request a password reset email
+ */
+export const useCustomerForgotPassword = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerForgotPassword>>,
+    TError,
+    { data: BodyType<CustomerForgotPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof customerForgotPassword>>,
+  TError,
+  { data: BodyType<CustomerForgotPasswordBody> },
+  TContext
+> => {
+  return useMutation(getCustomerForgotPasswordMutationOptions(options));
+};
+
+/**
+ * @summary Reset password using a reset token from email
+ */
+export const getCustomerResetPasswordUrl = () => {
+  return `/api/customer-auth/reset-password`;
+};
+
+export const customerResetPassword = async (
+  customerResetPasswordBody: CustomerResetPasswordBody,
+  options?: RequestInit,
+): Promise<CustomerSession> => {
+  return customFetch<CustomerSession>(getCustomerResetPasswordUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(customerResetPasswordBody),
+  });
+};
+
+export const getCustomerResetPasswordMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerResetPassword>>,
+    TError,
+    { data: BodyType<CustomerResetPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof customerResetPassword>>,
+  TError,
+  { data: BodyType<CustomerResetPasswordBody> },
+  TContext
+> => {
+  const mutationKey = ["customerResetPassword"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof customerResetPassword>>,
+    { data: BodyType<CustomerResetPasswordBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return customerResetPassword(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CustomerResetPasswordMutationResult = NonNullable<
+  Awaited<ReturnType<typeof customerResetPassword>>
+>;
+export type CustomerResetPasswordMutationBody =
+  BodyType<CustomerResetPasswordBody>;
+export type CustomerResetPasswordMutationError = ErrorType<void>;
+
+/**
+ * @summary Reset password using a reset token from email
+ */
+export const useCustomerResetPassword = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerResetPassword>>,
+    TError,
+    { data: BodyType<CustomerResetPasswordBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof customerResetPassword>>,
+  TError,
+  { data: BodyType<CustomerResetPasswordBody> },
+  TContext
+> => {
+  return useMutation(getCustomerResetPasswordMutationOptions(options));
+};
+
+/**
+ * @summary Log out the current customer
+ */
+export const getCustomerLogoutUrl = () => {
+  return `/api/customer-auth/logout`;
+};
+
+export const customerLogout = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getCustomerLogoutUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getCustomerLogoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof customerLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["customerLogout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof customerLogout>>,
+    void
+  > = () => {
+    return customerLogout(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CustomerLogoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof customerLogout>>
+>;
+
+export type CustomerLogoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Log out the current customer
+ */
+export const useCustomerLogout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof customerLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof customerLogout>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getCustomerLogoutMutationOptions(options));
 };
 
 /**

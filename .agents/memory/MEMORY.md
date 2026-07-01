@@ -1,3 +1,4 @@
 - [PDF price import](pdf-price-import.md) — pdfjs-dist (external) used for PDF text extraction; Andersen Farms sends PDFs via Mailchimp tracking URLs that redirect to PDF
 - [esbuild externals](esbuild-externals.md) — pdfjs-dist and pdf-parse must be in build.mjs external array; pdf-parse v2 has no default ESM export (use pdfjs-dist directly)
+- [Express 5 route middleware typing](express5-route-middleware-typing.md) — generic auth middleware before a `:param` handler can make req.params resolve to string|string[]; wrap with String()
 - [E2E testing with password auth](e2e-testing-temp-admin.md) — create a disposable admin user for runTest() instead of reusing/mutating the real account's credentials

@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout/layout";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
+import { CustomerAuthProvider } from "@/contexts/customer-auth-context";
 
 import Dashboard from "@/pages/dashboard";
 import Vendors from "@/pages/vendors/index";
@@ -24,6 +25,8 @@ import SalesOrderPrint from "@/pages/sales-orders/print";
 import NewSalesOrder from "@/pages/sales-orders/new";
 import LoginPage from "@/pages/login";
 import SetupPage from "@/pages/setup";
+import CustomerLoginPage from "@/pages/customer-login/index";
+import CustomerResetPage from "@/pages/customer-reset/index";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +60,8 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/setup" component={SetupPage} />
       <Route path="/confirm/:token" component={VendorConfirm} />
+      <Route path="/customer-login" component={CustomerLoginPage} />
+      <Route path="/customer-reset/:token" component={CustomerResetPage} />
       <Route path="/shop" component={ShopPage} />
       <Route path="/sales-orders/:id/print" component={SalesOrderPrint} />
       <Route>
@@ -88,12 +93,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
-        </TooltipProvider>
+        <CustomerAuthProvider>
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </TooltipProvider>
+        </CustomerAuthProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
