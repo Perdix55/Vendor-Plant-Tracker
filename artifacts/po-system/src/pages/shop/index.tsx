@@ -343,10 +343,24 @@ export default function ShopPage() {
             <Button className="w-full" onClick={() => setStep("scan")}>
               Edit Order
             </Button>
-            <Button variant="outline" className="w-full" onClick={() => {
-              setStep("scan"); setCatalogCart({}); setOrderId(null);
-              lastScannedRef.current = "";
-            }}>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={createSalesOrder.isPending}
+              onClick={() => {
+                setCatalogCart({});
+                lastScannedRef.current = "";
+                orderIdRef.current = null;
+                setOrderId(null);
+                createSalesOrder
+                  .mutateAsync({ data: { customerName } })
+                  .then((order) => {
+                    setOrderId(order.id);
+                    setStep("scan");
+                  })
+                  .catch(() => {});
+              }}
+            >
               Start a New Order
             </Button>
           </div>
