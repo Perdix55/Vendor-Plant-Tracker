@@ -1038,6 +1038,7 @@ export const ListSalesOrdersResponseItem = zod.object({
   status: zod.string(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
+  shippingAddress: zod.string().nullish(),
   itemCount: zod.number(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -1052,6 +1053,7 @@ export const CreateSalesOrderBody = zod.object({
   customerId: zod.number().nullish(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
+  shippingAddress: zod.string().nullish(),
 });
 
 /**
@@ -1068,6 +1070,7 @@ export const GetSalesOrderResponse = zod.object({
   status: zod.string(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
+  shippingAddress: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
   items: zod.array(
@@ -1099,6 +1102,7 @@ export const UpdateSalesOrderBody = zod.object({
   status: zod.string().optional(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
+  shippingAddress: zod.string().nullish(),
 });
 
 export const UpdateSalesOrderResponse = zod.object({
@@ -1108,6 +1112,7 @@ export const UpdateSalesOrderResponse = zod.object({
   status: zod.string(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
+  shippingAddress: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
   items: zod.array(

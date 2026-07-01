@@ -1839,6 +1839,9 @@ components:
           type: string
           format: date
           nullable: true
+        shippingAddress:
+          type: string
+          nullable: true
         itemCount:
           type: integer
         createdAt:
@@ -1866,6 +1869,9 @@ components:
           type: string
           format: date
           nullable: true
+        shippingAddress:
+          type: string
+          nullable: true
         createdAt:
           type: string
         updatedAt:
@@ -1891,6 +1897,9 @@ components:
           type: string
           format: date
           nullable: true
+        shippingAddress:
+          type: string
+          nullable: true
 
     UpdateSalesOrderBody:
       type: object
@@ -1908,6 +1917,9 @@ components:
         neededBy:
           type: string
           format: date
+          nullable: true
+        shippingAddress:
+          type: string
           nullable: true
 
     AddSalesOrderItemBody:

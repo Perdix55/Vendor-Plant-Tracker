@@ -84,6 +84,7 @@ router.get("/sales-orders", requireStaffOrCustomer, async (req, res) => {
         status: salesOrdersTable.status,
         notes: salesOrdersTable.notes,
         neededBy: salesOrdersTable.neededBy,
+        shippingAddress: salesOrdersTable.shippingAddress,
         createdAt: salesOrdersTable.createdAt,
         updatedAt: salesOrdersTable.updatedAt,
       })
@@ -113,26 +114,30 @@ router.get("/sales-orders", requireStaffOrCustomer, async (req, res) => {
 // POST /sales-orders
 router.post("/sales-orders", requireStaffOrCustomer, async (req, res) => {
   try {
-    const { customerName, customerId: bodyCustomerId, notes, neededBy } = req.body as {
+    const { customerName, customerId: bodyCustomerId, notes, neededBy, shippingAddress } = req.body as {
       customerName: string;
       customerId?: number | null;
       notes?: string;
       neededBy?: string | null;
+      shippingAddress?: string | null;
     };
 
     let finalCustomerName = customerName?.trim();
     let customerId: number | null = null;
+    let finalShippingAddress = shippingAddress?.trim() || null;
 
     if (req.session?.customerId) {
       const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, req.session.customerId));
       if (!customer) return res.status(401).json({ error: "Unauthorized" });
       customerId = customer.id;
       finalCustomerName = customer.name;
+      finalShippingAddress = finalShippingAddress ?? customer.shipTo ?? null;
     } else if (bodyCustomerId) {
       const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, bodyCustomerId));
       if (!customer) return res.status(400).json({ error: "Customer not found" });
       customerId = customer.id;
       finalCustomerName = customerName?.trim() || customer.name;
+      finalShippingAddress = finalShippingAddress ?? customer.shipTo ?? null;
     }
 
     if (!finalCustomerName) {
@@ -141,7 +146,13 @@ router.post("/sales-orders", requireStaffOrCustomer, async (req, res) => {
 
     const [order] = await db
       .insert(salesOrdersTable)
-      .values({ customerName: finalCustomerName, customerId, notes, neededBy: neededBy ?? null })
+      .values({
+        customerName: finalCustomerName,
+        customerId,
+        notes,
+        neededBy: neededBy ?? null,
+        shippingAddress: finalShippingAddress,
+      })
       .returning();
 
     res.status(201).json({ ...order, items: [] });
@@ -222,12 +233,13 @@ router.get("/sales-orders/:salesOrderId", requireStaffOrCustomer, async (req, re
 router.put("/sales-orders/:salesOrderId", async (req, res) => {
   const id = parseInt(req.params.salesOrderId, 10);
   try {
-    const { customerName, customerId, status, notes, neededBy } = req.body as {
+    const { customerName, customerId, status, notes, neededBy, shippingAddress } = req.body as {
       customerName?: string;
       customerId?: number | null;
       status?: string;
       notes?: string;
       neededBy?: string | null;
+      shippingAddress?: string | null;
     };
 
     // Fetch current order to detect status transition
@@ -251,6 +263,7 @@ router.put("/sales-orders/:salesOrderId", async (req, res) => {
         ...(status !== undefined ? { status } : {}),
         ...(notes !== undefined ? { notes } : {}),
         ...(neededBy !== undefined ? { neededBy: neededBy ?? null } : {}),
+        ...(shippingAddress !== undefined ? { shippingAddress: shippingAddress ?? null } : {}),
         updatedAt: new Date(),
       })
       .where(eq(salesOrdersTable.id, id));

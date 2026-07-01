@@ -13,6 +13,7 @@ export const salesOrdersTable = pgTable("sales_orders", {
   status: text("status").notNull().default("open"),
   notes: text("notes"),
   neededBy: date("needed_by"),
+  shippingAddress: text("shipping_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

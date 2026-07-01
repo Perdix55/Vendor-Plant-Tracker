@@ -19,6 +19,7 @@ type Order = {
   status: string;
   neededBy: string | null;
   notes: string | null;
+  shippingAddress: string | null;
   createdAt: string;
   items: OrderItem[];
 };
@@ -126,6 +127,12 @@ export default function SalesOrderPrint() {
                 <p className="font-semibold text-gray-800">
                   {format(new Date(order.neededBy + "T00:00:00"), "MMMM d, yyyy")}
                 </p>
+              </div>
+            )}
+            {order.shippingAddress && (
+              <div>
+                <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Ship To</p>
+                <p className="font-semibold text-gray-800 whitespace-pre-line">{order.shippingAddress}</p>
               </div>
             )}
             {order.notes && (

@@ -438,6 +438,7 @@ export interface SalesOrderSummary {
   status: string;
   notes?: string | null;
   neededBy?: string | null;
+  shippingAddress?: string | null;
   itemCount: number;
   createdAt: string;
   updatedAt: string;
@@ -450,6 +451,7 @@ export interface SalesOrderDetail {
   status: string;
   notes?: string | null;
   neededBy?: string | null;
+  shippingAddress?: string | null;
   createdAt: string;
   updatedAt: string;
   items: SalesOrderLineItem[];
@@ -460,6 +462,7 @@ export interface CreateSalesOrderBody {
   customerId?: number | null;
   notes?: string | null;
   neededBy?: string | null;
+  shippingAddress?: string | null;
 }
 
 export interface UpdateSalesOrderBody {
@@ -468,6 +471,7 @@ export interface UpdateSalesOrderBody {
   status?: string;
   notes?: string | null;
   neededBy?: string | null;
+  shippingAddress?: string | null;
 }
 
 export interface AddSalesOrderItemBody {

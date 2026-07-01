@@ -13,6 +13,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -69,6 +70,8 @@ export default function SalesOrderDetail() {
   const [nameInput, setNameInput] = useState("");
   const [editingNeededBy, setEditingNeededBy] = useState(false);
   const [neededByInput, setNeededByInput] = useState("");
+  const [editingShippingAddress, setEditingShippingAddress] = useState(false);
+  const [shippingAddressInput, setShippingAddressInput] = useState("");
   const [editingQty, setEditingQty] = useState<number | null>(null);
   const [qtyInput, setQtyInput] = useState("");
 
@@ -328,6 +331,13 @@ export default function SalesOrderDetail() {
     toast({ title: "Date updated" });
   };
 
+  const handleSaveShippingAddress = async () => {
+    await updateOrder.mutateAsync({ salesOrderId, data: { shippingAddress: shippingAddressInput.trim() || null } });
+    invalidate();
+    setEditingShippingAddress(false);
+    toast({ title: "Shipping address updated" });
+  };
+
   const handleQtyChange = async (itemId: number, delta: number, current: number) => {
     const newQty = Math.max(1, current + delta);
     await updateItem.mutateAsync({ salesOrderId, itemId, data: { quantity: newQty } });
@@ -515,6 +525,48 @@ export default function SalesOrderDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardDescription>Shipping Address</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {editingShippingAddress ? (
+            <div className="flex flex-col gap-2 max-w-md">
+              <Textarea
+                value={shippingAddressInput}
+                onChange={(e) => setShippingAddressInput(e.target.value)}
+                placeholder={"123 Main St\nDallas, TX 75201"}
+                rows={3}
+                autoFocus
+                className="text-sm"
+              />
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleSaveShippingAddress}>
+                  <Check className="h-3.5 w-3.5 mr-1" /> Save
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditingShippingAddress(false)}>
+                  <X className="h-3.5 w-3.5 mr-1" /> Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2">
+              {order.shippingAddress ? (
+                <p className="text-sm whitespace-pre-line">{order.shippingAddress}</p>
+              ) : (
+                <p className="text-muted-foreground text-sm">Not set</p>
+              )}
+              <button
+                onClick={() => { setShippingAddressInput(order.shippingAddress ?? ""); setEditingShippingAddress(true); }}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3">
