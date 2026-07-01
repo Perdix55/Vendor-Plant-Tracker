@@ -1881,6 +1881,9 @@ components:
       properties:
         customerName:
           type: string
+        customerId:
+          type: integer
+          nullable: true
         notes:
           type: string
           nullable: true
@@ -1894,6 +1897,9 @@ components:
       properties:
         customerName:
           type: string
+        customerId:
+          type: integer
+          nullable: true
         status:
           type: string
         notes:

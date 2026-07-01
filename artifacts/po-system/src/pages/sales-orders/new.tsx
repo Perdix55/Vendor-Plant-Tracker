@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateSalesOrder, useUpdateSalesOrder, getListSalesOrdersQueryKey } from "@workspace/api-client-react";
+import { useCreateSalesOrder, useUpdateSalesOrder, useListCustomers, getListSalesOrdersQueryKey } from "@workspace/api-client-react";
+import type { Customer } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,9 +37,17 @@ export default function NewSalesOrder() {
 
   // Order creation state
   const [customerName, setCustomerName] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [neededBy, setNeededBy] = useState("");
   const [orderId, setOrderId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
+
+  // Customer lookup state
+  const { data: customers = [] } = useListCustomers();
+  const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [customerHighlightedIndex, setCustomerHighlightedIndex] = useState(-1);
+  const customerSearchWrapperRef = useRef<HTMLDivElement>(null);
 
   // Catalog state
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
@@ -93,10 +102,51 @@ export default function NewSalesOrder() {
       if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
         setShowDropdown(false); setHighlightedIndex(-1);
       }
+      if (customerSearchWrapperRef.current && !customerSearchWrapperRef.current.contains(e.target as Node)) {
+        setShowCustomerDropdown(false); setCustomerHighlightedIndex(-1);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Filter customers for lookup dropdown
+  useEffect(() => {
+    const q = customerName.trim().toLowerCase();
+    if (q.length < 1) { setCustomerSuggestions([]); setShowCustomerDropdown(false); return; }
+    const matches = customers
+      .filter((c) => c.name.toLowerCase().includes(q) || String(c.customerNumber ?? "").includes(q))
+      .slice(0, 8);
+    setCustomerSuggestions(matches);
+    setShowCustomerDropdown(matches.length > 0);
+    setCustomerHighlightedIndex(-1);
+  }, [customerName, customers, orderId]);
+
+  const selectCustomer = (c: Customer) => {
+    setCustomerName(c.name);
+    setSelectedCustomerId(c.id);
+    setShowCustomerDropdown(false);
+    setCustomerSuggestions([]);
+    setCustomerHighlightedIndex(-1);
+  };
+
+  const handleCustomerNameChange = (value: string) => {
+    setCustomerName(value);
+    // Any manual edit invalidates a previously selected customer match
+    if (selectedCustomerId !== null) setSelectedCustomerId(null);
+  };
+
+  const handleCustomerSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showCustomerDropdown || customerSuggestions.length === 0) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setCustomerHighlightedIndex((i) => Math.min(i + 1, customerSuggestions.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setCustomerHighlightedIndex((i) => Math.max(i - 1, -1)); }
+    else if (e.key === "Enter") {
+      if (customerHighlightedIndex >= 0 && customerSuggestions[customerHighlightedIndex]) {
+        e.preventDefault();
+        selectCustomer(customerSuggestions[customerHighlightedIndex]);
+      }
+    } else if (e.key === "Escape") { setShowCustomerDropdown(false); setCustomerHighlightedIndex(-1); }
+  };
 
   // ── API helpers ─────────────────────────────────────────────────────────────
 
@@ -197,11 +247,12 @@ export default function NewSalesOrder() {
     setCreating(true);
     try {
       const order = await createSalesOrder.mutateAsync({
-        data: { customerName: customerName.trim(), neededBy: neededBy || null },
+        data: { customerName: customerName.trim(), customerId: selectedCustomerId, neededBy: neededBy || null },
       });
       setOrderId(order.id);
       setSavedName(customerName.trim());
       setSavedNeededBy(neededBy);
+      setShowCustomerDropdown(false);
       setTimeout(() => searchRef.current?.focus(), 150);
     } catch {
       toast({ title: "Failed to create order", variant: "destructive" });
@@ -215,7 +266,7 @@ export default function NewSalesOrder() {
     try {
       await updateSalesOrder.mutateAsync({
         salesOrderId: orderId,
-        data: { customerName: customerName.trim(), neededBy: neededBy || null },
+        data: { customerName: customerName.trim(), customerId: selectedCustomerId, neededBy: neededBy || null },
       });
       setSavedName(customerName.trim());
       setSavedNeededBy(neededBy);
@@ -277,20 +328,52 @@ export default function NewSalesOrder() {
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-4">
-            <div className="space-y-1.5 flex-1 max-w-xs">
+            <div ref={customerSearchWrapperRef} className="space-y-1.5 flex-1 max-w-xs relative">
               <Label htmlFor="customer-name">Customer Name</Label>
-              <Input
-                id="customer-name"
-                placeholder="e.g. Jane Smith"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    if (!orderId) handleStart();
-                    else handleSaveDetails();
-                  }
-                }}
-              />
+              <div className="relative">
+                <Input
+                  id="customer-name"
+                  placeholder="Search or type a customer name"
+                  value={customerName}
+                  autoComplete="off"
+                  onChange={(e) => handleCustomerNameChange(e.target.value)}
+                  onFocus={() => { if (customerSuggestions.length > 0) setShowCustomerDropdown(true); }}
+                  onKeyDown={(e) => {
+                    if (showCustomerDropdown && customerSuggestions.length > 0) {
+                      handleCustomerSearchKeyDown(e);
+                      return;
+                    }
+                    if (e.key === "Enter") {
+                      if (!orderId) handleStart();
+                      else handleSaveDetails();
+                    }
+                  }}
+                />
+                {selectedCustomerId !== null && (
+                  <Badge variant="secondary" className="absolute right-2 top-1/2 -translate-y-1/2 text-xs gap-1">
+                    <Check className="h-3 w-3" /> Matched
+                  </Badge>
+                )}
+              </div>
+              {showCustomerDropdown && customerSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border bg-popover shadow-lg overflow-hidden">
+                  {customerSuggestions.map((c, idx) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${idx === customerHighlightedIndex ? "bg-accent" : "hover:bg-muted"}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{c.name}</p>
+                        {c.customerNumber != null && (
+                          <p className="text-xs text-muted-foreground">#{c.customerNumber}</p>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-1.5 w-44">
               <Label htmlFor="needed-by">

@@ -457,12 +457,14 @@ export interface SalesOrderDetail {
 
 export interface CreateSalesOrderBody {
   customerName: string;
+  customerId?: number | null;
   notes?: string | null;
   neededBy?: string | null;
 }
 
 export interface UpdateSalesOrderBody {
   customerName?: string;
+  customerId?: number | null;
   status?: string;
   notes?: string | null;
   neededBy?: string | null;

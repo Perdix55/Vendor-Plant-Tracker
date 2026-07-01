@@ -1049,6 +1049,7 @@ export const ListSalesOrdersResponse = zod.array(ListSalesOrdersResponseItem);
  */
 export const CreateSalesOrderBody = zod.object({
   customerName: zod.string(),
+  customerId: zod.number().nullish(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),
 });
@@ -1094,6 +1095,7 @@ export const UpdateSalesOrderParams = zod.object({
 
 export const UpdateSalesOrderBody = zod.object({
   customerName: zod.string().optional(),
+  customerId: zod.number().nullish(),
   status: zod.string().optional(),
   notes: zod.string().nullish(),
   neededBy: zod.coerce.date().nullish(),

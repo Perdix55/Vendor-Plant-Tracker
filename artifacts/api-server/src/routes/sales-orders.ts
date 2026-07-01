@@ -113,7 +113,12 @@ router.get("/sales-orders", requireStaffOrCustomer, async (req, res) => {
 // POST /sales-orders
 router.post("/sales-orders", requireStaffOrCustomer, async (req, res) => {
   try {
-    const { customerName, notes, neededBy } = req.body as { customerName: string; notes?: string; neededBy?: string | null };
+    const { customerName, customerId: bodyCustomerId, notes, neededBy } = req.body as {
+      customerName: string;
+      customerId?: number | null;
+      notes?: string;
+      neededBy?: string | null;
+    };
 
     let finalCustomerName = customerName?.trim();
     let customerId: number | null = null;
@@ -123,6 +128,11 @@ router.post("/sales-orders", requireStaffOrCustomer, async (req, res) => {
       if (!customer) return res.status(401).json({ error: "Unauthorized" });
       customerId = customer.id;
       finalCustomerName = customer.name;
+    } else if (bodyCustomerId) {
+      const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, bodyCustomerId));
+      if (!customer) return res.status(400).json({ error: "Customer not found" });
+      customerId = customer.id;
+      finalCustomerName = customerName?.trim() || customer.name;
     }
 
     if (!finalCustomerName) {
@@ -212,8 +222,9 @@ router.get("/sales-orders/:salesOrderId", requireStaffOrCustomer, async (req, re
 router.put("/sales-orders/:salesOrderId", async (req, res) => {
   const id = parseInt(req.params.salesOrderId, 10);
   try {
-    const { customerName, status, notes, neededBy } = req.body as {
+    const { customerName, customerId, status, notes, neededBy } = req.body as {
       customerName?: string;
+      customerId?: number | null;
       status?: string;
       notes?: string;
       neededBy?: string | null;
@@ -227,10 +238,16 @@ router.put("/sales-orders/:salesOrderId", async (req, res) => {
 
     if (!current) return res.status(404).json({ error: "Sales order not found" });
 
+    if (customerId) {
+      const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, customerId));
+      if (!customer) return res.status(400).json({ error: "Customer not found" });
+    }
+
     await db
       .update(salesOrdersTable)
       .set({
         ...(customerName !== undefined ? { customerName } : {}),
+        ...(customerId !== undefined ? { customerId } : {}),
         ...(status !== undefined ? { status } : {}),
         ...(notes !== undefined ? { notes } : {}),
         ...(neededBy !== undefined ? { neededBy: neededBy ?? null } : {}),
