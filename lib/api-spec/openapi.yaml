@@ -1842,6 +1842,9 @@ components:
         shippingAddress:
           type: string
           nullable: true
+        billingAddress:
+          type: string
+          nullable: true
         itemCount:
           type: integer
         createdAt:
@@ -1870,6 +1873,9 @@ components:
           format: date
           nullable: true
         shippingAddress:
+          type: string
+          nullable: true
+        billingAddress:
           type: string
           nullable: true
         createdAt:

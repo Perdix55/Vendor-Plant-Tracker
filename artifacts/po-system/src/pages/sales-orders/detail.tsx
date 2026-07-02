@@ -554,6 +554,11 @@ export default function SalesOrderDetail() {
             <div className="flex items-start gap-2">
               {order.shippingAddress ? (
                 <p className="text-sm whitespace-pre-line">{order.shippingAddress}</p>
+              ) : order.billingAddress ? (
+                <div>
+                  <p className="text-sm whitespace-pre-line">{order.billingAddress}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">(using billing address)</p>
+                </div>
               ) : (
                 <p className="text-muted-foreground text-sm">Not set</p>
               )}

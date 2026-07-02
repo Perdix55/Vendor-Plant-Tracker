@@ -439,6 +439,7 @@ export interface SalesOrderSummary {
   notes?: string | null;
   neededBy?: string | null;
   shippingAddress?: string | null;
+  billingAddress?: string | null;
   itemCount: number;
   createdAt: string;
   updatedAt: string;
@@ -452,6 +453,7 @@ export interface SalesOrderDetail {
   notes?: string | null;
   neededBy?: string | null;
   shippingAddress?: string | null;
+  billingAddress?: string | null;
   createdAt: string;
   updatedAt: string;
   items: SalesOrderLineItem[];

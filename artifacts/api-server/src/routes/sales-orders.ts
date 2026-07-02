@@ -85,10 +85,12 @@ router.get("/sales-orders", requireStaffOrCustomer, async (req, res) => {
         notes: salesOrdersTable.notes,
         neededBy: salesOrdersTable.neededBy,
         shippingAddress: salesOrdersTable.shippingAddress,
+        billingAddress: customersTable.billTo,
         createdAt: salesOrdersTable.createdAt,
         updatedAt: salesOrdersTable.updatedAt,
       })
       .from(salesOrdersTable)
+      .leftJoin(customersTable, eq(customersTable.id, salesOrdersTable.customerId))
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(salesOrdersTable.createdAt));
 
@@ -164,8 +166,20 @@ router.post("/sales-orders", requireStaffOrCustomer, async (req, res) => {
 
 async function getSalesOrderWithItems(id: number) {
   const [order] = await db
-    .select()
+    .select({
+      id: salesOrdersTable.id,
+      customerName: salesOrdersTable.customerName,
+      customerId: salesOrdersTable.customerId,
+      status: salesOrdersTable.status,
+      notes: salesOrdersTable.notes,
+      neededBy: salesOrdersTable.neededBy,
+      shippingAddress: salesOrdersTable.shippingAddress,
+      billingAddress: customersTable.billTo,
+      createdAt: salesOrdersTable.createdAt,
+      updatedAt: salesOrdersTable.updatedAt,
+    })
     .from(salesOrdersTable)
+    .leftJoin(customersTable, eq(customersTable.id, salesOrdersTable.customerId))
     .where(eq(salesOrdersTable.id, id));
 
   if (!order) return null;

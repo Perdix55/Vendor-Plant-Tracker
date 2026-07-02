@@ -20,6 +20,7 @@ type Order = {
   neededBy: string | null;
   notes: string | null;
   shippingAddress: string | null;
+  billingAddress: string | null;
   createdAt: string;
   items: OrderItem[];
 };
@@ -129,10 +130,12 @@ export default function SalesOrderPrint() {
                 </p>
               </div>
             )}
-            {order.shippingAddress && (
+            {(order.shippingAddress || order.billingAddress) && (
               <div>
                 <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Ship To</p>
-                <p className="font-semibold text-gray-800 whitespace-pre-line">{order.shippingAddress}</p>
+                <p className="font-semibold text-gray-800 whitespace-pre-line">
+                  {order.shippingAddress || order.billingAddress}
+                </p>
               </div>
             )}
             {order.notes && (
