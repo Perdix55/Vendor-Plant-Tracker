@@ -11,7 +11,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { ReplitConnectors } from "@replit/connectors-sdk";
+import { sendEmail, buildSmtpConfig } from "../lib/email";
 
 const router = Router();
 
@@ -564,31 +564,23 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
     });
 
     const settingsRows = await db.select().from(settingsTable);
-    const fromEmailSetting = settingsRows.find(r => r.key === "fromEmail")?.value ?? null;
+    const settingsMap: Record<string, string | null> = {};
+    for (const row of settingsRows) settingsMap[row.key] = row.value ?? null;
+    const fromAddress = settingsMap.fromEmail?.trim() || "sales@vickerygreenhouse.com";
+    const fromName = settingsMap.smtpFromName?.trim() || "Vickery Wholesale Greenhouse";
+    const smtp = buildSmtpConfig(settingsMap);
 
-    const connectors = new ReplitConnectors();
-    const fromAddress = fromEmailSetting ?? "sales@vickerygreenhouse.com";
-    const emailB64 = Buffer.from(
-      `From: Vickery Wholesale Greenhouse <${fromAddress}>\r\n` +
-      `To: ${order.vendorEmail}\r\n` +
-      `Subject: Purchase Order Confirmation Request - ${order.vendorName} - Week of ${weekDateDisplay}\r\n` +
-      `MIME-Version: 1.0\r\n` +
-      `Content-Type: text/html; charset=UTF-8\r\n` +
-      `\r\n` +
-      emailBody
-    ).toString("base64url");
-
-    const response = await connectors.proxy("google-mail", "/gmail/v1/users/me/messages/send", {
-      method: "POST",
-      body: JSON.stringify({ raw: emailB64 }),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      req.log.error({ status: response.status, errText }, "Gmail send failed");
-      return res.status(502).json({ error: "Failed to send email via Gmail" });
-    }
+    await sendEmail(
+      {
+        to: order.vendorEmail,
+        subject: `Purchase Order Confirmation Request - ${order.vendorName} - Week of ${weekDateDisplay}`,
+        html: emailBody,
+        fromAddress,
+        fromName,
+      },
+      smtp,
+      req.log
+    );
 
     const emailSentAt = new Date();
     await db.update(ordersTable)

@@ -2,8 +2,9 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { db, customersTable } from "@workspace/db";
+import { settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { ReplitConnectors } from "@replit/connectors-sdk";
+import { sendEmail, buildSmtpConfig } from "../lib/email";
 
 const router = Router();
 
@@ -23,7 +24,7 @@ async function sendResetEmail(req: import("express").Request, toEmail: string, c
   const protocol = domain.startsWith("localhost") ? "http" : "https";
   const resetUrl = `${protocol}://${domain}/customer-reset/${token}`;
 
-  const emailBody = `
+  const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
       <h2>Password Reset Requested</h2>
       <p>Hi ${customerName},</p>
@@ -33,29 +34,18 @@ async function sendResetEmail(req: import("express").Request, toEmail: string, c
     </div>
   `;
 
-  const connectors = new ReplitConnectors();
-  const fromAddress = "sales@vickerygreenhouse.com";
-  const emailB64 = Buffer.from(
-    `From: Vickery Wholesale Greenhouse <${fromAddress}>\r\n` +
-    `To: ${toEmail}\r\n` +
-    `Subject: Reset your Vickery Wholesale Greenhouse password\r\n` +
-    `MIME-Version: 1.0\r\n` +
-    `Content-Type: text/html; charset=UTF-8\r\n` +
-    `\r\n` +
-    emailBody
-  ).toString("base64url");
+  const settingsRows = await db.select().from(settingsTable);
+  const settingsMap: Record<string, string | null> = {};
+  for (const row of settingsRows) settingsMap[row.key] = row.value ?? null;
+  const fromAddress = settingsMap.fromEmail?.trim() || "sales@vickerygreenhouse.com";
+  const fromName = settingsMap.smtpFromName?.trim() || "Vickery Wholesale Greenhouse";
+  const smtp = buildSmtpConfig(settingsMap);
 
-  const response = await connectors.proxy("google-mail", "/gmail/v1/users/me/messages/send", {
-    method: "POST",
-    body: JSON.stringify({ raw: emailB64 }),
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    req.log.error({ status: response.status, errText }, "Gmail send failed for customer password reset");
-    throw new Error("Failed to send email via Gmail");
-  }
+  await sendEmail(
+    { to: toEmail, subject: "Reset your Vickery Wholesale Greenhouse password", html, fromAddress, fromName },
+    smtp,
+    req.log
+  );
 }
 
 // GET /customer-auth/me

@@ -104,6 +104,7 @@ async function buildAll() {
       "pdfjs-dist",
       "pdfjs-dist/*",
       "pdf-parse",
+      "nodemailer",
     ],
     sourcemap: "linked",
     plugins: [

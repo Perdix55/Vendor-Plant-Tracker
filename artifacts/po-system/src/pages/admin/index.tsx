@@ -1752,74 +1752,181 @@ function SettingsTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [fromEmail, setFromEmail] = useState<string>("");
+  const [fromEmail, setFromEmail] = useState("");
+  const [fromName, setFromName] = useState("");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("");
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPass, setSmtpPass] = useState("");
+  const [smtpSecure, setSmtpSecure] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   if (settings && !initialized) {
     setFromEmail(settings.fromEmail ?? "");
+    setFromName(settings.smtpFromName ?? "");
+    setSmtpHost(settings.smtpHost ?? "");
+    setSmtpPort(settings.smtpPort ?? "587");
+    setSmtpUser(settings.smtpUser ?? "");
+    setSmtpPass(settings.smtpPass ?? "");
+    setSmtpSecure(settings.smtpSecure === "true");
     setInitialized(true);
   }
 
+  const smtpConfigured = !!(smtpHost.trim() && smtpUser.trim() && smtpPass.trim());
+
   const handleSave = () => {
     updateSettings.mutate(
-      { data: { fromEmail: fromEmail.trim() || null } },
+      {
+        data: {
+          fromEmail: fromEmail.trim() || null,
+          smtpFromName: fromName.trim() || null,
+          smtpHost: smtpHost.trim() || null,
+          smtpPort: smtpPort.trim() || null,
+          smtpUser: smtpUser.trim() || null,
+          smtpPass: smtpPass.trim() || null,
+          smtpSecure: smtpSecure ? "true" : "false",
+        },
+      },
       {
         onSuccess: () => {
-          toast({ title: "Settings saved", description: "Sending email address updated." });
+          toast({ title: "Settings saved" });
           queryClient.invalidateQueries({ queryKey: ["getSettings"] });
         },
-        onError: () => toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" }),
+        onError: () => toast({ title: "Error saving settings", variant: "destructive" }),
       }
     );
   };
 
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-lg">
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Email Settings</CardTitle>
+            <CardTitle className="text-lg">Sender Identity</CardTitle>
           </div>
           <CardDescription>
-            Configure the email address used as the sender when PO confirmation emails are sent to vendors.
+            Name and address that appear in the "From" field on all outgoing emails.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-              <div className="h-10 w-full bg-muted rounded animate-pulse" />
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="from-name">From Name</Label>
+            <Input
+              id="from-name"
+              placeholder="Vickery Wholesale Greenhouse"
+              value={fromName}
+              onChange={(e) => setFromName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="from-email">From Email Address</Label>
+            <Input
+              id="from-email"
+              type="email"
+              placeholder="orders@yourcompany.com"
+              value={fromEmail}
+              onChange={(e) => setFromEmail(e.target.value)}
+              data-testid="input-from-email"
+            />
+            <p className="text-xs text-muted-foreground">
+              {smtpConfigured
+                ? "Sent via your SMTP server below."
+                : "Sent via the connected Gmail account. Must match that account or a verified Gmail alias."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">SMTP Server</CardTitle>
+          </div>
+          <CardDescription>
+            Connect any email provider (Gmail, Outlook, SendGrid, Mailgun, etc.) using SMTP.
+            When configured, SMTP is used instead of the built-in Gmail connector.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2 space-y-1.5">
+              <Label htmlFor="smtp-host">SMTP Host</Label>
+              <Input
+                id="smtp-host"
+                placeholder="smtp.gmail.com"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+              />
             </div>
-          ) : (
-            <div className="space-y-4 max-w-md">
-              <div className="space-y-1.5">
-                <Label htmlFor="from-email">Sending Email Address</Label>
-                <Input
-                  id="from-email"
-                  type="email"
-                  placeholder="orders@yourcompany.com"
-                  value={fromEmail}
-                  onChange={(e) => setFromEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                  data-testid="input-from-email"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This address appears in the "From" field on vendor PO emails. Must be your connected Gmail account or a verified Gmail alias. Leave blank to use the default.
-                </p>
-              </div>
-              <Button
-                onClick={handleSave}
-                disabled={updateSettings.isPending}
-                data-testid="button-save-settings"
-              >
-                <Check className="mr-2 h-4 w-4" />
-                {updateSettings.isPending ? "Saving..." : "Save Settings"}
-              </Button>
+            <div className="space-y-1.5">
+              <Label htmlFor="smtp-port">Port</Label>
+              <Input
+                id="smtp-port"
+                type="number"
+                placeholder="587"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="smtp-user">Username</Label>
+            <Input
+              id="smtp-user"
+              type="email"
+              placeholder="you@yourcompany.com"
+              value={smtpUser}
+              onChange={(e) => setSmtpUser(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="smtp-pass">Password / App Password</Label>
+            <Input
+              id="smtp-pass"
+              type="password"
+              placeholder="••••••••••••••••"
+              value={smtpPass}
+              onChange={(e) => setSmtpPass(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              For Gmail, use an App Password (requires 2FA). For SendGrid use "apikey" as the username and your API key as the password.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Checkbox
+              id="smtp-secure"
+              checked={smtpSecure}
+              onCheckedChange={(v) => setSmtpSecure(v === true)}
+            />
+            <Label htmlFor="smtp-secure" className="font-normal cursor-pointer">
+              Use TLS (port 465) — uncheck for STARTTLS (port 587)
+            </Label>
+          </div>
+          {smtpConfigured && (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle2 className="h-4 w-4" />
+              SMTP configured — outgoing emails will use this server.
             </div>
           )}
         </CardContent>
       </Card>
+
+      <Button onClick={handleSave} disabled={updateSettings.isPending} data-testid="button-save-settings">
+        <Check className="mr-2 h-4 w-4" />
+        {updateSettings.isPending ? "Saving…" : "Save Settings"}
+      </Button>
     </div>
   );
 }

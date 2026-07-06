@@ -416,6 +416,12 @@ export interface VendorActivity {
 
 export interface AppSettings {
   fromEmail?: string | null;
+  smtpHost?: string | null;
+  smtpPort?: string | null;
+  smtpUser?: string | null;
+  smtpPass?: string | null;
+  smtpSecure?: string | null;
+  smtpFromName?: string | null;
 }
 
 export interface SalesOrderLineItem {

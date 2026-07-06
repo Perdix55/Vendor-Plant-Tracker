@@ -1,15 +1,20 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { settingsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
 
 const router = Router();
+
+const SETTING_KEYS = ["fromEmail", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpSecure", "smtpFromName"] as const;
+
+function emptySettings(): Record<string, string | null> {
+  return Object.fromEntries(SETTING_KEYS.map((k) => [k, null]));
+}
 
 // GET /settings
 router.get("/settings", async (req, res) => {
   try {
     const rows = await db.select().from(settingsTable);
-    const result: Record<string, string | null> = { fromEmail: null };
+    const result = emptySettings();
     for (const row of rows) {
       result[row.key] = row.value ?? null;
     }
@@ -23,17 +28,20 @@ router.get("/settings", async (req, res) => {
 // PUT /settings
 router.put("/settings", async (req, res) => {
   try {
-    const { fromEmail } = req.body as { fromEmail?: string | null };
+    const body = req.body as Partial<Record<typeof SETTING_KEYS[number], string | null>>;
 
-    if (fromEmail !== undefined) {
-      await db
-        .insert(settingsTable)
-        .values({ key: "fromEmail", value: fromEmail ?? null })
-        .onConflictDoUpdate({ target: settingsTable.key, set: { value: fromEmail ?? null, updatedAt: new Date() } });
+    for (const key of SETTING_KEYS) {
+      if (key in body) {
+        const value = body[key] ?? null;
+        await db
+          .insert(settingsTable)
+          .values({ key, value })
+          .onConflictDoUpdate({ target: settingsTable.key, set: { value, updatedAt: new Date() } });
+      }
     }
 
     const rows = await db.select().from(settingsTable);
-    const result: Record<string, string | null> = { fromEmail: null };
+    const result = emptySettings();
     for (const row of rows) {
       result[row.key] = row.value ?? null;
     }

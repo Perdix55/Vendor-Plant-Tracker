@@ -1792,6 +1792,24 @@ components:
         fromEmail:
           type: string
           nullable: true
+        smtpHost:
+          type: string
+          nullable: true
+        smtpPort:
+          type: string
+          nullable: true
+        smtpUser:
+          type: string
+          nullable: true
+        smtpPass:
+          type: string
+          nullable: true
+        smtpSecure:
+          type: string
+          nullable: true
+        smtpFromName:
+          type: string
+          nullable: true
 
     SalesOrderLineItem:
       type: object

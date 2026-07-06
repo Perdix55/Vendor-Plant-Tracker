@@ -1247,6 +1247,12 @@ export const GetVendorActivityResponse = zod.array(
  */
 export const GetSettingsResponse = zod.object({
   fromEmail: zod.string().nullish(),
+  smtpHost: zod.string().nullish(),
+  smtpPort: zod.string().nullish(),
+  smtpUser: zod.string().nullish(),
+  smtpPass: zod.string().nullish(),
+  smtpSecure: zod.string().nullish(),
+  smtpFromName: zod.string().nullish(),
 });
 
 /**
@@ -1254,8 +1260,20 @@ export const GetSettingsResponse = zod.object({
  */
 export const UpdateSettingsBody = zod.object({
   fromEmail: zod.string().nullish(),
+  smtpHost: zod.string().nullish(),
+  smtpPort: zod.string().nullish(),
+  smtpUser: zod.string().nullish(),
+  smtpPass: zod.string().nullish(),
+  smtpSecure: zod.string().nullish(),
+  smtpFromName: zod.string().nullish(),
 });
 
 export const UpdateSettingsResponse = zod.object({
   fromEmail: zod.string().nullish(),
+  smtpHost: zod.string().nullish(),
+  smtpPort: zod.string().nullish(),
+  smtpUser: zod.string().nullish(),
+  smtpPass: zod.string().nullish(),
+  smtpSecure: zod.string().nullish(),
+  smtpFromName: zod.string().nullish(),
 });
