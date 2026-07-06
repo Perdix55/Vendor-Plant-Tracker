@@ -1805,7 +1805,7 @@ function SettingsTab() {
                   data-testid="input-from-email"
                 />
                 <p className="text-xs text-muted-foreground">
-                  This address will appear in the "Reply-To" field on vendor emails. Leave blank to use the default Gmail account.
+                  This address appears in the "From" field on vendor PO emails. Must be your connected Gmail account or a verified Gmail alias. Leave blank to use the default.
                 </p>
               </div>
               <Button
