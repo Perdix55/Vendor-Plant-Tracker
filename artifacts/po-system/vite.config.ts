@@ -5,7 +5,7 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 // Force base to be empty string for Railway deployment
-const basePath = process.env.RAILWAY_ENV || process.env.NODE_ENV === 'production' ? "" : "/";
+const basePath = process.env.RAILWAY_ENV || process.env.NODE_ENV === 'production' ? "/" : "/";
 
 const rawPort = process.env.PORT;
 const port = rawPort ? Number(rawPort) : 5173;
@@ -57,3 +57,4 @@ export default defineConfig({
     allowedHosts: true,
   },
 });
+
