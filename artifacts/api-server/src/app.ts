@@ -43,7 +43,7 @@ app.use(express.static(frontendDist));
 
 // SPA fallback: any route not matched by the API or a static file returns index.html
 // so that client-side routing (wouter/react-router) works correctly.
-app.get("*", (_req, res) => {
+app.get("/:path*", (_req, res) => {
   res.sendFile(path.join(frontendDist, "index.html"));
 });
 
