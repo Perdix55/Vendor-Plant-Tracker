@@ -4,7 +4,6 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 
 const app: Express = express();
@@ -36,7 +35,7 @@ app.use("/api", router);
 
 // Serve the built frontend (po-system) as static files.
 const frontendDist = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
+  __dirname,
   "../po-system/dist",
 );
 app.use(express.static(frontendDist));
