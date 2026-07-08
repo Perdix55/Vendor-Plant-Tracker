@@ -34,10 +34,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api", router);
 
 // Serve the built frontend (po-system) as static files.
-const frontendDist = path.resolve(
-  __dirname,
-  "../po-system/dist",
-);
+// The app runs from /app/artifacts/api-server/dist/index.mjs
+// So we need to go up to /app/artifacts and then into po-system/dist
+const frontendDist = path.resolve("/app/artifacts/po-system/dist");
+
 app.use(express.static(frontendDist));
 
 // SPA fallback: any route not matched by the API or a static file returns index.html
