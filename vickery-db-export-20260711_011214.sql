@@ -1,0 +1,9320 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict awCNttznaG60RSs5nIeg0hHx6vI3nHqDcxmXicoBFVHu6Gm1ThlbO5QDCyY8Rwh
+
+-- Dumped from database version 16.10
+-- Dumped by pg_dump version 16.10
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: customers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customers (
+    id integer NOT NULL,
+    customer_number integer,
+    name text NOT NULL,
+    bill_to text,
+    email text,
+    primary_contact text,
+    phone text,
+    ship_to text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    password_hash text,
+    reset_token text,
+    reset_token_expires_at timestamp without time zone
+);
+
+
+--
+-- Name: customers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.customers_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: customers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.customers_id_seq OWNED BY public.customers.id;
+
+
+--
+-- Name: inventory_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_items (
+    id integer NOT NULL,
+    product_id integer NOT NULL,
+    vendor_id integer NOT NULL,
+    quantity_on_hand integer DEFAULT 0 NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: inventory_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventory_items_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventory_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventory_items_id_seq OWNED BY public.inventory_items.id;
+
+
+--
+-- Name: inventory_transactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_transactions (
+    id integer NOT NULL,
+    product_id integer NOT NULL,
+    vendor_id integer NOT NULL,
+    order_id integer,
+    type text NOT NULL,
+    quantity integer NOT NULL,
+    notes text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: inventory_transactions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventory_transactions_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventory_transactions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventory_transactions_id_seq OWNED BY public.inventory_transactions.id;
+
+
+--
+-- Name: order_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.order_items (
+    id integer NOT NULL,
+    order_id integer NOT NULL,
+    product_id integer NOT NULL,
+    quantity_ordered integer NOT NULL,
+    quantity_confirmed integer,
+    availability text,
+    notes text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    substitution_name text,
+    substitution_notes text
+);
+
+
+--
+-- Name: order_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.order_items_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: order_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.order_items_id_seq OWNED BY public.order_items.id;
+
+
+--
+-- Name: orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.orders (
+    id integer NOT NULL,
+    vendor_id integer NOT NULL,
+    week_date text NOT NULL,
+    ship_date text,
+    arrive_date text,
+    status text DEFAULT 'draft'::text NOT NULL,
+    notes text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    confirm_token text,
+    email_sent_at timestamp without time zone
+);
+
+
+--
+-- Name: orders_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.orders_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.orders_id_seq OWNED BY public.orders.id;
+
+
+--
+-- Name: price_list_imports; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.price_list_imports (
+    id integer NOT NULL,
+    vendor_id integer NOT NULL,
+    triggered_by text NOT NULL,
+    source_url text,
+    email_from text,
+    email_subject text,
+    products_updated integer DEFAULT 0 NOT NULL,
+    products_added integer DEFAULT 0 NOT NULL,
+    status text NOT NULL,
+    error_message text,
+    raw_preview text,
+    imported_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: price_list_imports_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.price_list_imports_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: price_list_imports_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.price_list_imports_id_seq OWNED BY public.price_list_imports.id;
+
+
+--
+-- Name: products; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.products (
+    id integer NOT NULL,
+    vendor_id integer NOT NULL,
+    name text NOT NULL,
+    pack_size text,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    cost numeric(10,2)
+);
+
+
+--
+-- Name: products_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.products_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.products_id_seq OWNED BY public.products.id;
+
+
+--
+-- Name: sales_order_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_order_items (
+    id integer NOT NULL,
+    sales_order_id integer NOT NULL,
+    inventory_item_id integer NOT NULL,
+    product_id integer NOT NULL,
+    vendor_id integer NOT NULL,
+    product_name text NOT NULL,
+    vendor_name text NOT NULL,
+    pack_size text,
+    quantity integer DEFAULT 1 NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sales_order_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.sales_order_items_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: sales_order_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.sales_order_items_id_seq OWNED BY public.sales_order_items.id;
+
+
+--
+-- Name: sales_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_orders (
+    id integer NOT NULL,
+    customer_name text NOT NULL,
+    status text DEFAULT 'open'::text NOT NULL,
+    notes text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    needed_by date,
+    customer_id integer,
+    shipping_address text
+);
+
+
+--
+-- Name: sales_orders_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.sales_orders_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: sales_orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.sales_orders_id_seq OWNED BY public.sales_orders.id;
+
+
+--
+-- Name: session; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.session (
+    sid character varying NOT NULL,
+    sess json NOT NULL,
+    expire timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.settings (
+    id integer NOT NULL,
+    key text NOT NULL,
+    value text,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: settings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.settings_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.settings_id_seq OWNED BY public.settings.id;
+
+
+--
+-- Name: shop_listings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shop_listings (
+    id integer NOT NULL,
+    product_name text NOT NULL,
+    status text DEFAULT 'available'::text NOT NULL,
+    imported_at timestamp without time zone DEFAULT now() NOT NULL,
+    price text,
+    category text
+);
+
+
+--
+-- Name: shop_listings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.shop_listings_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: shop_listings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.shop_listings_id_seq OWNED BY public.shop_listings.id;
+
+
+--
+-- Name: shop_order_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shop_order_items (
+    id integer NOT NULL,
+    sales_order_id integer NOT NULL,
+    shop_listing_id integer NOT NULL,
+    product_name text NOT NULL,
+    price text,
+    quantity integer DEFAULT 1 NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: shop_order_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.shop_order_items_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: shop_order_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.shop_order_items_id_seq OWNED BY public.shop_order_items.id;
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
+    id integer NOT NULL,
+    email text NOT NULL,
+    name text,
+    password_hash text NOT NULL,
+    is_admin boolean DEFAULT false NOT NULL,
+    can_orders boolean DEFAULT true NOT NULL,
+    can_inventory boolean DEFAULT true NOT NULL,
+    can_vendors boolean DEFAULT true NOT NULL,
+    can_sales_orders boolean DEFAULT true NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.users_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
+
+
+--
+-- Name: vendors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vendors (
+    id integer NOT NULL,
+    name text NOT NULL,
+    notes text,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    email text,
+    shipping_days integer,
+    source_location text DEFAULT 'Florida'::text,
+    price_list_email text
+);
+
+
+--
+-- Name: vendors_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.vendors_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: vendors_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.vendors_id_seq OWNED BY public.vendors.id;
+
+
+--
+-- Name: customers id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers ALTER COLUMN id SET DEFAULT nextval('public.customers_id_seq'::regclass);
+
+
+--
+-- Name: inventory_items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_items ALTER COLUMN id SET DEFAULT nextval('public.inventory_items_id_seq'::regclass);
+
+
+--
+-- Name: inventory_transactions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_transactions ALTER COLUMN id SET DEFAULT nextval('public.inventory_transactions_id_seq'::regclass);
+
+
+--
+-- Name: order_items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items ALTER COLUMN id SET DEFAULT nextval('public.order_items_id_seq'::regclass);
+
+
+--
+-- Name: orders id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders ALTER COLUMN id SET DEFAULT nextval('public.orders_id_seq'::regclass);
+
+
+--
+-- Name: price_list_imports id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.price_list_imports ALTER COLUMN id SET DEFAULT nextval('public.price_list_imports_id_seq'::regclass);
+
+
+--
+-- Name: products id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products ALTER COLUMN id SET DEFAULT nextval('public.products_id_seq'::regclass);
+
+
+--
+-- Name: sales_order_items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_items ALTER COLUMN id SET DEFAULT nextval('public.sales_order_items_id_seq'::regclass);
+
+
+--
+-- Name: sales_orders id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders ALTER COLUMN id SET DEFAULT nextval('public.sales_orders_id_seq'::regclass);
+
+
+--
+-- Name: settings id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.settings ALTER COLUMN id SET DEFAULT nextval('public.settings_id_seq'::regclass);
+
+
+--
+-- Name: shop_listings id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_listings ALTER COLUMN id SET DEFAULT nextval('public.shop_listings_id_seq'::regclass);
+
+
+--
+-- Name: shop_order_items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_order_items ALTER COLUMN id SET DEFAULT nextval('public.shop_order_items_id_seq'::regclass);
+
+
+--
+-- Name: users id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
+
+
+--
+-- Name: vendors id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vendors ALTER COLUMN id SET DEFAULT nextval('public.vendors_id_seq'::regclass);
+
+
+--
+-- Data for Name: customers; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.customers (id, customer_number, name, bill_to, email, primary_contact, phone, ship_to, created_at, password_hash, reset_token, reset_token_expires_at) FROM stdin;
+2	101	1 800 FLOWERS-DALLAS	1 800 FLOWERS-DALLAS 3380 BELTLINE RD exit napa auto at john connall FARMERS BRANCH, TX 75234	criscuevas.florist@gmail.com	JOSE CUEVAS	972-458-2021	1 800 FLOWERS-DALLAS 3380 BELTLINE RD exit napa auto at john connall FARMERS BRANCH, TX 75234	2026-07-01 17:06:55.900872	\N	\N	\N
+3	102	108 CATERING	108 CATERING 4576 BORDEAUX DALLAS, TX 75205	108catering@gmail.com	JOANNE KORGES	214-528-2077	108 CATERING 4576 BORDEAUX DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+4	103	1ST MOMENT FLOWERS	1ST MOMENT FLOWERS 705 PECAN AVENUE ROUND ROCK, TX 78664	annfflowers@gmail.com	\N	512-671-9222	1ST MOMENT FLOWERS 705 PECAN AVENUE ROUND ROCK, TX 78664	2026-07-01 17:06:55.900872	\N	\N	\N
+5	104	21 PARC FLORAL & EVENTS	21 PARC FLORAL & EVENTS 3500 EASY ST. DALLAS, TX 75247	john_holstead@yahoo.com	\N	214-418-1271	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+6	105	360 DESIGN	360 DESIGN 3403 HALIFAX ARLINGTON, TX 76013	mhamm@360installations.com	\N	214-336-4453	360 DESIGN 3403 HALIFAX ARLINGTON, TX 76013	2026-07-01 17:06:55.900872	\N	\N	\N
+7	106	44 BUILD	44 BUILD 2720 TAYLOR ST. DALLAS, TX. 75226	aleightownley@44build.com	ALEIGH TOWNLEY	214-295-8188	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+8	107	620 FLORIST	620 FLORIST 110 E. Anderson Ave. Suite 300 ROUND ROCK, TX 78664	flowers@620florist.com	SUSAN	512-244-2711	620 FLORIST 110 E. Anderson Ave. Suite 300 ROUND ROCK, TX 78664	2026-07-01 17:06:55.900872	\N	\N	\N
+9	108	7W LANDSCAPE, LLC	7W LANDSCAPE, LLC GREG WALKER 295 CR EAST 3066 LAMPASAS, TX  76550	greg@7wlandscape.com	\N	254-220-3024	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+10	109	93 NURSERY AND LANDSCAPE SUPPLY	93 NURSERY AND LANDSCAPE SUPPLY, LLC 5300 WEST FM 93 TEMPLE, TX 76502	LESLIE@93NURSERY.COM	\N	254-616-9889	93 NURSERY AND LANDSCAPE SUPPLY, LLC 5300 WEST FM 93 TEMPLE, TX 76502	2026-07-01 17:06:55.900872	\N	\N	\N
+11	110	A-1 FLORAL DESIGN  STUDIO	A-1 FLORAL DESIGN STUDIO 3015 S. WOODLAWN DENISON, TX 75020	jennifer@a1floraldesign.com	\N	903-463-7710	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+12	111	A-Z AQUATIC	A-Z AQUATIC 754 SANTA FE LN. ROYCE CITY, TX 75189	evan@a-zaquatic.com	\N	214-762-7416	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+13	112	A BUNDLE OF LOVE > > > > > >	A BUNDLE OF LOVE > > > > > > 209  W 6TH ST FERRIS, TX 75125-2503	\N	\N	972-842-3544	A BUNDLE OF LOVE > > > > > > 209  W 6TH ST FERRIS, TX 75125-2503	2026-07-01 17:06:55.900872	\N	\N	\N
+14	113	A FLORAL EXPERIENCE	A FLORAL EXPERIENCE 5457 N. MACARTHUR BLVD. IRVING, TX 75038	sales@afloralexperience.com	BARBARA LAWRENCE	972-580-0764	A FLORAL EXPERIENCE 5457 N. MACARTHUR BLVD. IRVING, TX 75038	2026-07-01 17:06:55.900872	\N	\N	\N
+15	114	A FLOWER MATTERS	A FLOWER MATTERS 9911 LAKE JUNE RD SUITE F DALLAS, TX 75217	ayalana74@gmail.com	\N	972-288-9710	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+16	115	A MAN & A WOMAN FLORAL DESIGN	A MAN & A WOMAN FLORAL DESIGN 2431 SHORECREST #D3 DALLAS, TX 75235	\N	JOHN MURRAY	469-569-3856	A MAN & A WOMAN FLORAL DESIGN 2431 SHO9RECREST #D3 DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+17	116	A TOUCH OF CLASS FLORIST	A TOUCH OF CLASS FLORIST 2006 NORTHCLIFF DR. RICHARDSON, TX 75082	tocflorist@aol.com	\N	972-386-5010	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+18	117	A TOUCH OF HEAVEN FLORAL DESIGNS	A TOUCH OF HEAVEN FLORAL DESIGNS P.O. BOX 810133 SUITE 100 FARMERS BRANCH, TX 75381	gary@atouchofheaven.org	\N	214-350-6200	12411 templeton tr farmers branch tx gray 214 350 6200	2026-07-01 17:06:55.900872	\N	\N	\N
+19	118	ABVENTURE DESIGNS	ABVENTURE DESIGNS, LLC 1913 JADE ROCKWALL, TX 75087	\N	\N	469-661-9005	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+20	119	ACATEX PARTY SUPPLIES	ACATEX PARTY SUPPLIES 10817 DENTON DR. SUITE A DALLAS, TX. 75220	\N	\N	214-351-6551	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+21	120	ACCESSORY BY DESIGN	ACCESSORY BY DESIGN 498 LONGCREEK SUNNYVALE, TX. 75182	\N	\N	214-244-8920	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+22	121	ACE INVERTS	ACE INVERTS 1698 HOWARD RD. WAXAHACHIE, TX 75065	adeopods@gmai.com	\N	972-921-3343	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+23	122	ACKER'S ACRES	ACKER'S ACRES 4317 HARTFORD #103 DALLAS, TX 75219	\N	KATHY ACKER	817-823-1043	ACKER'S ACRES 4317 HARTFORD #103 DALLAS, TX 75219	2026-07-01 17:06:55.900872	\N	\N	\N
+24	123	ACQUIRED TREASURES	ACQUIRED TREASURES 4311 OAK LAWN #100 DALLAS, TX 75219	\N	\N	214-890-8817	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+25	124	ADAMS LORAINE FLOWER SHOP	ADAMS LORAINE FLOWER SHOP 839 HWY 90 BAY ST. LOUIS, MS 29520	adamsloraineflowers@gmail.com	\N	228-467-6507	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+26	125	ADDISON HAILEY GARDENS	ADDISON HAILEY GARDENS 5001 JUDSON RD. LONGVIEW, TX 75605	addisonhaileygardens@yahoo.com	\N	903-576-6895	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+27	126	ADDITIONS	ADDITIONS 1717 S CHILTON TYLER, TX. 75701	marylauren@additionsinteriors.com	\N	903-534-5710	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+28	127	ADVANCE LANDSCAPE DESIGNS	ADVANCE LANDSCAPE DESIGNS VINCENT UHEREK 13523 POND SPRING ROAD AUSTIN, TX  78729	vincent@aldaustin.com	\N	512-918-8009	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+29	128	AKI	AKI 6841 KENWHITE DR. DALLAS, TX 75231	cga@swbell.net	\N	214-914-5103	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+30	129	AL'S FLORIST<Doris or Patrick ONLY>	AL'S FLORIST 4640 HAAS DR DALLAS, TX 75216	\N	DORIS	214-371-8464	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+31	130	ALAMO PLANTS & PETALS	ALAMO PLANTS & PETALS 119 WEST SUNSET RD. SAN ANTONIO, TX 78209	info@alamoplantsandpetals.com	SUE	210-828-2628	ALAMO PLANTS & PETALS 119 WEST SUNSET RD. SAN ANTONIO, TX 78209	2026-07-01 17:06:55.900872	\N	\N	\N
+32	131	ALBERT ROAD	ALBERT ROAD ROBERT JACQUES 7200 ALBERT RD. AUSTIN, TX  78745	robjacques3@gmail.com	\N	512-703-7511	ALBERT ROAD 7200 ALBERT RD. AUSTIN, TX 78745	2026-07-01 17:06:55.900872	\N	\N	\N
+33	132	ALEXANDERS AWESOME BLOSSOM	ALEXANDERS AWESOME BLOSSOM 400 BELMONT SAGINAW, TX 76179	\N	\N	817-232-4449	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+34	133	ALI BLEU	ALI BLEU 6800 WEST GATE BLVD., STE. 146 AUSTIN, TX 78745	alibleuflowers@yahoo.com	\N	512-448-1421	ALI BLEU 6800 WEST GATE BLVD., STE. 146 AUSTIN, TX 78745	2026-07-01 17:06:55.900872	\N	\N	\N
+35	134	ALICIAS POTS AND PLANTS	ALICIAS POTS AND PLANTS ALICIA DARDEN 503 CARSWELL TERRACE ARLINGTON, TX 76010	aliciaabrin@yahoo.com	\N	817-323-3517	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+36	135	ALL  BLOOMING FLORIST	ALL BLOOMING FLORIST 2615 OAK LAWN #103 DALLAS, TX 75219	\N	\N	214-238-3283	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+37	136	ALL MIXED UP	ALL MIXED UP 102 N. MAIN ST. YANTIS, TX 75497	sruse75497@gmail.co	\N	903-383-7199	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+38	137	ALL OCCASION FLORIST<<DALLAS TX>>	ALL OCCASION FLORIST<<DALLAS TX>> 3428 OAK LAWN AVE. DALLAS, TX 75219	\N	JEFF	214-528-0898	ALL OCCASION FLORIST<<DALLAS TX>> 3428 OAK LAWN AVE. DALLAS, TX 75219	2026-07-01 17:06:55.900872	\N	\N	\N
+39	138	ALL SAINTS CATHOLIC CHURCH	ALL SAINTS CATHOLIC CHURCH 5231 MEADOWCREEK DR DALLAS, TX 75248	dflowers@allsaintsdallas.org	\N	972-661-9282	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+40	139	ALL THINGS KINDRED	ALL THINGS KINDRED 425 W. WALNUT ST. ROGERS, AR 72756	samantha@thekindredcollective.org	\N	479-252-0964	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+41	140	ALL THINGS NEW	All Things New 3010 Williams Dr Suite 180 Georgetown, TX 78628	flowersbydebra@gmail.com	\N	512-650-9133	All Things New 3010 Williams Dr Suite 180 Georgetown, TX 78628	2026-07-01 17:06:55.900872	\N	\N	\N
+42	141	ALLAN KNIGHT	ALLAN KNIGHT 150 TURTLE CREEK BLVD #101 DALLAS, TX. 75207	aruiz@allan-knight.com	\N	214-741-2227	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+43	142	ALLEN FLOWER SHOP	ALLEN FLOWER SHOP, INC 102 E. MAIN ST ALLEN, TX. 75002	allenflowershop40@gmail.com	\N	972-727-3268	ALLEN FLOWER SHOP, INC 102 E. MAIN ST ALLEN, TX 75002	2026-07-01 17:06:55.900872	\N	\N	\N
+44	143	ALLUVIAL GREENS	ALLUVIAL GREENS, LLC MASON PATTERSON 1 POPPY HILLS CT MANUEL, TX 77578	alluvialgreens@gmail.com	\N	817-470-5292	363 liberty hill cir sherman tx 817 470 5292	2026-07-01 17:06:55.900872	\N	\N	\N
+45	144	ALO-NEST, LLC	ALO-NEST, LLC ALONDRA ROLAND 107 KIPAPA CT. BASTROP, TX  78602	alo-nest@outlook.com	\N	737-217-2488	WE DO NOT DELIVER TO BASTROP	2026-07-01 17:06:55.900872	\N	\N	\N
+46	145	ALOHA AINA NURSERY	ALOHA AINA NURSERY 13201 MARIE LN MANOR, TX 78653	ALOHAAINANURSERYTX@GMAIL.COM	\N	512-228-8832	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+47	146	ALWAYS BE CREATIVE	ALWAYS BE CREATIVE 320 DORAL PLACE GARLAND, TX 75043	marifloralawson@gmail.com	\N	940-312-8220	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+48	147	ALWAYS IN BLOOM FLORIST<ATHENS>	ALWAYS IN BLOOM FLORIST<ATHENS> 407 E TYLER ST. ATHENS, TX 75751	kc.alwaysinbloom@gmail.com	LINDA	903-675-5088	ALWAYS IN BLOOM FLORIST<ATHENS> 407 TYLER ST. ATHENS, TX 75751	2026-07-01 17:06:55.900872	\N	\N	\N
+49	148	AMAZING ANIMAL ADVENTURES	AMAZING ANIMAL ADVENTURES 3333 CR 119 STE. 14 HUTTO, TX 78634	contact@amazinganimaladventures.com	\N	888-413-9684	AMAZING ANIMAL ADVENTURES 3333 CR 119 STE. 14 HUTTO, TX 78634	2026-07-01 17:06:55.900872	\N	\N	\N
+50	149	AMBER'S SUNSHINE FARM	AMBER'S SUNSHINE FARM 4736 FM 2633 SANTA  ANNA, TX 76878	amber.titsworth@yahoo.com	\N	325-998-7185	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+51	150	AMBIUS- AUSTIN	AMBIUS- AUSTIN 12100 CROWNPOINT DR. #115 SAN ANTONIO, TX  78233	melvin.mclendon@ambius.com	\N	210-653-9125	AMBIUS- AUSTIN 12100 CROWNPOINT DR. #115 SAN ANTONIO, TX  78233	2026-07-01 17:06:55.900872	\N	\N	\N
+52	151	AMBIUS- DALLAS	AMBIUS- DALLAS 2075 MCDANIEL DR. CARROLLTON, TX. 75006	\N	\N	214-638-1000	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+53	152	AMICI EVENTS	AMICI EVENTS 4010 STONE HAVEN DR. GARLAND, TX 75043	amicievents@yahoo.com	\N	817-320-3470	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+54	153	AMIGO'S POTTERY	AMIGO'S POTTERY 1915 CADIZ ST. DALLAS, TX 75201-6203	breyna@amigospottery.com	\N	214-752-2281	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+55	154	ANDRES RODRIGUEZ	ANDRES RODRIGUEZ 3919 PYKA DR. DALLAS, TX 75233	ANDREWRODIGUEZ@MAC.COM	\N	214-676-2893	ANDRES RODRIGUEZ 3919 PYKA DR. DALLAS, TX 75233	2026-07-01 17:06:55.900872	\N	\N	\N
+56	155	ANGELINE GUIDO DESIGNS	ANGELINE GUIDO DESIGNS 1130 DRAGON ST. #150 DALLAS, TX 75207	\N	\N	214-906-7979	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+57	156	ANGIE'S TROPICAL PLANTS	ANGIESTROPICALPLANTS 11680 HERO WAY W APT 15104 LEANDER, TX 78641	alees74@yahoo.com	\N	512-540-1739	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+58	157	ANN PATY ENTERPRISES	ANN PATY ENTERPRISES 4658 SANDUSKY RD WHITESBORO, TX 76273	annpaty@aol.com	\N	469-628-2815	110 Whistling Duck Ln Double Oak, TX 75077 (Residence) 75077 (Residence)	2026-07-01 17:06:55.900872	\N	\N	\N
+59	158	ANN STRAWN	ANN STRAWN INTERIORS 3505 TURTLE CREEK BLVD #7F DALLAS, TX 75219	\N	\N	214-728-7379	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+60	159	ANNA SOVA HOME	ANNA SOVA HOME 1319 LEVEE ST. DALLAS, TX 75207	wawalker@annasova.com	\N	214-742-7682	ANNA SOVA HOME 1319 LEVEE ST. DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+61	160	ANNIE ROO'S	ANNIE ROO'S 3612 NORMANDY DALLAS, TX 75205	\N	CARLA	214-521-4518	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+62	161	ANNIES GARDEN	ANNIES GARDEN 306 N TYLER DAWSON TX 76639	\N	\N	903-673-2859	ANNIES GARDEN 306 N TYLER DAWSON TX 76639	2026-07-01 17:06:55.900872	\N	\N	\N
+63	162	ANTHOS	ANTHOS 6118 TREMONT DALLAS TX 75214	hailewossen@yahoo.com	\N	469-360-3648	ANTHOS 6118 TREMONT DALLAS TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+64	163	ANTIQUE ROSE EMPORIUM	ANTIQUE ROSE EMPORIUM 10000 FM 50 BRENHAM, TX 77833	gardensmanager@weareroses.com	\N	979-836-5548	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+65	164	ANTIQUITIES UNLIMITED	ANTIQUITIES UNLIMITED 4815 SHADYWOOD LN. DALLAS, TX 75209	\N	\N	214-763-7720	ANTIQUITIES UNLIMITED 4815 SHADYWOOD LN DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+66	165	ANVIL CAPITAL	ANVIL CAPITAL 11141 ROSSER RD DALLAS, TX 75229	\N	\N	214-675-0742	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+67	166	APPLE INTERIORS	APPLE INTERIORS 4205 VERSAILLES DALLAS, TX 75205	\N	\N	214-528-3017	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+68	167	APPLES TO ZINNIAS	APPLES TO ZINNIAS 4024 VILLANOVA DALLAS, TX 75225	info@applestozinnias.com	KAREN AKIN	214-361-2200	APPLES TO ZINNIAS 4024 VILLANOVA DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+69	168	APPLESEED FLORIST	APPLESEED FLORIST 2224 CEDAR CREST #B DALLAS, TX 75203	\N	\N	469-399-1241	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+70	169	APPLETREE FLOWERS<PLANO>	APPLETREE FLOWERS<PLANO> 3916 MCDERMOTT NEAR COIT SUITE 135 PLANO, TX 75025	appletreeflowers@yahoo.com	CHARLOTTE	972-527-2700	APPLETREE FLOWERS<PLANO> 3916 MCDERMOTT NEAR COIT SUITE 135 PLANO, TX 75025	2026-07-01 17:06:55.900872	\N	\N	\N
+71	170	APRIL 23 FLORIST DALLAS	APRIL 23 FLORIST DALLAS 7202 BISHOP RD SUITE D3 PLANO, TX 75024	april23floristdallas@gmail.com	\N	469-816-8735	APRIL 23 FLORIST DALLAS 7202 BISHOP RD SUITE D3 PLANO, TX 75024	2026-07-01 17:06:55.900872	\N	\N	\N
+72	171	AQUAFLORA ON EVELYN	AQUAFLORA ON EVELYN 7108 EVELYN RD AUSTIN, TX 78747	aquafloraonevelyn@gmail.com	\N	737 600 6841	AQUAFLORA ON EVELYN 7108 EVELYN RD AUSTIN, TX 78747	2026-07-01 17:06:55.900872	\N	\N	\N
+73	172	AQUARIUS BOUTIQUE & PLANT SHOP	AQUARIUS BOUTIQUE & PLANT SHOP ELISA DELVALLE 3401 EDGEWATER CT ARLINGTON, TX	aquariusbps@gmail.com	\N	405-514-2596	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+74	173	ARAPAHO FLOWERS	ARAPAHO FLOWERS 2141 E. ARAPAHO #160 RICHARDSON, TX 75081	arapahoflowers@gmail.com	\N	972-238-1925	ARAPAHO FLOWERS 2141 E. ARAPAHO #160 RICHARDSON, TX 75081	2026-07-01 17:06:55.900872	\N	\N	\N
+75	174	ARBOR FIT	ARBOR FIT P.O. BOX 367 MABANK, TX 75147	cclarborist@gmail.com	\N	512-708-0363	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+76	175	ARCHETYPE PLANTS	ARCHETYPE PLANTS 3809 SPICEWOOD SPRINGS RD E123 AUSTIN, TX 78759	archetypeplants@gmail.com	\N	833-775-2687	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+77	176	ARLINGTON FLOWERS	ARLINGTON FLOWERS, LLC PATRICK DEAN 1730 W. RANDAL MILL RD SUITE 120 ARLINGTON, TX 76012	dean.patrick@yahoo.com	\N	817-275-0200	ARLINGTON FLOWERS, LLC PATRICK DEAN 1730 W. RANDAL MILL RD SUITE 120 ARLINGTON, TX 76012	2026-07-01 17:06:55.900872	\N	\N	\N
+78	177	ART CREATIONS LANDSCAPES INC.	ART CREATIONS LANDSCAPES INC. 721 KEEESSEE CEDAR HILL, TX 75104	artcreationslandscape@gamil.com	\N	972-313-5019	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+79	178	ARTICULTURE DESIGNS	ARTICULTURE DESIGNS 2304 SOUTHERN OAKS DR AUSTIN, TX. 78745	monique@articulturedesigns.com	\N	512-762-5228	ARTICULTURE DESIGNS 6405 MANCHACA RD AUSTIN, TX 78745	2026-07-01 17:06:55.900872	\N	\N	\N
+80	179	ARTISTIC GARDENSCAPES	ARTISTIC GARDENSCAPES 507 NORTHLAKE DR. DALLAS, TX 75218	\N	DELORES CULLIVAN	214-328-3124	ARTISTIC GARDENSCAPES DALLAS, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+81	180	ASHLEIGH GRABER DESIGN	ASHLEIGH GRABER DESIGN 3400 HANOVER ST. DALLAS, TX 75225	orders@ashleighgraberdesign.com	\N	347-721-7915	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+82	181	ATELIER A WORK SHOP	ATELIER A WORK SHOP 8922 GREENVILLE AVE. DALLAS, TX 75243	nancy.sheets@att.net	\N	214-750-7622	ATELIER A WORK SHOP 8922 GREENVILLE AVE. DALLAS, TX 75243	2026-07-01 17:06:55.900872	\N	\N	\N
+83	182	ATRIUM GIFT SHOP - ST. DAVIDS HOSPITAL	ATRIUM GIFT SHOP - c/o ST. DAVIDS VOLUNTEERS 919 EAST 32ND ST AUSTIN, TX 78705	carole.meckes@atriumgiftshop.org	\N	512-544-4095	ATRIUM GIFT SHOP - ST. DAVIDS HOSPITAL 919 EAST 32ND ST AUSTIN, TX 78705	2026-07-01 17:06:55.900872	\N	\N	\N
+84	183	ATX GROWERS	ATX GROWERS LLC KARLA ARREDONDO 13033 FM 2769, H AUSTIN, TX 78726	atxgrowers@gmail.com	\N	512-461-0503	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+85	184	ATX PATIOSCAPES	ATX PATIOSCAPES MARKHAM BAKER 1926 SORGHUM HILL DR AUSTIN, TX 78754	markham@atxpatioscapes.com	\N	512-736-1475	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+86	185	ATX TERRARIUMS LLC	ATX TERRARIUMS LLC 6821 PLAINS CREST DR DEL VALLE, TX 78617	ATXTERRARIUMS@GMAIL.COM	\N	512-629-9308	ATX TERRARIUMS LLC 6821 PLAINS CREST DR DEL VALLE, TX 78617	2026-07-01 17:06:55.900872	\N	\N	\N
+87	186	AUBREY FLORIST	AUBREY FLORIST 400 S HWY 377 AUBREY, TX 76227	aubreyflorist400@gmail.com	\N	940-365-9940	AUBREY FLORIST 400 S HWY 377 AUBREY, TX 76227	2026-07-01 17:06:55.900872	\N	\N	\N
+88	187	AUNT SUE'S BARN	AUNT SUE'S BARN 13700 N COUNTY LINE RD. PONDER, TX 76259	auntsuesbarnllc@yahoo.com	\N	214-546-7416	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+89	188	AUSTEX GARDENS	AUSTEX GARDENS P.O. BOX 285 WAXAHACHIE, TX 75168	austexgardens@gmail.com	\N	469-843-3477	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+90	189	AUSTIN COMMUNITY COLLEGE DISTRICT	AUSTIN COMMUNITY COLLEGE DISTRICT 9101 TUSCANY WAY AUSTIN, TX 78754	nmoon@austincc.edu	M.J. SCHUENEMANN	512-223-7000	AUSTIN COMMUNITY COLLEGE DISTRICT 5930 MIDDLE FISKVILLE RD AUSTIN, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+91	190	AUSTIN FLOWER CO.	AUSTIN FLOWER CO. 1612 WEST 35TH ST AUSTIN, TX 78703	THOMASGAYFISHING@aol.com	\N	512-451-6447	AUSTIN FLOWER CO. 1612 WEST 35TH ST AUSTIN, TX 78703	2026-07-01 17:06:55.900872	\N	\N	\N
+92	191	AUSTIN INDEPENDENT SCHOOL DISTRICT	AUSTIN INDEPENDENT SCHOOL DISTRICT 1111 W. SIXTH ST. AUSTIN, TX 78703	tracey.cortez@austinisd.org	\N	512-341-4252	AUSTIN INDEPENDENT SCHOOL DISTRICT 1111 W. SIXTH ST. AUSTIN, TX 78703	2026-07-01 17:06:55.900872	\N	\N	\N
+93	192	AUSTIN ORCHID EXCHANGE	AUSTIN ORCHID EXCHANGE VANESSA LUCKIE 3102 HIGHLAND TERRACE WEST AUSTIN, TX  78731	vanessa@austinorchidexchange.com	\N	512-913-7320	WE DO NOT DELIVER	2026-07-01 17:06:55.900872	\N	\N	\N
+94	193	AUSTIN PLANT DOCTOR	AUSTIN PLANT DOCTOR 3953 SHOAL CREEK BLVD APT. 208 AUSTIN, TX 78756	BERNIE@AUSTINPLANTDR.COM	\N	512-571-3570	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+95	194	AUSTIN RAINBOW BOUQUET	AUSTIN RAINBOW BOUQUET 10901 N. LAMAR STE. C304 AUSTIN, TX	austinbouquet@gmail.com	\N	512-520-4604	AUSTIN RAINBOW BOUQUET 10901 N. LAMAR STE. C304 AUSTIN, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+96	195	AUSTINSCAPE	AUSTINSCAPE 9900 LA JOLLA AUSTIN, TX. 78733	scottlandry@earthlink.net	\N	512-626-6128	AUSTINSCAPE 9900 LA JOLLA (@CORNER OF MECCA AUSTIN, TX. 78733	2026-07-01 17:06:55.900872	\N	\N	\N
+97	196	AVALON GARDEN DESIGNS	AVALON GARDEN DESIGN,LLC RENE CANTU 2075 CANDLEWOOD CIRCLE LEWISVILLE, TX. 75067	renecantoo@yahoo.com	\N	972-822-8832	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+98	197	AVANT GARDEN INC./HP	AVANT GARDEN INC./HP 4254-A OAK LAWN DALLAS, TX 75219	grant@avantgarden.com;tiffany@toddevents.com	\N	214-559-3432	AVANT GARDEN INC./HP 4254-A OAK LAWN DALLAS, TX 75219	2026-07-01 17:06:55.900872	\N	\N	\N
+99	198	AVANTE'	AVANTE' 1601 W LOOP 289 LUBBOCK, TX 79416	aaronosborn@msn.com	\N	806-687-7000	AVANTE' 1601 W LOOP 289 LUBBOCK, TX 79416	2026-07-01 17:06:55.900872	\N	\N	\N
+100	199	AVERY HORTICULTURAL	AVERY HORTICULTURAL 8567 SWEETWATER DALLAS, TX 75228	barbarahavery@iclod.com	\N	214-763-8811	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+101	200	BABY G'S PLANT SHOP	BABY G'S PLANT SHOP 4452 DOUBLE OAK LN. FT. WORTH, TX 76123	mgfmendoza29@gmail.com	\N	682-306-3883	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+102	201	BACKBONE VALLEY NURSERY, INC.	BACKBONE VALLEY NURSERY, INC. MARY KAY POPE 4201 FM 1980 MARBLE FALLS, TX  78654	marykay@backbonevalleynursery.com	\N	830-693-9348	BACKBONE VALLEY NURSERY, INC. MARY KAY POPE 4201 FM 1980 MARBLE FALLS, TX 78654	2026-07-01 17:06:55.900872	\N	\N	\N
+103	202	BACKSTAGE FLORIST	BACKSTAGE FLORIST 2050 N PLANO RD #220-D RICHARDSON, TX 75082	\N	\N	972-644-6666	BACKSTAGE FLORIST 2050 N PLANO RD #220-D RICHARDSON, TX 75082	2026-07-01 17:06:55.900872	\N	\N	\N
+104	203	BAKER TATUM	FRANKLAND LLC DBA BAKER TATUM SUSANA FRANKLAND 5932 BROADWAY SAN ANTONIO, TX 78209	info@bakertatum.com	\N	210-829-5637	FRANKLAND LLC DBA BAKER TATUM SUSANA FRANKLAND 5932 BROADWAY SAN ANTONIO, TX 78209	2026-07-01 17:06:55.900872	\N	\N	\N
+105	204	BALLOONS BY LUZ PAZ EXPRESS DALLAS	2620 GUS THOMASSON RD. MESQUITE, TX 75150	dallas@balloonsbyluzpaz.com	\N	903-368-0213	2620 GUS THOMASSON RD. MESQUITE, TX 75150	2026-07-01 17:06:55.900872	\N	\N	\N
+106	205	BANANA BONSAI	BANANA BONSAI 1908 GREENVILLE AVE. DALLAS, TX 75206	nick@bananabonsai.com	\N	469-859-1370	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+107	206	BANDERA TRUE VALUE	BANDERA TRUE VALUE PO BOX 249 BANDERA, TX 79489	lbarrettbtv@gmail.com	Paula	830-796-3861	BANDERA TRUE VALUE C/O GREEN OASIS 3400 NACOGDOCHES SAN ANTONIO TX	2026-07-01 17:06:55.900872	\N	\N	\N
+108	207	BARBARA YOUNG INTERIORS	BARBARA YOUNG INTERIORS 6933 LYRE LN DALLAS, TX 75214	babsyoung@sbcglobal.net	BARBARA YOUNG	214-824-8113	BARBARA YOUNG INTERIORS 6933 LYRE LN DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+109	208	BARE ROOTS LANDSCAPE SOLUTIONS	BARE ROOTS LANDSCAPE SOLUTIONS 9830 BROCKBANK DR DALLAS, TX 75220	\N	CHRIS BACALA	214-421-1153	BARE ROOTS LANDSCAPE SOLUTIONS 9830 BROCKBANK DR DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+110	209	BARRY KLEIN	BARRY KLEIN 6120 OAKCREST RD DALLAS, TX 75248	barryjoelklein@tx.rr.com	\N	214-549-7470	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+111	210	BARTON SPRINGS NURSERY	BARTON SPRINGS NURSERY 3601 BEE CAVE RD. AUSTIN, TX  78746	manager@bartonspringsnursery.com	\N	512-328-6655	BARTON SPRINGS NURSERY 3601 BEE CAVE RD. AUSTIN, TX 78746	2026-07-01 17:06:55.900872	\N	\N	\N
+112	211	BAY HILL DESIGN	BAY HILL DESIGN 1206 W 38TH #1103 AUSTIN, TX 78703	brooke@bayhilldesign.com	BROOKE ANDERSON	512-826-5600	BAY HILL DESIGN 1206 W 38TH #1103 AUSTIN, TX 78703	2026-07-01 17:06:55.900872	\N	\N	\N
+113	212	BAYLOR FLOWERS <WACO>	BAYLOR FLOWERS 1105 LA SALLE AVE WACO, TX 76706	baylorflowers@yahoo.com	\N	254-753-1791	BAYLOR FLOWERS 1105 LA SALLE AVE WACO, TX 76706	2026-07-01 17:06:55.900872	\N	\N	\N
+114	213	BBCO LLC Barker Ace Hardware	BBCO LLC Barker Ace Hardware	barkermahin@gmail.com	\N	512-987-8221	BBCO LLC Barker Ace Hardware 25609 KAHALA CT AUSTIN, TX 78669	2026-07-01 17:06:55.900872	\N	\N	\N
+115	214	BCONS	BCONS 13970 NOEL RD. DALLAS, TX 75240	\N	\N	214-5541313	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+116	215	BE ORIGINAL VINTAGE DESIGN	BE ORIGINAL VINTAGE DESIGN 303 N WASHINGTON ROUND TOP, TX 78954 USA	bonnieeck2401@icloud.com	\N	832-803-2350	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+117	216	BEAR CREEK STORE	BEAR CREEK STORE P.O. BOX 1208 LEONARD, TX 75452	orders@bearcreekstore.com	\N	903-587-0300	201 W. FANNIN ST. LEONARD, TX 75452	2026-07-01 17:06:55.900872	\N	\N	\N
+118	217	BEAUMONDE FLORA	BEAUMONDE FLORA 5659 ALPHA ROAD DALLAS, TX 75240	beaumondeflora.usa@gmail.com	\N	972-991-2355	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+119	218	BEAUTIFICATION STATION	BEAUTIFICATION STATION LAURA FOX 1203 FIORELLA CASTROVILLE, TX  78009	laura_fox1598@yahoo.com	\N	405-229-7606	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+120	219	BEBA BLOOM'S GARDEN	BEBA BLOOM'S GARDEN 705 CHISHOLM TRAIL DENTON, TX 76209	\N	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+121	220	BECCA'S FLORAL DESIGNS	BECCA'S FLORAL DESIGNS 843 LYDIA DR DALLAS, TX 75217	beccasfloraldesigns@gmail.com	\N	214-200-1448	BECCA'S FLORAL DESIGNS 843 LYDIA DR DALLAS, TX 75217	2026-07-01 17:06:55.900872	\N	\N	\N
+122	221	BEE CONTAINED	BEE CONTAINED 5419 MORNINGSIDE AVE. DALLAS, TX 75206	courtney@beecontained.com	\N	303-500-9175	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+123	222	BELEAF YOU ME	BELEAF YOU ME 2407 WISTERIA WAY ROUND ROCK, TX 78664	beleafyoume@gmail.com	\N	512-810-9459	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+124	223	BELIEVERS CHAPEL, INC.	BELIEVERS CHAPEL, INC. 6420 CHURCHILL WAY DALLAS, TX 75230	cindymnewman@gmail.com	\N	972-239-5371	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+125	224	BELINDA'S BLOOMS	BELINDA'S BLOOMS 4056 STANFORD DALLAS, TX 75225	belindajstuart@gmail.com	\N	\N	BELINDA'S BLOOMS 4056 STANFORD DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+126	225	BELLA FLORA- OAK LAWN	BELLA FLORA- OAK LAWN 118 OAK LAWN DALLAS, TX. 75207	ALEXA@BELLAFLORAOFDALLAS.COM	\N	972-445-1200	BELLA FLORA- OAK LAWN 118 OAK LAWN DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+127	226	BELLA FLORIST<<ARLINGTON>>	BELLA FLORIST<<ARLINGTON>> 1024 BELL OAK DR KENNEDALE, TX 76060	\N	\N	817-881-0652	BELLA FLORIST<<ARLINGTON>> 1024 BELL OAK DR KENNEDALE, TX 76060	2026-07-01 17:06:55.900872	\N	\N	\N
+128	227	BELLAS PLANT CARE	BELLAS PLANT CARE 208 PICKLE RD AUSTIN, TX 78704 512-915-8561	BELLA@BELLASPLANTCARE.COM	\N	512-915-8561	2102 RINGTAIL RIDGE AUSTIN, TX 78746	2026-07-01 17:06:55.900872	\N	\N	\N
+129	228	BELLWETHER DESIGN	BELLWETHER DESIGN 610 SYCAMORE WAXAHACHIE, TX 75165	katie@BWTheory.com	\N	512-947-8592	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+130	229	BELMONT TREASURES	BELMONT TREASURES 6706 GLENEAGLES TYLER, TX 75703	\N	\N	903-521-8908	BELMONT TREASURES 6706 GLENEAGLES TYLER, TX 75703	2026-07-01 17:06:55.900872	\N	\N	\N
+131	230	BEN WHITE FLORIST	BEN WHITE FLORIST 3200 S. CONGRESS AVE. AUSTIN, TX 78704	benwhiteflorist@gmail.com	MIKE & CLIFF MARTINEZ	512-447-3577	BEN WHITE FLORIST 3200 S. CONGRESS AVE. AUSTIN, TX 78704	2026-07-01 17:06:55.900872	\N	\N	\N
+132	231	BENNETT MADDOX DESIGNS	BENNETT MADDOX DESIGNS 6930 SPRING WIND CORPUS CHRISTI, TX 78413	\N	\N	830-570-8472	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+133	232	BENTWOOD TRAIL PRESBYTERIAN	BENTWOOD TRAIL PRESBYTERIAN 6000 BENTWOOD TRAIL DALLAS, TX. 75252	bkolle@bentwoodtrail.org	\N	972-248-3600	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+134	233	BEST FRONDS PLANT COMPANY	BEST FRONDS PLANT COMPANY EANNA CAVAZOS 304 W 34TH STREET AUSTIN, TX 78705	bestfrondsatx@gmail.com	\N	512-800-2602	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+135	234	BETH'S DIVERSION	BETH'S DIVERSION 3113 HARVARD COURT PLANO, TX 75093	\N	BETH S WEBB	972-740-5509	BETH'S DIVERSION 3113 HARVARD COURT PLANO, TX 75093	2026-07-01 17:06:55.900872	\N	\N	\N
+136	235	BETSY CALDWELL	BETSY CALDWELL INTERIORS 4116 SOUTHWESTERN DALLAS, TX. 75225	\N	\N	214-369-8185	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+137	236	BETTE'S GREENERY, INC.	BETTE'S GREENERY, INC. 801 HART LANE DRIPPING SPRINGS, TX. 78620	bettesgreenery@gmail.com	\N	512-750-2408	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+138	237	BETTER LAWNS AND GARDENS	BETTER LAWNS AND GARDENS 4013 HALIFAX PLANO, TX 75023	\N	BOB MIRABITO	972-867-1202	BETTER LAWNS AND GARDENS 4013 HALIFAX PLANO, TX 75023	2026-07-01 17:06:55.900872	\N	\N	\N
+139	238	BETWEEN ALARMS LAWN SERVICE	BETWEEN ALARMS LAWN SERVICE 6847 CLAYTON DALLAS, TX 75214	\N	\N	214-321-8582	BETWEEN ALARMS LAWN SERVICE 6847 CLAYTON DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+140	239	BEVERLY'S FLORIST-ARLINGTON	BEVERLY'S FLORIST 3200 S. COOPER #109 ARLINGTON, TX 75137	beverlysfloristarlington@gmail.com	\N	817-467-9579	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+141	240	BEXAR ROOTS PLANT COMPANY	BEXAR ROOTS PLANT COMPANY, LLC 14714 ACADEMY OAK SAN ANTONIO, TX 78247	maryssa@bexarrootsplantco.com	\N	956-376-7288	6330 MEADOW HAVEN SAN ANTONIO, TX 78239	2026-07-01 17:06:55.900872	\N	\N	\N
+142	241	BIANCA	BIANCA 4326 CONNIE DR GARLAND, TX 75043	lil73bianca@yahoo.com	\N	682-314-9377	BIANCA 4326 CONNIE DR GARLAND, TX 75043	2026-07-01 17:06:55.900872	\N	\N	\N
+143	242	BICE'S FLORIST INC	BICE'S FLORIST INC 650 W BEDFORD EULESS RD HURST, TX 76053	customerservice@bicesflorist.com	CINDY	817-282-2311	BICE'S FLORIST INC 650 W BEDFORD EULESS RD HURST, TX 76053	2026-07-01 17:06:55.900872	\N	\N	\N
+144	243	BIG BUDS FLORIST	BIG BUDS FLORIST,LLC LUKE WHARRAM 3342 FM 1827 -2C MCKINNEY, TX 75071	bigbudsflorist@gmail.com	\N	704-493-9444	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+145	244	BIG JOHNS NURSERY LANDSCAPE	BIG JOHNS NURSERY LANDSCAPE 621 STRAUS RD CEDAR HILL, TX 75104	bigjohnsnursery@att.net	JOHN FEISTHAMEL	972-291-2231	BIG JOHNS NURSERY LANDSCAPE 621 STRAUS RD CEDAR HILL, TX 75104 972-291-2231	2026-07-01 17:06:55.900872	\N	\N	\N
+146	245	BIG MANGO TRADING CO.	BIG MANGO TRADING CO. 1130 RIVERFRONT DALLAS, TX 75207	\N	JAMES & LORI SMITH	214-752-4755	BIG MANGO TRADING CO. 1130 RIVERFRONT DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+147	246	BILLIE BALL & CO.	BILLIE BALL & CO. 7006 SANTA MONICA DR. DALLAS, TX 75223	info@bilieballco.com	\N	214-500-4686	2431 shorecrest dr suit D5 214 500 4686	2026-07-01 17:06:55.900872	\N	\N	\N
+148	247	BILLOWING BLOOMS	BILLOWING BLOOMS ARASH ESMAEILI 1309 LEANDER DR. STE. 1204 LEANDER, TX 78641	BillowingBlooms@gmail.com	\N	512-998-0779	BILLOWING BLOOMS ARASH ESMAEILI 1309 LEANDER DR. STE. 1204 LEANDER, TX 78641	2026-07-01 17:06:55.900872	\N	\N	\N
+149	248	BILLY MILNER	BILLY MILNER DESIGN 3311 ELM ST. #202 DALLAS, TX. 75226	\N	\N	214-796-2529	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+150	249	BIRDIE'S MARKET	BIRDIE'S MARKET SHERYL WESTERMAN 706 THIRD STREET MARBLE FALLS, TX  78654	birdiesmarket@yahoo.com	\N	512-689-0066	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+151	250	BISHOP DUNNE HIGH	BISHOP DUNNE HIGH SCHOOL 3900 RUGGED DR DALLAS, TX 75224	iarista@bdcs.org	ISABEL ARISTA	214-339-6561	BISHOP DUNNE HIGH SCHOOL 3900 RUGGED DR DALLAS, TX 75224	2026-07-01 17:06:55.900872	\N	\N	\N
+152	251	BLACK TULIP DESIGN	BLACK TULIP DESIGN 4651 N. GRANDVIEW AVE. ODESSA, TX 79762	info@blacktulipdesign.com	\N	432-362-2343	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+153	252	BLACKBIRD FLORAL	BLACKBIRD FLORAL LEA WOOD 2124 EAST SIXTH STREET #103 AUSTIN, TX 78702	hello@blackbirdfloral.com	\N	512-934-1430	BLACKBIRD FLORAL LEA WOOD 2124 EAST SIXTH STREET #103 AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+154	253	BLACKLAND PRAIRIE	BLACKLAND PRAIRIE 1539 BELLA VISTA DR. DALLAS, TX 75218	kford31@msc.com	KEVIN FORD	214-629-5280	BLACKLAND PRAIRIE 1539 BELLA VISTA DR. DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+155	254	BLALOCK DESIGN	BLALOCK DESIGN 4611 TRAVIS ST. UNIT 5 DALLAS, TX 75205	jeanetteiblalock@gmail.com	\N	781-254-1529	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+156	255	BLOCQUE 6	BLOCQUE 6 1427 N. HWY. 67 #200 CEDAR HILL, TX 75104	info@blocque6.com	\N	972-898-9659	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+157	256	BLOOM-A-ROUND FLORAL	BLOOM-A-ROUND FLORAL DESIGN 2451 LAKESIDE PKWY SUIT 120 FLOWER MOUND, TX 75022	info@bloomaround.com	\N	214-222-5995	BLOOM-A-ROUND FLORAL DESIGN 2451 LAKESIDE PKWY SUIT 120 FLOWER MOUND, TX 75022	2026-07-01 17:06:55.900872	\N	\N	\N
+158	257	BLOOM & GROW	BLOOM & GROW 434 EDGELAKE DRIVE DALLAS, TX 75218	info@bloomandgrowusa.com	\N	312-420-5090	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+159	258	BLOOM & POUR	BLOOM & POUR 100 SOUTH ROGERS ST. WAXAHACHIE, TX 75165	morgan@bloomandpour.com	\N	945-259-1417	BLOOM & POUR 100 SOUTH ROGERS ST. WAXAHACHIE, TX 75165	2026-07-01 17:06:55.900872	\N	\N	\N
+160	259	BLOOM AND LEAF	BLOOM AND LEAF CELIA MALKEMUS 22611 NAMELESS RD. LEANDER, TX  78641	bloomandleaf@gmail.com	\N	512-771-1175	BLOOM AND LEAF CELIA MALKEMUS 22611 NAMELESS RD. LEANDER, TX 78641	2026-07-01 17:06:55.900872	\N	\N	\N
+161	260	BLOOM AND STEM	BLOOM AND STEM MAGEN SEVILLA 3727 BIG MEADOWS SAN ANTONIO, TX 78230	MAGS@BLOOMANDSTEM.COM	\N	361-815-8035	Choice 3459 Northeast Pkwy San Antonio, TX 78218	2026-07-01 17:06:55.900872	\N	\N	\N
+162	261	BLOOMERS NURSERY & LANDSCAPE - ROCKPORT	BLOOMERS NURSERY & LANDSCAPE - ROCKPORT 114 W. 4TH ST. ROCKPORT, TX  78382	bloomersnl@gmail.com	\N	361-729-6645	We do not deliver to Rockport	2026-07-01 17:06:55.900872	\N	\N	\N
+163	262	BLOOMFIELDS LLC	BLOOMFIELDS LLC ADRIAN GUTIERREZ 115 N WILLIAMS RD STE A1 SAN BENITO, TX 78586	wholesale@bloomfieldsllc.com	\N	956-792-1368	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+164	263	BLOOMIN' ACROSS TEXAS	BLOOMIN' ACROSS TEXAS 15307 FM 1825 PFLUGERVILLE, TX 78660	batwells@coxinternet.com	\N	512-251-2268	BLOOMIN' ACROSS TEXAS 15307 FM 1825 PFLUGERVILLE, TX 78660	2026-07-01 17:06:55.900872	\N	\N	\N
+165	264	BLOOMIN ELEPHANT	BLOOMIN' ELEPHANT CARSEN MCKINNEY 6637 CANYON OAKS CT PLANO, TX 75024	bloominelephant@gmail.com	\N	972-533-6607	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+166	265	BLOOMING IDIOTS	BLOOMING IDIOTS PATRICIA ROSS 4516 JINX AVENUE AUSTIN, TX  78745	larryandpatbloomingidts@gmail.com	\N	512-444-2907	BLOOMING IDIOTS PATRICIA ROSS 4516 JINX AVENUE AUSTIN, TX 78745	2026-07-01 17:06:55.900872	\N	\N	\N
+167	266	BLOOMINGALS	BLOOMINGALS 600 AUSTIN AVE #16 WACO, TX 76701	bloomingalsfloral@gmail.com	KIM & LAWRENCE SEESING	254-296-2772	BLOOMINGALS 600 AUSTIN AVE #16 WACO, TX 76701	2026-07-01 17:06:55.900872	\N	\N	\N
+168	267	BLOOMS & BREWS	BLOOMS & BREWS AMANDA HOYLE 2226 MCINTOSH DR GARLAND, TX 75040	bloomsandbrewstx@gmail.com	\N	972-665-6906	BLOOMS AND BREWS 4113 MAIN STREET 713-203-5396 ROWLETT, TX 75088	2026-07-01 17:06:55.900872	\N	\N	\N
+169	268	BLOOMS & MORE	BLOOMS & MORE 1309 W. MAIN ST. WAXAHACHIE, TX 75165	bloomsandmore@yahoo.com	\N	972-937-3111	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+170	269	BLOOMS BY BELLA DESIGNS	BLOOMS BY BELLA DESIGNS 6407 PLAINVIEW DR. ARLINGTON, TX 76018	bellablooms74@gmail.com	\N	214-991-4172	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+171	270	BLOOMSHOP	BLOOMSHOP 6531 FM 78, SUITE 103 SAN ANTONIO, TX 78244	sales@bloomshopflowers.com	\N	210-265-5569	BLOOMSHOP 6531 FM 78, SUITE 103 SAN ANTONIO, TX 78244	2026-07-01 17:06:55.900872	\N	\N	\N
+172	271	BLOSSOM'S FLORIST MEXIA	BLOSSOM'S FLORIST MEXIA 706 W PALESTINE ST MEXIA, TX 76667	blossomsfloristtexas@gmail.com	\N	615-997-9303	BLOSSOM'S FLORIST MEXIA	2026-07-01 17:06:55.900872	\N	\N	\N
+173	272	BLUE GHOST PLANT CO	THE BLUE GHOST PLANT CO 10722 MILLER LANE AUSTIN, TX 78737	V@blueghostplantco.com	\N	512-773-9915	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+174	273	BLUE LOTUS	BLUE LOTUS 10842 YORKSPRING DR. DALLAS, TX 75218	\N	BRIANNE DENTON	214-608-3583	BLUE LOTUS 10842 YORKSPRING DR. DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+175	274	BLUE MOON GARDENS	BLUE MOON GARDENS 13062 FM 279 CHANDLER, TX 75758	bmg@embarqmail.com	SHARON	903-852-3897	BLUE MOON GARDENS 13062 FM 279 CHANDLER, TX 75758	2026-07-01 17:06:55.900872	\N	\N	\N
+176	275	BLUE RIBBON LADY L/S	BLUE RIBBON LADY L/S DIONE LINEBERRY 1250 N. SELVA DR DALLAS, TX 75218	deeown@gmail.com	\N	214-354-6640	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+177	276	BLUE SKY LANDSCAPE	BLUE SKY LANDSCAPE 1708 FRANCIS ST. CARROLLTON, TX 75006	\N	\N	972-466-0345	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+178	277	BLUE TIT FLORIST	BLUE TIT FLORIST TIEN CAO 1004 DELK DR ARLINGTON, TX 76013	tiencao293@gmail.com	\N	682-259-0204	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+179	278	BLUEBONNET FLORAL & GIFTS	BLUEBONNET FLORAL & GIFTS 2836 HOLLAND COURT CELINA, TX 75009	perperidis6@gamil.com	\N	903-482-0193	BLUEBONNET FLORAL & GIFTS 2836 HOLLAND COURT CELINA, TX 75009	2026-07-01 17:06:55.900872	\N	\N	\N
+180	279	BLUEBONNETS AND BUTTERFLIES	BLUEBONNETS AND BUTTERFLIES 741 LYTLE SHORES DR. ABILENE, TX 79602	info@bluebonnetsandbutterflies.com	\N	817-201-0534	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+181	280	BLUMEN MEISTERS	BLUMEN MEISTERS 410 N SEGUIN AVE NEW BRAUNFELS, TX 78130	tym.rae@gmail.com	\N	830-629-1604	BLUMEN MEISTERS 410 N SEGUIN AVE NEW BRAUNFELS, TX 78130	2026-07-01 17:06:55.900872	\N	\N	\N
+182	281	BOAST ENTERPRISES	BOAST ENTERPRISES TX DUSTIN BOAST 900 DOVE COVE ARGYLE, TX 76226	info@littlegardenstexas.com	\N	206-249-9858	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+183	282	BOBU AGASI	BOBU AGASI INTERIOR DESIGN 4207 AQUA VERDE DR. AUSTIN, TX. 78746	sooja@bobuagasi.com	\N	512-328-8438	BOBU AGASI INTERIOR DESIGN 4207 AQUA VERDE DR. AUSTIN, TX 78746	2026-07-01 17:06:55.900872	\N	\N	\N
+184	283	BOHEMIAN OASIS BOTANICALS	BOHEMIAN OASIS BOTANICALS 5724 SUNSET RD. FT. WORTH, TX 76114	marcus@bohemianoasis.com	\N	682-438-0594	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+185	284	BOLEY LANDSCAPE	BOLEY LANDSCAPE 243 Valtie Davis Rd Combine, TX 75159	boleylandscape@gmail.com	\N	9728776279	BOLEY LANDSCAPE 243 Valtie Davis Rd Combine, TX 75159	2026-07-01 17:06:55.900872	\N	\N	\N
+186	285	BONHAM FLORAL AND GREENHHOUSE	BONHAM FLORIST 501 N MAIN ST BONHAM, TX 75418	lauralackey66@yahoo.com	\N	903-583-3624	BONHAM FLORIST 501 N MAIN ST BONHAM, TX 75418	2026-07-01 17:06:55.900872	\N	\N	\N
+187	286	BONICK LANDSCAPING INC,	BONICK LANDSCAPING INC, 910 MARYLAND DR. IRVING TX 75061	jason@bonick.com	\N	972-243-9673	3801 potomac joe 214-489-7728	2026-07-01 17:06:55.900872	\N	\N	\N
+188	287	BONITA BODEGA FLORISTRY	BONITA BODEGA FLORISTRY KAREN PE?A 12913 ARMSTRONG AVE MANOR, TX 78653	bonitabodega@yahoo.com	\N	512-820-1080	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+189	288	BONITA COATS	BONITA COATS 2729 MATEUR DALLAS, TX. 75211	bcoats2011@live.com	\N	214-675-6193	BONITA COATS 2729 MATEUR DALLAS, TX 75211	2026-07-01 17:06:55.900872	\N	\N	\N
+190	289	BONNIE'S GREENHOUSE	BONNIE'S GREENHOUSE 5198 ORCHARD LANE WACO, TX 76705	ashlirobken@gmail.com	\N	254-799-7909	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+191	290	BOPPER'S PLANTS OF TEXAS	BOPPER'S PLANTS OF TEXAS 6738 EASTRIDGE #111 DALLAS, TX. 75231	\N	\N	214-724-2901	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+192	291	BOTANICA LANDSCAPING	1837 E. Main Street Eagle Pass, TX 78852	landscapingintexas@gmail.com	\N	830-335-0488	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+193	292	BOTANICA LLC.<<IRVING>>	BOTANICA LLC.<<IRVING>> 3208 INTERNATIONAL PLACE IRVING, TX 75062	claudia@botanicawf.com	\N	972-313-9445	BOTANICA LLC.<<IRVING>> 3208 INTERNATIONAL PLACE IRVING, TX 75062	2026-07-01 17:06:55.900872	\N	\N	\N
+194	293	BOTANY 2000	BOTANY 2000 2800 GLENBROOK DR. CARROLLTON, TX 75007	shanonb2000@gmail.com	Clive Bulmer	972-385-9139	10000 N CENTRAL FREEWAY DALLAS TX CALL W/ETA 469-222-5733 CLIVE GO TO DOCK	2026-07-01 17:06:55.900872	\N	\N	\N
+195	294	BOUJEE BLOOMS	BOUJEE BLOOMS 220  LAKE TRAIL CT. DOUBLE OAK, TX 75077	hello@boujee-bloom.com	\N	469-715-1600	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+196	295	BOWEN L/S	BOWEN L/S 1865 MCGEE LN SUITE I LEWISVILLE, TX 75077	\N	STEVE BOWEN	972-754-1773	BOWEN L/S 1865 MCGEE LN SUITE I LEWISVILLE, TX 75077	2026-07-01 17:06:55.900872	\N	\N	\N
+197	296	BOWS AND ARROWS	BOWS AND ARROWS 4908 BRYAN ST. DALLAS, TX 75206	hello@bowsandarrowsflowers.com	ADAM RICO	214-828-2697	BOWS AND ARROWS 4908 BRYAN ST. DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+198	297	BRAD BATSON BUILDERS	BRAD BATSON BUILDERS 4512 LAKESIDE DR DALLAS, TX 75205	\N	BRAD BATSON	214-535-9890	BRAD BATSON BUILDERS 4512 LAKESIDE DR DALLAS, TX 75205 214-535-9890	2026-07-01 17:06:55.900872	\N	\N	\N
+199	298	BRAD DUREN FLOWERS	BRAD DUREN FLOWERS 6445 CEDAR SPRINGS SUITE 208 DALLAS, TX 75235	brad@braddurenflowers.com	\N	214-358-4700	BRAD DUREN FLOWERS 6445 CEDAR SPRINGS SUITE 208 DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+200	299	BRADLEY CLIFFORD DESIGN	BRADLEY CLIFFORD DESIGNS 13901 WATCH HILL LANE ALEDO, TX 76008	bradley@bradleyclifforddesign.com	\N	503-975-0607	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+201	300	BRAMBLE & VINE	BRAMBLE & VINE 1203 W 5TH STREET CLIFTON, TX 76634	brambleandvineplants@gmail.com	\N	254-266-5786	BRAMBLE & VINE 1203 W 5TH STREET CLIFTON, TX 76634	2026-07-01 17:06:55.900872	\N	\N	\N
+202	301	BRANCHING OUT	BRANCHING OUT 1017 KESSLER PKWY DALLAS, TX 75208-2429	\N	DEBBY JEWESSON	214-941-4625	BRANCHING OUT 127 LESLIE STREET DALLAS, TX 752070	2026-07-01 17:06:55.900872	\N	\N	\N
+203	302	BRANDY'S PLANTS	BRANDY'S PLANTS 4001 S. 16TH ST. CHICKASHA, OK 73018	brandysplants11@gmail.com	\N	405-800-8950	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+281	380	CHURCH OF THE LORD JESUS CHRIST	CHURCH OF THE LORD JESUS CHRIST 3700 CARL ST. DALLAS, TX 75210	anthoneep@aol.com	\N	904-386-3108	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+204	303	BRATCHER'S NURSERY & LANDSCAPING	BRATCHER'S NURSERY & LANDSCAPING 3258 HWY 82 EAST PARIS, TX 75462	bratchersnursery@gmail.com	WYNELL BRATCHER	903-982-5918	BRATCHER'S NURSERY & LANDSCAPING 3258 HWY 82 EAST PARIS, TX 75462	2026-07-01 17:06:55.900872	\N	\N	\N
+205	304	BREED & CO.	BREED & CO. #1 718 WEST 29TH ST. AUSTIN, TX 78705	GBurrous@aceretailgroup.com	\N	512-474-6679 (#1)	BREED #1 718 WEST 29TH ST AUSTIN, TX 78705	2026-07-01 17:06:55.900872	\N	\N	\N
+206	305	BREEDLOVE NURSERY & LANDSCAPE	BREEDLOVE NURSERY & LANDSCAPE PO BOX 450 TYLER, TX 75710 903-597-7421	bromli@breedlovelandscape.com	\N	903-597-7421	BREEDLOVE NURSERY & LANDSCAPE 11576 HWY 64 WEST TYLER, TX 75704	2026-07-01 17:06:55.900872	\N	\N	\N
+207	306	BRENDA ABBOTT	BRENDA  ABBOTT 1914 MAIN ST BASTROP, TX 78602	brenda@brendaabbott.net	BRENDA ABBOTT	512-985-5539	BRENDA  ABBOTT 1914 MAIN ST BASTROP, TX 78602	2026-07-01 17:06:55.900872	\N	\N	\N
+208	307	BRENDA B WHITE	BRENDA B WHITE 3015 HANOVER AVE DALLAS, TX. 75225	\N	\N	972-407-3991	4201 BELCLAIRE DALLAS, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+209	308	BRENDA ROBERTS	BRENDA ROBERTS 1530 PARK AVE. GARLAND, TX. 75042	\N	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+210	309	BRIAN GORMAN DESIGN	BRIAN GORMAN DESIGN 501 NEWELL AVE DALLAS, TX 75223	\N	BRIAN GORMAN	323-447-0423	BRIAN GORMAN DESIGN 501 NEWELL AVE DALLAS, TX 75223	2026-07-01 17:06:55.900872	\N	\N	\N
+211	310	BRIGHTVIEW LANDSCAPE SERVICES	BRIGHTVIEW LANDSCAPE SERVICES 2315 SOUTHWELL RD DALLAS, TX 75229	william.mcfarland@brightview.com	\N	972-241-3332	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+212	311	BRITTON & ASSOCIATES	BRITTON & ASSOCIATES 2818 LOMBARDY LANE DALLAS, TX 75220	alan@brittonassoc.com	\N	972-267-9800	4800 PARK LANE DALLAS TX CALL W/ETA 214-212-0707 ALAN	2026-07-01 17:06:55.900872	\N	\N	\N
+213	312	BROOKSHIRE GROCERY	BROOKSHIRE GROCERY P.O. BOX 1411 TYLER, TX 75710	fls801@brookshires.com	SHELLIE	903-747-3503	STORE #801 FRESH BY BROOKSHIRES 6991 OLD JACKSONVILLE HWY TYLER, TX 75703	2026-07-01 17:06:55.900872	\N	\N	\N
+214	313	BROTHER BEAR BOTANICALS	Brother Bear Botanicals LLC 10415 Remuda View Drive San Antonio, TX 78254	brotherbearbotanicals@gmail.com	\N	210-422-1791	Brother Bear Botanicals LLC 10415 Remuda View Drive San Antonio, TX 78254	2026-07-01 17:06:55.900872	\N	\N	\N
+215	314	BRUMLEY GARDENS	BRUMLEY GARDENS 10540 CHURCH RD. DALLAS, TX 75238	lakehighlands@brumleygardens.com	CHRIS 972-670-7052	214-343-4900	BRUMLEY GARDENS 10540 CHURCH RD. DALLAS, TX 75238	2026-07-01 17:06:55.900872	\N	\N	\N
+216	315	BRWN COLLECTIVE STUDIO LLC	BRWN COLLECTIVE STUDIO LLC JASMIN ROMERO 701 WOODWARD ST. UNIT 338 AUSTIN, TX	melanin@brwncollective.com	\N	512-826-5003	WE DO NOT DELIVER	2026-07-01 17:06:55.900872	\N	\N	\N
+217	316	BRYAN LONG FLOWERS	BRYAN LONG FLOWERS 1900 S HARWOOD DALLAS, TX 75215	bryan@bryanlongflowers.com	\N	2147348037	BRYAN LONG FLOWERS 1900 S HARWOOD DALLAS, TX 75215	2026-07-01 17:06:55.900872	\N	\N	\N
+218	317	BUBELA TREE FARM	BUBELA TREE FARM MORGAN BUBELA 382 FM 2672 SCHULENBERG, TX 78956	morgan@bubelatreefarms.com	\N	979-505-2966	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+219	318	BUDDING EXPRESSIONS	BUDDING EXPRESSIONS 5611 TRAILS EDGE DR. ARLINGTON, TX 76017	myyoung.mikaya@gmail.com	\N	806-535-1268	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+220	319	BUDS & BLOOMS<GARLAND>	BUDS & BLOOMS<GARLAND> 826 N. BELTLINE GARLAND, TX 75040	\N	\N	972-496-9169	BUDS & BLOOMS<GARLAND> 826 N. BELTLINE GARLAND, TX 75040	2026-07-01 17:06:55.900872	\N	\N	\N
+221	320	BUGATTI, INC	BUGATTI, INC 1940 LBJ FRWY SUITE 100 DALLAS, TX 75234	zeebugatti@aol.com	\N	214-350-2470	303 chandan way irving tx 75063 before 1.00	2026-07-01 17:06:55.900872	\N	\N	\N
+222	321	BUNCHES, LLC.	BUNCHES, LLC 830 STEGER TOWNE ROCKWALL, TX 75032	angela@bunchesrockwall.com	\N	469-769-1172	BUNCHES 830 STEGER TOWNE ROCKWALL, TX 75032	2026-07-01 17:06:55.900872	\N	\N	\N
+223	322	BURNHAM ENTERPRISE	BURNHAM ENTERPRISE 6102 AVERILL WAY SUITE A DALLAS, TX 75225	\N	MARY BURNHAM	214-507-5268	BURNHAM ENTERPRISE 6102 AVERILL WAY SUITE A DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+224	323	BUSHWACKERS LANDSCAPE	BUSHWACKERS LANDSCAPE 10109 REGAL PARK #212 DALLAS, TX 75230	kipp@bushwackersdesign.com	\N	214-505-2012	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+225	324	BUTLER BOTANICALS	BUTLER BOTANICALS MARK & LYNN BUTLER 605 WINTERFIELD #2106 HUTTO, TX  78634	butlerbotanicals@yahoo.com	\N	512-573-4478	BUTLER BOTANICALS MARK & LYNN BUTLER 605 WINTERFIELD #2106 HUTTO, TX 78634	2026-07-01 17:06:55.900872	\N	\N	\N
+226	325	BUTTERFLIES AND SNAILS	BUTTERFLIES AND SNAILS GIFT BASKETS MARGARET HUNT 7244 LONG CANYON TRAIL DALLAS, TX 75249	flowersbyjasminej@gmail.com	\N	214-354-7359	BUTTERFLIES AND SNAILS GIFT BASKETS MARGARET HUNT 7244 LONG CANYON TRAIL DALLAS, TX 75249	2026-07-01 17:06:55.900872	\N	\N	\N
+227	326	C. WRIGHT INTERIORS	C. WRIGHT INTERIORS 6801 BALTIMORE DR. DALLAS, TX.75205	\N	\N	214-526-0269	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+228	327	C.C.'S TOUCH OF NATURE	C.C.'S TOUCH OF NATURE 3912 W. VICKERY FT. WORTH, TX 76107	\N	\N	817-732-0942	C.C.'S TOUCH OF NATURE 3912 W. VICKERY FT. WORTH, TX 76107	2026-07-01 17:06:55.900872	\N	\N	\N
+229	328	C.C. FLOWERS	C.C. FLOWERS 1222 WOODLAND PARK DR. GARLAND, TX 75040	carolyncauthorn@tx.rr.com	\N	2147349137	C.C. FLOWERS 1222 WOODLAND PARK DR. GARLAND, TX 75040	2026-07-01 17:06:55.900872	\N	\N	\N
+230	329	CACTUS AND ROSE	CACTUS AND ROSE 1001 CHESAPEAKE DR AUSTIN, TX 78758	ANTONIO@CACTUSANDROSE.COM	\N	512-903-1498	CACTUS AND ROSE 1001 CHESAPEAKE DR AUSTIN, TX 78758	2026-07-01 17:06:55.900872	\N	\N	\N
+231	330	CACTUS QUEEN DFW	CACTUS QUEEN DFW 2423 LANGFORD ST DALLAS, TX 75208	cactusqueendfw@gmail.com	\N	469-569-3619	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+232	331	CACTUS RANCH ELEMENTARY	Cactus Ranch Elementary 2901 Golden Oak Circle Round Rock, TX 78601	avenida12345@gmail.com	\N	512-424-8000	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+233	332	CAMELLIA FARM FLORA	CAMELLIA FARM FLORA 605 COUNTRY CLUB PL JOSHUA, TX 76058	tammie@camelliafarmflora.com	\N	817-386-2466	CAMELLIA FARM FLORAL 410 W 7TH ST #3 FT WORTH TX 76102	2026-07-01 17:06:55.900872	\N	\N	\N
+234	333	CANDI'S CACTI & CO.	CANDI'S CACTI & CO. 613 CONCHO ST. AUBREY, TX 76227	laurenfducharme	\N	214-557-9269	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+235	334	CANTU NURSERY & LANDSCAPE	CANTU NURSERY & LANDSCAPE MARIA T. CANTU 3223 S. IH-35 ROUND ROCK, TX  78664	cantuimports@hotmail.com	\N	512-733-3478	CANTU NURSERY & LANDSCAPE MARIA T. CANTU 3223 S. IH-35 ROUND ROCK, TX 78664	2026-07-01 17:06:55.900872	\N	\N	\N
+236	335	CANYON CREEK IRRIGATION	CANYON CREEK IRRIGATION 10690 CR 484 LAVON, TX 75166	nnichols@huntoil.com	GEORGE MOSLENER	214-876-6671	CANYON CREEK IRRIGATION 10690 CR 484 LAVON, TX 75166	2026-07-01 17:06:55.900872	\N	\N	\N
+237	336	CANYON LAKE ACE HARDWARE	CANYON LAKE ACE HARDWARE 1150 FM 2673 CANYON LAKE, TX 78133	ofcmgr@canyonlakeace.com	\N	830-964-2797	CANYON LAKE ACE HARDWARE 1150 FM 2673 CANYON LAKE, TX 78133	2026-07-01 17:06:55.900872	\N	\N	\N
+238	337	CARETAKERS	CARETAKERS 5314 GLENWICK LANE DALLAS, TX. 75209	knelson@nhg.com	\N	214-350-0615	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+239	338	CARMEN'S FLORAL CREATIONS	CARMEN'S FLORAL CREATIONS CARMEN DOMINGUEZ 105 REBEL DR. KYLE, TX  78640	carmensfloralcreations@gmail.com	\N	512-577-4675	CARMEN'S FLORAL CREATIONS CARMEN DOMINGUEZ 105 REBEL DR. KYLE, TX 78640	2026-07-01 17:06:55.900872	\N	\N	\N
+240	339	CAROLINE CASS DESIGN	CAROLINE CASS DESIGN, LLC CAROLINE ADAMS 5019 W AMHERST AVE DALLAS, TX 75209	carolinecassdesign@gmail.com	\N	469-870-1964	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+241	340	CARROLLTON PLAZA SUPERMARKET	CARROLLTON PLAZA SUPERMARKET 3040 N. JOSEY LANE CARROLLTON, TX 75007	onglant@yahoo.com	\N	214-731-8584	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+282	381	CITY FLORIST<<ROYCE>>	CITY FLORIST<<MELISA>> 608 MELBOURNE RD. HURST, TX 76053	\N	\N	214-212-1419	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+242	341	CASA FLORA <<LONGVIEW>>	CASA FLORA <<LONGVIEW>> 314 MAGNOLIA LANE LONGVIEW, TX 75605	vickie@casafloraflowers.com	\N	903-753-8701	CASA FLORA <<LONGVIEW>> 314 MAGNOLIA LANE LONGVIEW, TX 75605	2026-07-01 17:06:55.900872	\N	\N	\N
+243	342	CASH SALE - AUSTIN	CASH SALES- AUSTIN	austinsales@vickerygreenhouse.com	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+244	343	CASH SALE - DALLAS	CASH SALE - DALLAS	pberry@vickerygreenhouse.com	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+245	344	CASLER FOLIAGE	CASLER FOLIAGE PO BOX 223822 DALLAS, TX. 75222	\N	\N	214-533-2498	4700 MARCANTILE DR. FT. WORTH, TEXAS	2026-07-01 17:06:55.900872	\N	\N	\N
+246	345	CASON'S FLOWERS > > > > >	CASON'S FLOWERS > > > > > 413 N.15TH ST @ W.3RD CORSICANA, TX 75110	\N	ROBBIE	888-365-8753	CASON'S FLOWERS > > > > > 413 N.15TH ST @ W.3RD CORSICANA, TX 75110	2026-07-01 17:06:55.900872	\N	\N	\N
+247	346	CASSITY JONES INC.	CASSITY JONES INC. 302 PINE TREE ROAD LONGVIEW, TX 75064	\N	\N	903-759-0736	CASSITY JONES INC. 302 PINE TREE ROAD LONGVIEW, TX 75064	2026-07-01 17:06:55.900872	\N	\N	\N
+248	347	CATHEDRAL OF HOPE	CATHEDRAL OF HOPE 5910 CEDAR SPRINGS DALLAS, TX. 75235	sstout@cathedralofhope.com	\N	214-351-1901	5910 CEDAR SPRINGS RD DALLAS, TX 75235 214-351-1901 CALL WITH ETA	2026-07-01 17:06:55.900872	\N	\N	\N
+249	348	CATHOLIC DIOCESE OF AUSTIN	CATHOLIC DIOCESE OF AUSTIN EDITH CASSO 6225 HWY. 290 EAST AUSTIN, TX  78723	edith-casso@austindiocese.org	\N	512-949-2400	CATHOLIC DIOCESE OF AUSTIN EDITH CASSO 6225 HWY. 290 EAST AUSTIN, TX 78723	2026-07-01 17:06:55.900872	\N	\N	\N
+250	349	CAVENDER PLANT CITY	CAVENDER PLANT CITY 1629 WESTLAKE DR. AUSTIN, TX 78746	tacavender@hotmail.com	\N	512-771-6317	TYLER TX	2026-07-01 17:06:55.900872	\N	\N	\N
+251	350	CC DESIGN	CC DESIGN CHARYL COLEMAN 4102 VALLEY VIEW RD AUSTIN, TX 78704	CHARYLCOLEMAN@GMAIL.COM	\N	512-297-5452	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+252	351	CD DESIGNS FLORIST	CD DESIGNS FLORIST 3405 BRIGHT STAR WAY PLANO, TX 75074	info@cddesignstx.com	\N	469-879-5459	CD DESIGN FLORIST 4101 E PARK BLVD PLANO, TX 75074	2026-07-01 17:06:55.900872	\N	\N	\N
+253	352	CEDAR CREST GARDENS	CEDAR CREST GARDENS 2842 SINGLETON BLVD. DALLAS, TX 75212	support@cedarcrestgardens.net	JOSHUA	214-637-5208	CEDAR CREST GARDENS 3427 WEISENBERGER DR DALLAS, TX 75212	2026-07-01 17:06:55.900872	\N	\N	\N
+254	353	CEDAR PARK FLORIST	CEDAR PARK FLORIST 600 S. BELL, STE. 14 CEDAR PARK, TX 78613	laurenshipp@sbcglobal.net	\N	512-258-5577	CEDAR PARK FLORIST 600 S. BELL, STE. 14 CEDAR PARK, TX 78613	2026-07-01 17:06:55.900872	\N	\N	\N
+255	354	CELEBRATE WITH EDEN	CELEBRATE WITH EDEN 1613 KALAMATH FORNEY, TX 75126	\N	\N	469-964-546	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+256	355	CEMENTED	CEMENTED 418 ORION DR NEW BRAUNFELS, TX 78130	cemented.ashlie@gmail.com	\N	830-832-9373	CEMENTED 418 ORION DR NEW BRAUNFELS, TX 78130	2026-07-01 17:06:55.900872	\N	\N	\N
+257	356	CENTRAL MARKET -NW HWY #747	CENTRAL MARKET-NW HWY #747 4349 W NW HWY DALLAS, TX 75220	s747fm@heb.com	\N	469-697-7800	CENTRAL MARKET-NW HWY #747 4349 W NW HWY DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+258	357	CENTRAL MARKET #545	CENTRAL MARKET #545 4651 W FWY FT. WORTH, TX 76107	s545fh@heb.com	\N	817-989-4700	CENTRAL MARKET #545 4651 W FWY FT. WORTH, TX 76107 **DELIVERY BY 1PM**	2026-07-01 17:06:55.900872	\N	\N	\N
+259	358	CENTRAL MARKET #552 LOVERS LANE	CENTRAL MARKET #552 LOVERS LANE 5750 E. LOVERS LANE DALLAS, TX 75206	s552fm@heb.com	\N	214-234-7000	CENTRAL MARKET #552 LOVERS LANE 5750 E. LOVERS LANE DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+260	359	CENTRAL MARKET #653 PRESTON ROYAL	CENTRAL MARKET #653 PRESTON ROYAL 10720 PRESTON RD. SUITE 1900 DALLAS, TX 75230	s653fm@heb.com	\N	972-860-6500	CENTRAL MARKET #653 PRESTON ROYAL 10720 PRESTON RD. SUITE 1900 DALLAS, TX 75230	2026-07-01 17:06:55.900872	\N	\N	\N
+261	360	CENTRAL MARKET LAMAR #61	CENTRAL MARKET #61 4001 N. LAMAR @ 38TH ST. AUSTIN, TX. 78756	s061fl@heb.com	\N	512-206-1000 ext 1093	CENTRAL MARKET 4001 N. LAMAR AUSTIN, TX 78756	2026-07-01 17:06:55.900872	\N	\N	\N
+262	361	CENTRAL MARKET PLANO #546	CENTRAL MARKET #546 320 COIT PLANO, TX. 75075	s546fm@heb.com	\N	469-241-8300	CENTRAL MARKET #546 320 COIT PLANO, TX 75075	2026-07-01 17:06:55.900872	\N	\N	\N
+263	362	CENTRAL MARKET SOUTHLAKE #55	CENTRAL MARKET #55 1425 E. SOUTHLAKE BLVD. SOUTHLAKE, TX. 76092	s055fa@heb.com	\N	817-310-5638	CENTRAL MARKET #55 1425 E. SOUTHLAKE BLVD. SOUTHLAKE, TX. 76092	2026-07-01 17:06:55.900872	\N	\N	\N
+264	363	CEYLON ET CIE, INC.	CEYLON ET CIE, INC. 1319 DRAGON ST. DALLAS, TX 75209	info@ceylonetcie.com	\N	214-742-7632	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+265	364	CF BIOTECHNOLOGIES	CF BIOTECHNOLOGIES DAVID GONZALES 6900 CELLIC CT AUSTIN, TX 78754	MODERNPHARMLA@GMAIL.COM	\N	440-382-2144	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+266	365	CHAPEL OF THE CROSS	CHAPEL OF THE CROSS 4333 COLE AVE DALLAS, TX. 75205	crbucy@gmail.com	\N	214-521-6062	CHAPEL OF THE CROSS 4333 COLE AVE DALLAS, TX 75205 CALL 1 HR W/ETA 214-521-6062	2026-07-01 17:06:55.900872	\N	\N	\N
+267	366	CHARLOTTE'S FIESTA FLOWERS	CHARLOTTE'S FIESTA FLOWERS 4404 BURNET RD (OFF MEDICAL PKWY) AUSTIN, TX 78756	fiestamail@charlottesflowers.com	CHARLOTTE	512-453-7619	CHARLOTTE'S FIESTA FLOWERS 4404 BURNET RD (OFF MEDICAL PKWY) AUSTIN, TX 78756	2026-07-01 17:06:55.900872	\N	\N	\N
+268	367	CHARMING FLORALS & FINDS	CHARMING FLORALS & FINDS 901 MAIN ST. SUITE C-126 DALLAS, TX 75202	hello@charmingff.com	\N	972-308-6060	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+269	368	CHATEAU FLEUR	CHATEAU FLEUR, INC 211 N. BOLIVIAN ST MARSHALL, TX 75670	chateaufleurinc@sbcglobal.net	\N	214-207-0193	EYE BALL PARK MAIN ST.DOWNTOWN DALLAS TX 214-213-2230 CARLOS	2026-07-01 17:06:55.900872	\N	\N	\N
+270	369	CHERRY BLOSSOM BOUTIQUE LLC	THE CHERRY BLOSSOM BOUTIQUE LLC 17130 HIGHWAY 46 WEST, STE 1 SPRING BRANCH, TX 78070	TheCherryBlossomBoutiqueTX@gmail.com	\N	210-931-5600	THE CHERRY BLOSSOM BOUTIQUE LLC 17130 HIGHWAY 46 WEST, STE 1 SPRING BRANCH, TX 78070	2026-07-01 17:06:55.900872	\N	\N	\N
+271	370	CHOICE FLOWER EXCHANGE	Choice Flower Exchange 3459 Northeast Pkwy San Antonio, TX 78218	choiceflower@hotmail.com	\N	2106539359	3459 Northeast Pkwy San Antonio, TX 78218	2026-07-01 17:06:55.900872	\N	\N	\N
+272	371	chres	chres	\N	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+273	372	CHRIST LUTHERAN CHURCH	CHRIST LUTHERAN CHURCH (AUSTIN) 300 E. MONROE ST. AUSTIN, TX 78704	jordan@christaustin.org	\N	512-442-5844	CHRIST LUTHERAN CHURCH (AUSTIN) 300 E. MONROE ST. AUSTIN, TX 78704 (deliver, ON entrance @ corner)	2026-07-01 17:06:55.900872	\N	\N	\N
+274	373	CHRIST LUTHERAN CHURCH-DALLAS	CHRIST LUTHERAN CHURCH-DALLAS 3001 LOVERS LANE DALLAS, TX 75225	hello@clcdallas.org	\N	214-363-4355	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+275	374	CHRIST THE KING CATHOLIC CHURCH	CHRIST THE KING CATHOLIC CHURCH 8017 PRESTON RD. DALLAS, TX. 75225	mconrow@conrowcompany.com	\N	214-365-1200	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+276	375	CHRIST THE REDEEMER	CHRIST THE REDEEMER 5001 OVERTON RIDGE BLVD FT. WORTH, TX 76132	info@ctrfw.org	\N	817-386-3000	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+277	376	CHRIST UNITED METHODIST	CHRIST UNITED METHODIST CHURCH 3101 COIT RD PLANO, TX 75075	cparker@cumc.com	\N	972-596-4303	CHRIST UNITED METHODIST CHURCH 3101 COIT RD PLANO, TX 75075 972-977-6390	2026-07-01 17:06:55.900872	\N	\N	\N
+278	377	CHRISTELL'S FLOWERS	CHRISTELL'S FLOWERS 214 E. AVENUE B KILLEEN, TX 76541	christellsflowers@yahoo.com	TAMMY	254-526-6616	CHRISTELL'S FLOWERS 214 E. AVENUE B KILLEEN, TX 76541	2026-07-01 17:06:55.900872	\N	\N	\N
+279	378	CHRISTINA'S PLANT SERVICES, INC.	CRHISTINA'S PLANT SERVICES, INC 2505 Peargrove Cr Arlington, TX 76006	christinaangel321@gmail.com	\N	972-281-7850	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+280	379	CHURCH OF JESUS CHRIST OF LATTER DAY SAIN	CHURCH OF JESUS CHRIST OF LATTER DAY SAIN 4000 NAZARENE CARROLLTON, TX. 75010	\N	\N	972-342-6084	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+283	382	CITY OF AUSTIN--PARD	CITY OF AUSTIN--PARD 200 SOUTH LAMAR AUSTIN, TX 78746	sonia.freeland@austintexas.gov	\N	512-477-1750	ZILKER BOTANICAL GARDEN 2220 BARTON SPRINGS RD. AUSTIN, TX  78746	2026-07-01 17:06:55.900872	\N	\N	\N
+284	383	CITY OF GRAND PRAIRIE	CITY OF GRAND PRAIRIE P.O. BOX 530011 GRAND PRAIRIE, TX 75053-0012	rjcc@gptx.org	SUSAN HENSON	972-237-8102	RUTH-JACKSON CENTER 3113 S CARRIER PKWY 972-237-8102 817-521-1308	2026-07-01 17:06:55.900872	\N	\N	\N
+285	384	CITY OF GRAPEVINE	CITY OF GRAPEVINE 501 SHADY BROOK DR. GRAPEVINE, TX 76051	Jobert@grapevinetexas.gov	\N	817-410-3336	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+286	385	CITY OF SAN ANTONIO - BOTANICAL GARDEN	CITY OF SAN ANTONIO - BOTANICAL GARDEN 555 FUNSTON PLACE SAN ANTONIO, TX 78209	ALABAY@SABOT.ORG	\N	210-207-3263	BOTANICAL GARDEN SOCIETY 555 QUEEN ANNE COURT SAN ANTONIO, TX 78209	2026-07-01 17:06:55.900872	\N	\N	\N
+287	386	CITYSCAPE INTERIORS	CITYSCAPE INTERIORS 2310 RANCH ROAD SASCHE, TX 75048	cityscapeinteriors@yahoo.com	\N	214-801-8624	CITYSCAPES INTERIORS 2310 RANCH ROAD SASHE, TX 75048	2026-07-01 17:06:55.900872	\N	\N	\N
+288	387	CITYVIEW FLORIST	CITYVIEW FLORIST 6124 BRYANT IRVIN RD FT. WORTH, TX 76132	cityviewfloristllc@yahoo.com	\N	817-294-1515	CITYVIEW FLORIST 6124 BRYANT IRVIN RD 817-294-1515 FT. WORTH, TX 76132	2026-07-01 17:06:55.900872	\N	\N	\N
+289	388	CL LANDSCAPE	CL LANDSCAPE 1505 AVE. F GRAND PRAIRIE, TX 75051	\N	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+290	389	CLAIRE RATHBUN	CLAIRE RATHBUN 4506 GOODFELLOW DR. DALLAS, TX 75229	clairerathbun@gmail.com	\N	214-789-5017	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+291	390	CLARET RANCH CACTUS	CLARET RANCH CACTUS JIMMY BLACK 225 GREYSTONE CR. BOERNE, TX  78006	jblack4121@yahoo.com	\N	830-336-2075	WE DO NOT DELIVER TO BOERNE	2026-07-01 17:06:55.900872	\N	\N	\N
+292	391	CLARK LANDSCAPE	CLARK LANDSCAPE CO. 5012 EVERGREEN VICTORIA, TX. 77904	\N	\N	214-794-9971	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+293	392	CLASSIC DESIGNS - KERRVILLE	CLASSIC DESIGNS 609 MULL RD. KERRVILLE, TX. 78028	\N	\N	830-367-7929	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+294	393	CLEAN SCAPES - AUSTIN	Clean Scapes - Austin PO Box 203070 Austin, TX 78728	AP@cleanscapes.net	\N	512-448-1094	Clean Scapes - Austin 4800 Howard Lane Austin, TX 78728	2026-07-01 17:06:55.900872	\N	\N	\N
+295	394	CLEAR RIVER LANDSCAPE AND DESIGN	CLEAR RIVER LANDSCAPE AND DESIGN RICARDO EVANS 262 COVINGTON RD SAN ANTONIO, TX 78220	RICARDO.EVANS@GMAIL.COM	\N	512-468-6332	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+296	395	CLEMENTINE & CO. NURSERY	CLEMENTINE & CO. NURSERY 612 CHURCH ST. SULPHUR SPRINGS, TX 75482	clementineandco24@gmail.com	\N	903-885-5371	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+297	396	CLINT HORTICULTURE	CLINT HORTICULTURE 5600 W. LOVERS LANE DALLAS, TX. 75209	vendap@clinthorticulture.com	CHIP CLINT	214-956-7977	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+298	397	COBBLESTONE GARDENING SERVICES	COBBLESTONE GARDENING SERVICES PO BOX 1853 MANCHACA, TX 78652	\N	\N	512-799-2877	COBBLESTONE GARDENING SERVICES 9066 POST OAK AUSTIN, TX 78704	2026-07-01 17:06:55.900872	\N	\N	\N
+299	398	COBIE RUSSELL STUDIO	COBIE RUSSELL STUDIO 3533 DARTMOUTH AVE. DALLAS, TX. 75205	\N	\N	214-521-2050	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+300	399	COCO FLEUR	COCO FLEUR P.O. BOX 311 PILOT POINT, TX 76258	\N	LISA STILES	940-391-2648	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+301	400	COKO BERRY	COKO BERRY 2220 MARCH LANE #112 CARROLLTON, TX 75006	info@cokoberry.com	\N	786-909-0078	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+302	401	COLORSCAPE ASSOC. LLC	COLORSCAPE ASSOC. LLC P.O. BOX  121068 FT WORTH, TX 76121	\N	\N	817-456-9090	COLORSCAPE ASSOC. LLC 4500 WESTREIDGE AVE APT 23 FT WORTH, TX 76121	2026-07-01 17:06:55.900872	\N	\N	\N
+303	402	COMAL FLOWERSHOP ON THE PLAZA	COMAL FLOWER SHOP ON THE PLAZA MARY HEIMER 337 MAIN PLZ NEW BRAUNFELS, TX 78130	emailus@comalflowershop.com	\N	830-625-7575	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+304	403	COMMUNITY GARDENS - BASTROP	COMMUNITY GARDENS - BASTROP AARON & AUTUMN PYKA 1067 HWY 71 W BASTROP, TX 78602	autumn@communitygardensbastrop.com	\N	512-549-3555	WE DO NOT DELIVER TO BASTROP	2026-07-01 17:06:55.900872	\N	\N	\N
+305	404	COMMUNITY ISD	COMMUNITY ISD PO BOX 400 NEVADA, TX 75442	accountspayable@communityisd.org	ROBIN BAILEY	972-843-6000	COMMUNITY ISD 440 FM N 1138, Nevada, TX 75173 972 843 6000	2026-07-01 17:06:55.900872	\N	\N	\N
+306	405	COMPASSIONATE TOUCH	COMPASSIONATE TOUCH 1415 SOUTHMORE BLVD. HOUSTON, TX 77004	\N	\N	713-524-1055	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+307	406	COMPLETE LANDSCULPTURE INC.	COMPLETE LANDSCULPTURE INC. 2000 SANDY LANE DALLAS, TX 75220	bramf@completelandsculpture.com	LAURIE PATTEN	214-358-5296	COMPLETE LANDSCULPTURE INC. 2000 SANDY LANE DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+308	407	CONCHO GALLERY	CONCHO GALLERY 88 ABBEY WOODS LN DALLAS, TX. 75248	\N	\N	972-380-8885	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+309	408	CONCOCTIONS	CONCOCTIONS CHERYL HALE 4211 S. LAMAR A-19 AUSTIN, TX  78704	cheryllhale@gmail.com	\N	512-293-3247	CONCOCTIONS CHERYL HALE 4211 S. LAMAR A-19 AUSTIN, TX 78704	2026-07-01 17:06:55.900872	\N	\N	\N
+310	409	CONRAD'S CASITA	Conrad's Casita 404 Canyon Creek Drive Del Rio, TX 78840	conrads.casita@gmail.com	\N	830-422-5118	648 S Main Street Del Rio, TX 78840	2026-07-01 17:06:55.900872	\N	\N	\N
+311	410	CONVENTION PLANT CREATIONS - NEW ORLEANS	CONVENTION PLANT CREATIONS - NEW ORLEANS 827 MAGAZINE NEW ORLEANS, LA 70130	\N	\N	504-524-6066	CONVENTION PLANT CREATIONS - NEW ORLEANS 827 MAGAZINE NEW ORLEANS, LA 70130	2026-07-01 17:06:55.900872	\N	\N	\N
+312	411	COREAS LAWNCARE SERVICE	COREAS LAWNCARE SERVICE 101 COWBOY DR FORNEY TX 75216	\N	EDWIN COREAS	214-566-3210	COREAS LAWNCARE SERVICE 101 COWBOY DR FORNEY TX 75216	2026-07-01 17:06:55.900872	\N	\N	\N
+313	412	CORSICANA GERANIUM GARDEN	CORSICANA GERANIUM GARDEN PO BOX 1871 CORSICANA, TX 75151	\N	\N	903-654-4240	CORSICANA GERANIUM GARDEN 6455 W. HWY 31 @ CORBETT RD CORSICANA, TX 75110	2026-07-01 17:06:55.900872	\N	\N	\N
+314	413	CORY POPE CONSULTING	CORY POPE CONSULTING 3553 REGENT DALLAS, TX 75229	\N	\N	214-605-1463	4309 W LOVERS LANE DALLAS TX	2026-07-01 17:06:55.900872	\N	\N	\N
+315	414	COUNTRY LIFE LANDSCAPING INC.	COUNTRY LIFE LANDSCAPING INC. 3416 LOVERS LANE DALLAS, TX 75225	\N	\N	214-368-6955	COUNTRY LIFE LANDSCAPING INC. 3416 LOVERS LANE DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+316	415	COVENANT UNITED METHODIST CHURCH	COVENANT UNITED METHODIST CHURCH 4410 DUVAL RD. AUSTIN, TX  78727	jmcbride8@austin.rr.com	\N	512-346-3124	COVENANT UNITED METHODIST CHURCH 4410 DUVAL RD. AUSTIN, TX 78727	2026-07-01 17:06:55.900872	\N	\N	\N
+317	416	COVINGTON'S L/S & NURSERY	COVINGTON'S L/S & NURSERY 5518 PRESIDENT GEORGE BUSH HWY ROWLETT, TX 75089	madison@covingtonnursery.com	\N	972-475-5888	COVINGTON'S L/S & NURSERY 5518 PRESIDENT GEORGE BUSH HWY ROWLETT, TX 75089	2026-07-01 17:06:55.900872	\N	\N	\N
+318	417	COWBOY CULTIVATIONS	COWBOY CULTIVATIONS 1101 RAVEN CREST LONGVIEW, TX 75605	cowboycultivations@gmail.com	\N	918-287-7090	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+319	418	COY DESIGN	COY DESIGN COY BARTON 1302 CEDAR HILL AVE DALLAS, TX 75208	coy@coy.design	\N	682-468-7598	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+320	419	CRD EVENTS	CRD EVENTS 5809 PRESTON RD. SUITE 586 PLANO, TX 75093	cynthiarochelledesigns@gmail.com	\N	214-299-9217	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+321	420	CREATE FLORAL DESIGN LLC	CREATE FLORAL DESIGN LLC RACHEL BLAIES 3313 HANCOCK DR AUSTIN, TX 78731	RACHEL@CREATEFLORALDESIGN.COM	\N	727-253-5552	CREATE FLORAL DESIGN LLC RACHEL BLAIES 3313 HANCOCK DR AUSTIN, TX 78731	2026-07-01 17:06:55.900872	\N	\N	\N
+322	421	CREATIVE CONSULTING	CREATIVE CONSULTING 9553 DARTRIDGE DALLAS, TX. 75238	cindymnewman@gmail.com	\N	214-349-0249	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+323	422	CREATIVE GARDEN ART	CREATIVE GARDEN ART 4309 JENNY LN. GARLAND , TX 75042	csecg.llc@gmail.com	\N	714-679-2855	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+324	423	CREATIVE GARDENS - SA	CREATIVE GARDENS FRANK REED 402 SAGE BLUFF CIRCLE SAN ANTONIO, TX  78216	franksreed@hotmail.com	\N	210-849-3900	CREATIVE GARDENS FRANK REED 402 SAGE BLUFF CIRCLE SAN ANTONIO, TX 78216	2026-07-01 17:06:55.900872	\N	\N	\N
+325	424	CREATIVE GREENERY OF DALLAS	CREATIVE GREENERY OF DALLAS 101C N. GREENVILLE AVE #440 ALLEN, TX. 75002 214-293-5644	todd@dallasgreenery.com	\N	972-442-5592	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+326	425	CREATIVE PLANT DESIGNS	CREATIVE PLANT DESIGNS PO BOX 202544 AUSTIN, TX 78759	melissa@creativeplantdesigns.com	\N	512-454-7727	CREATIVE PLANT DESIGNS 7802 NORTHWEST DR. AUSTIN, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+327	426	CRECER	CRECER 428 W DAVIS ST SUITE 2 DALLAS, TX 75208	crecerdallas@gmail.com	\N	972-863-9288	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+328	427	CRESTIE WORX	CRESTIE WORX 302 COUNTY RD. 1320 BOGOTA, TX 75417	crestieworx@gmail.com	\N	469-474-6308	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+329	428	CRICKETT SEAL	CRICKETT SEAL 5822 LAKEHURST AVE DALLAS, TX 75230	cseal@csadesign.net	CRICKETT	214-696-5034	CRICKETT SEAL 5822 LAKEHURST AVE DALLAS, TX 75230	2026-07-01 17:06:55.900872	\N	\N	\N
+330	429	CRIMSTON & QUIILL BESPOKE FLORAL	CRIMSON & QUILL BESPOKE FLORAL 3333 HARRY HINES BLVD. UNIT 4124 DALLAS, TX 75201	crimsonandquill@gmail.com	\N	214-558-2504	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+331	430	CROSBY LANDSCAPE CO.	CROSBY LANDSCAPE CO. 4312 BORDEAUX DALLAS, TX 75205	\N	JOHN CROSBY	972-733-9711	CROSBY LANDSCAPE CO. 4312 BORDEAUX DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+332	431	CULBERSON GREENHOUSES	CULBERSON GREENHOUSES 91 SNUGGS CIRCLE MAYFLOWER, AR 72106	culbersongreenhouses@gmail.com	\N	501-470-0329	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+333	432	CULT OF BLOOM	CULT OF BLOOM 5900 BALCONES  DR SUITE 100 AUSTIN, TX 78731	cultofbloom@gmail.com	\N	512-688-6294	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+334	433	CULTIVATE H & H	CULTIVATE H & H 150 PALMETTO DR. OAKHURST, TX 77359	cultivate.texas@gmail.com	\N	832-571-9603	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+335	434	CURATE	CURATE 3301 HUDNALL ST. APT 3205 DALLAS, TX 75235	caitlin@curatewithcaitlin.com	\N	361-815-3965	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+336	435	CURLY WILLOW BOTANICALS	CURLY WILLOW BOTANICALS 297 RIDGEMONT HEATH, TX 75126	karen@curlywillowbotanicals.com	\N	469-766-1779	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+337	436	D-CRAIN	D-CRAIN 1621 WILLOW AUSTIN, TX 78702	studio@d-crain.com	\N	512-480-8008	D-CRAIN 1621 WILLOW AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+338	437	D SWEETPEAS CUSTOM FLORAL	D SWEETPEAS CUSTOM FLORAL 8811 UNITED KINGDOM DR AUSTIN, TX 78748	dsweetpea415@yahoo.com	\N	512-905-7625	D SWEETPEAS CUSTOM FLORAL 8811 UNITED KINGDOM DR AUSTIN, TX 78748	2026-07-01 17:06:55.900872	\N	\N	\N
+339	438	D.E. RAMERT ASSOCIATES	D.E. RAMERT ASSOCIATES 1110 EAST 10TH ST. AUSTIN, TX 78702	deramert@yahoo.com	DAVID RAMERT	512-480-8909	D.E. RAMERT ASSOCIATES 1110 EAST 10TH ST. AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+340	439	DALLAS ARBORETUM & BOTANICAL	DALLAS ARBORETUM & BOTANICAL 8617 GARLAND RD. DALLAS, TX 75218	invoicingap@dallasarboretum.org	\N	214-515-6500	DALLAS ARBORETUM & BOTANICAL 8617 GARLAND RD. DALLAS, TX 75218 CALL W/ETA MEGAN 817-734-5608	2026-07-01 17:06:55.900872	\N	\N	\N
+341	440	DALLAS COLLEGE	DALLAS COLLEGE 4343 INTERSTATE HWY 30 MESQUITE, TX 75150	Sallysutton@DallasCollege.edu;jracek@dallascollege.edu	\N	972-860-7771	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+342	441	DALLAS COUNTRY CLUB	DALLAS COUNTRY CLUB 4100 BEVERLY DRIVE DALLAS, TX. 75205	ap@dallascountryclub.org	TUCKER REED	214-521-2151	DALLAS COUNTRY CLUB 4100 BEVERLY DRIVE DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+343	442	DALLAS DESIGN GROUP	DALLAS DESIGN GROUP INTERIORS 1407 NORTH RIVERFRONT BLVD DALLAS, TX. 75207	\N	\N	214-752-9005	5423 preston fairways circle dallas tx nanacy 214 384 7009	2026-07-01 17:06:55.900872	\N	\N	\N
+344	443	DALLAS GARDENS	DALLAS GARDENS LLC PASCUAL RAUDA 2720 WILD GROVE LN LANCASTER, TX 75146	dallasgardens2017@gmail.com	\N	469-260-4607	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+345	444	DALLAS HOUSE OF FLOWERS	DALLAS HOUSE OF FLOWERS 2410 W RED BIRD LN DALLAS, TX 75237	dallashouseofflowers@hotmail.com	LARRY HERNANDEZ	214-339-1612	DALLAS HOUSE OF FLOWERS 2410 W RED BIRD LN DALLAS, TX 75237	2026-07-01 17:06:55.900872	\N	\N	\N
+346	445	DALLAS MARKET CENTER	DALLAS MARKET CENTER 2100 N. STEMMONS FRWY DALLAS, TX. 75207	accountspayable@dallasmarket.com	\N	214-655-6285	Dallas Market Hall 2200 n stemmons frwy dallas214-460-2160	2026-07-01 17:06:55.900872	\N	\N	\N
+347	446	DALLAS MUSEUM OF ART	DALLAS MUSEUM OF ART 1717 NORTH HARWOOD DALLAS, TX 75201	jharris@dma.org	\N	214-922-1200	DALLAS MUSEUM OF ART 1717 NORTH HARWOOD DALLAS, TX 75201	2026-07-01 17:06:55.900872	\N	\N	\N
+348	447	DALLAS ZOO MANAGEMENT	DALLAS ZOO MANAGEMENT ATTN: ACCOUNTS PAYABLE 650 S. RL THORNTON FRWY. DALLAS, TX 75203	anna.sanchez@dallaszoo.com	CINDY WAHKINNEY	214-670-6837	DALLAS ZOO MANAGEMENT ATTN: ACCOUNTS PAYABLE 650 S. RL THORNTON FRWY. DALLAS, TX 75203	2026-07-01 17:06:55.900872	\N	\N	\N
+349	448	DALTON FLOWERS	DALTON FLOWERS 3550 FIREWHEEL DR. FLOWER MOUND, TX 75028	daltonflowerstx@yahoo.com	LISA DALTON	972-691-2806	FLOWER MOUND FUNERAL HOME DALTON FLOWERS 3550 FIREWHEEL DR. FLOWER MOUND, TX 75028	2026-07-01 17:06:55.900872	\N	\N	\N
+350	449	DANA'S DESIGNS	DANA'S DESIGNS 1411 VERANO AVE. DALLAS, TX 75218	dcgabby1@gmail.com	\N	214-763-9641	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+351	450	DAPPER EVENT DESIGN, LLC	DAPPER EVENT DESIGN 16600 E 33RD DRIVE AURORA, CO 80011	info@dappereventdesign.com	\N	859-513-0380	DAPPER EVENT DESIGN 16600 E 33RD DRIVE AURORA, CO 80011	2026-07-01 17:06:55.900872	\N	\N	\N
+352	451	DARCI ISOM INTERIORS	DARCI ISOM INTERIORS 2928 SAN SIMEON WAY PLANO, TX 75023	\N	DARCI ISOM	214-803-4944	DARCI ISOM INTERIORS 2928 SAN SIMEON WAY PLANO, TX 75023	2026-07-01 17:06:55.900872	\N	\N	\N
+353	452	DARLIN'S DINER	DARLIN'S DINER TAYLOR SWENNING 516 E NORTH MAIN FLATONIA, TX 78941	darlinsdiner@gmail.com	\N	830-237-2446	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+354	453	DARRELL G. WARD DESIGNS	DARRELL G. WARD DESIGNS 814 STEWART DR. DALLAS, TX 75208	dgwdesigns@aol.com	\N	\N	DARRELL G. WARD DESIGNS 814 STEWART DR. Leave in workroom around back DALLAS, TX 75208 214-288-1679	2026-07-01 17:06:55.900872	\N	\N	\N
+355	454	DARYAN DESIGN	DARYAN DESIGN, INC 6730 oakbrook blvd DALLAS, TX 75235	robert@daryandisplay.com	\N	214-905-6022	DARYAN DESIGN, INC 6730 oakbrook blvd DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+356	455	DARYL'S BY DESIGN	DARYL'S BY DESIGN 1801 N. GRIFFIN DALLAS, TX 75202	\N	\N	214-720-2232	DARYL'S BY DESIGN 1801 N. GRIFFIN DALLAS, TX 75202	2026-07-01 17:06:55.900872	\N	\N	\N
+357	456	DAVID KIMMEL DESIGNS	DAVID KIMMEL DESIGNS 3500 EASY ST DALLAS, TX 75207	david@davidkimmeldesign.com	DAVID KIMMEL	817-939-1227	DAVID KIMMEL DESIGNS 3500 EASY ST DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+358	457	DAVID KURIO  DESIGNS, INC.	DAVID KURIO  DESIGNS, INC. 2003 WHELESS LANE AUSTIN, TX 78723	accounting@davidkuriodesigns.com	DAVID KURIO	512-929-8807	DAVID KURIO  DESIGNS, INC. 2003 WHELESS LANE AUSTIN, TX 78723	2026-07-01 17:06:55.900872	\N	\N	\N
+359	458	DAVID WILSON GARDEN DESIGN, INC.	DAVID WILSON GARDEN DESIGN, INC. 4206 MARATHON BLVD. AUSTIN, TX 78756	david@dwgd.com	MARCO RIKI	512-459-7909	DAVID WILSON GARDEN DESIGN, INC. 4206 MARATHON BLVD. AUSTIN, TX 78756	2026-07-01 17:06:55.900872	\N	\N	\N
+360	459	DAVIS FLORAL	DAVIS FLORAL CO 505 FISK AVE BROWNWOOD, TX 76801	office@davisfloralco.com	\N	325-646-9595	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+361	460	DCMSA FOUNDATION	DCMSA FOUNDATION 5500 SWISS AVE. DALLAS, TX 75214	\N	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+362	461	DCMSAF (Dallas Co Med Soc Alliance Founda	DCMSAF (Dallas Co Med Soc Alliance Founda 5500 SWISS AVE DALLAS, TX 75214	\N	KAY HYLAND	214-832-2972	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+363	462	DDP INTERIORS	DDP INTERIORS, INC 1110 BROAD AVE FT. WORTH, TX. 76107	\N	\N	817-737-6032	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+364	463	DE LA ROSA'S FLOWER MARKET	DE LA ROSA'S FLOWER MARKET 7150 E GRAND APT 1617 DALLAS, TX 75223	irene.delarosa@greystar.com	REANA DE LA ROSA	214-328-2911	DE LA ROSA'S FLOWER MARKET 7150 E GRAND APT 1617 DALLAS, TX 75223	2026-07-01 17:06:55.900872	\N	\N	\N
+365	464	DE LUZ STUDIO	DE LUZ STUDIO, LLC 5413 AGATHA CIRCLE AUSTIN, TX 78724	PRISCILLA@DE-LUZ-STUDIO.COM	\N	575-640-4296	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+366	465	DEACONESS BOOKSHOP	DEACONESS BOOKSHOP 534 W. 10TH ST. DALLAS, TX 75208	cackler@hotmail.com	\N	214-941-0339	DEACONESS BOOKSHOP 534 W. 10TH ST. DALLAS, TX 75208	2026-07-01 17:06:55.900872	\N	\N	\N
+367	466	DEAVON'S GREENHOUSE	DEAVON'S GREENHOUSE 2440 TALCO DR. DALLAS, TX 75241	deavonmitchell2@icloud.com	\N	945-327-3170	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+368	467	DEBBIE DEBRUIN	DEBBIE DEBRUIN 737 SCOTTSDALE RICHARDSON, TX. 75080	debbiedebruin@hotmail.com	\N	214-207-6684	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+369	468	DEBRA OWENS INTERIORS, INC	DEBRA OWENS INTERIORS, INC. 1313 SLOCUM ST. #105 DALLAS, TX 75207	debra@debraowens.com	\N	214-802-9212	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+370	469	DEE'S BOUTIQUE AND FLORIST	DEE'S BOUTIQUE AND FLORIST DIANNA GUERRERO 313 N. MAIN ST. TAYLOR, TX  76574	dees.boutique1@yahoo.com	\N	512-365-4559	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+371	470	DEEP ROOTS GARDEN CENTER	DEEP ROOTS GARDEN CENTER 101 EAGLE DR. LIPAN, TX 76462	deeprootszd@gmail.com	\N	817-891-5676	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+372	471	DELTA DAWN GARDENS	Delta Dawn Gardens 1100 Azie Morton Rd Apt 1119 AUSTIN, TX  78704	leah@deltadawngardens.com	\N	512-577-5876	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+373	472	DENTON FLORIST	DENTON FLORIST 2926 E. UNIVERSITY DR SUITE 103 DENTON, TX 76209	cnoptin@gmail.com	\N	940-384-6191	DENTON FLORIST 2926 E. UNIVERSITY DR SUITE 103 DENTON, TX 76209	2026-07-01 17:06:55.900872	\N	\N	\N
+374	473	DESIGN 8305	DESIGN 8305 468 Ridge Meade Dr Lewisville, TX 75067	bobbie@design8305.com	\N	\N	DESIGN 8305 468 Ridge Meade Dr Lewisville, TX 75067	2026-07-01 17:06:55.900872	\N	\N	\N
+375	474	DESIGNS BY BJ	DESIGNS BY BJ 7710 CARUTH BLVD. DALLAS, TX. 75225	\N	\N	214-265-8117	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+376	475	DESIGNS BY KW	DESIGNS BY KW 3800 FAIRMONT ST. SUITE 213 DALLAS, TX 75219	\N	\N	817-296-7864	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+377	476	DESIGNS BY KYLE	DESIGNS BY KYLE P.O. BOX 190199 DALLAS, TX 75219	\N	\N	214-280-3358	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+378	477	DESIGNS BY LISA	DESIGNS BY LISA 1101 W. 16TH ST. MT. PLEASANT, TX 75455	designsbylisa@gmail.com	\N	903-572-7964	DESIGNS BY LISA 1101 W. 16TH ST. MT. PLEASANT, TX 75455	2026-07-01 17:06:55.900872	\N	\N	\N
+379	478	DESIGNS EAST I  <PETER>	DESIGNS EAST I  <PETER 2201 Main ST. Dallas, Tx  75201	\N	\N	214-939-8001	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+380	479	DESK PLANTS	DESK PLANTS 8906 Wall Street Ste 406 Austin, TX 78754	LAWRENCE@DESKPLANTS.COM	\N	781-733-1474	DESK PLANTS 8906 Wall Street Ste 406 Austin, TX 78754	2026-07-01 17:06:55.900872	\N	\N	\N
+381	480	DESOTO FLORIST	DESOTO FLORIST 336 E. BELTLINE RD. DESOTO, TX 75115	\N	\N	972-223-0247	DESOTO FLORIST 336 E. BELTLINE RD. DESOTO, TX 75115	2026-07-01 17:06:55.900872	\N	\N	\N
+382	481	DFW REPTARIUM, INC	DFW REPTARIUM, INC 2220 COIT RD SUITE 410 PLANO, TX 75075	dfwreptarium@gmail.com	DAVID GREGO SPICER	214-491-7015	DFW REPTARIUM, INC 2220 COIT RD SUITE 410 PLANO, TX 75075	2026-07-01 17:06:55.900872	\N	\N	\N
+383	482	DI FIORI	DI FIORI 2526 FARRINGTON ST. DALLAS, TX 75207	\N	\N	214-741-3145	DI FIORI 2526 FARRINGTON ST. DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+384	483	DIAMONDS AND RUBIS	DIAMONDS AND RUBI'S 187 MASON LN CASTROVILLE, TX 78009	edith77rubi@yahoo.com	\N	210-765-0656	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+385	484	DIRT	DIRT 211 E. COLORADO BLVD. DALLAS, TX 75203	chris@dirtflowers.com	\N	214-242-9533	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+386	485	DIVINE DESIGNS	DIVINE DESIGNS 7503 FM 2147, STE #4 HORSESHOE BAY, TX 78657	DIVINEPLANTDESIGNATX@GMAIL.COM	\N	830-596-8888	DIVINE DESIGNS 7503 FM 2147, STE #4 HORSESHOE BAY, TX 78657	2026-07-01 17:06:55.900872	\N	\N	\N
+387	486	DIVINE PLANT DESIGN	DIVINE PLANT DESIGN MARINA DOWNS 1120 SHADY LANE AUSTIN, TX 78721	divineplantdesignatx@gmail.com	\N	407-403-1133	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+388	487	DJ FLOWERS & GIFTS	DJ FLOWERS & GIFTS 533 SH 121  bypass B-3 LEWISVILLE, TX 75067	djflower533@gmail.com	\N	972-459-5828	DJ FLOWERS & GIFTS 533 HIGHWAY 121 COPPELL, TX 75067	2026-07-01 17:06:55.900872	\N	\N	\N
+389	488	DK DESIGN STUDIO	DK DESIGN STUDIO DETRA K CAMPBELL 925 PLANTATION DR. DESOTO, TX 75115	dcampbell@dkdesignstudio.com	\N	214-794-2042	3737 GOLDMAN ST. DALLAS, TX. 75212	2026-07-01 17:06:55.900872	\N	\N	\N
+390	489	DOAN'S NURSERY #2	DOAN'S NURSERY #2 622 B. BELT LINE RD. IRVING, TX 75060	doansnurseryii@gmail.com	\N	972-522-9070	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+391	490	DODSON'S FLORAL	DODSON'S FLORAL 718 W MAIN ARDMORE, OK 73401	dodsonsfloral@gmail.com	\N	580-223-8815	DODSON'S FLORAL 718 W MAIN ARDMORE, OK 73401	2026-07-01 17:06:55.900872	\N	\N	\N
+392	491	DOGWOOD DESIGNS	DOGWOOD DESIGNS 4728 HWY. 198 STE. 103 CANEY CITY, TX 75148	kimberly@ddfloralco.com	\N	972-567-4159	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+393	492	DON'S FLOWERS	DON'S FLOWERS 2905 SAN GABRIEL #302 AUSTIN, TX 78705	\N	\N	512-785-5324	DON'S FLOWERS 3925 WESTLAKE DR AUSTIN, TX call leah w/eta 512-285-5324	2026-07-01 17:06:55.900872	\N	\N	\N
+394	493	DONALD J. NIX	DONALD J. NIX 11224 CANDLELIGHT LN. DALLAS, TX. 75229	\N	\N	214-358-6894	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+395	494	DONNA & BRIAN BURSON	DONNA & BRIAN BURSON 2310 CR 232 FLORENCE, TX  76527	bursondonna@gmail.com	\N	254-681-9586	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+396	495	DONNA GLENN WALKER	DONNA GLENN WALKER 495 COUNTY ROAD 1050 COOPER, TX 75432	dgwalker75432@gmail.com	\N	903-782-8674	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+397	496	DOODADS & WHATNOTS	DOODADS & WHATNOTS 3109 FAULKNER DR. ROWLETT, TX 75088	glover37@hotmail.com	\N	46-964-5883	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+398	497	DR. DELPHINIUM	DR. DELPHINIUM 9200 JOHN W. CARPENTER FWY. DALLAS, TX 75247	accounting@drdelphinium.com	\N	214-522-9911	DR. DELPHINIUM 9200 JOHN W. CARPENTER FWY. DALLAS, TX 75247	2026-07-01 17:06:55.900872	\N	\N	\N
+399	498	DREAM CAPTURED EVENT DESIGNS	DREAM CAPTURED EVENT DESIGN 536 BREWSTER DR. CARROLLTON, TX 75006	bsmiley@dreamcaptured.com	\N	214-731-0384	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+400	499	DREAMPETALSFLORAL.COM	DREAMPETALSFLORAL.COM 201 WEST MAIN ST SUITE B ALLEN, TX 75013	wecare@dreampetalsfloral.com	DIANNE SHERIDAN	214-785-4592	DREAMPETALSFLORAL.COM 201 WEST MAIN ST SUITE B ALLEN, TX 75013	2026-07-01 17:06:55.900872	\N	\N	\N
+401	500	DREAMS OF GREEN GARDEN CENTER	DREAMS OF GREEN GARDEN CENTER 18477 FM 2493 FLINT, TX 75762	dreamsofgreengc@gmail.com;blswagerty@yahoo.com	\N	214-537-1861	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+402	501	DSW DESIGNS	DSW DESIGNS 7700 EASTERN AVE #301 DALLAS, TX. 75209	\N	\N	214-668-5801	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+403	502	DUNCANVILLE POSEY PARTY, LLC	DUNCANVILLE POSEY PARTY 910 S COCKRELL HILL DUNCANVILLE, TX 75137	poseyparty@outlook.com	\N	972-709-1284	DUNCANVILLE POSEY PARTY 910 S COCKRELL HILL DUNCANVILLE, TX 75137	2026-07-01 17:06:55.900872	\N	\N	\N
+404	503	EARTHSCAPES <TEMPLE>	EARTHSCAPES <TEMPLE> 5317 205 LOOP TEMPLE, TX 76502	earthscapes@hot.rr.com	KAY & MIKE LYNCH	254-773-4668	EARTHSCAPES <TEMPLE> 5317 205 LOOP TEMPLE, TX 76502	2026-07-01 17:06:55.900872	\N	\N	\N
+405	504	EAST AUSTIN SUCCULENTS	East Austin Succulents 7310 Sherwood Rd Austin, TX 78745	sonja@eastaustinsucculents.com	\N	512-701-3448	East Austin Succulents 7310 Sherwood Rd Austin, TX 78745	2026-07-01 17:06:55.900872	\N	\N	\N
+406	505	EAST DALLAS FLOWER CO.	EAST DALLAS FLOWER CO RACHEL DENISON 9948 ESTATE LN DALLAS, TX 75238	\N	\N	214-578-9029	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+407	506	ECOCHIC FLORAL	ECOCHIC FLORAL 10606 SETTLERS TRAIL AUSTIN, TX 78750	info@ecochicfloral.com	NATASHA MADISON	512-970-7579	ECOCHIC FLORAL 10606 SETTLERS TRAIL AUSTIN, TX 78750	2026-07-01 17:06:55.900872	\N	\N	\N
+408	507	ED FLORENCE	ED FLORENCE 4697 NORTH VERSAILLES DALLAS, TX 75209	\N	\N	214-364-5364	ED FLORENCE 4697 NORTH VERSAILLES DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+409	508	EDEN HOUSE BOTANICALS LLC	EDEN HOUSE BOTANICALS LLS SARAH FOWLER 9609b DAVID MOORE DRIVE AUSTIN, TX  78748	edenhousebotanicals@gmail.com	\N	512-505-8300	EDEN HOUSE BOTANICALS LLS SARAH FOWLER 9609b DAVID MOORE DRIVE AUSTIN, TX  78748	2026-07-01 17:06:55.900872	\N	\N	\N
+410	509	EDEN ROSE BOTANICALS	EDEN ROSE BOTANICALS 1405 PAYNE AVE AUSTIN, TX 78757	yvette@edenrosebotanicals.com	\N	512-300-5445	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+411	510	EDIBLE IDEAS	EDIBLE IDEAS 2544 W. COMMERCE ST. DALLAS, TX 75212	\N	\N	214-828-2228	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+412	511	EDIBLE WALLS	EDIBLE WALLS 411 KREBS LANE AUSTIN, TX 78704	ediblewalls@gmail.com	\N	512-900-3089	EDIBLE WALLS 411 KREBS LANE AUSTIN, TX 78704	2026-07-01 17:06:55.900872	\N	\N	\N
+413	512	EDITH'S GARDEN	EDITH'S GARDEN 414 W. AVENUE D GARLAND, TX 75040	edith1229@hotmail.com	\N	469-558-3723	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+414	513	EDWARD'S FLORAL DESIGN	EDWARD'S FLORAL DESIGN 1715 W LOUISIANA ST MCKINNEY, TX 75069	customerservice@edwardsfloral.com	KARLI HALL	972-548-9911	EDWARD'S FLORAL DESIGN 1715 W LOUISIANA ST MCKINNEY, TX 75069	2026-07-01 17:06:55.900872	\N	\N	\N
+415	514	EDWARDS LANDSCAPE DESIGN	EDWARDS LANDSCAPE DESIGN 10869 WATERBRIDGE CIRCLE DALLAS, TX 75218	moorilee.edwards@yahoo.com	\N	214-327-6436	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+416	515	EDWINA MCCAIG DESIGNS	EDWINA MCCAIG DESIGNS 4417 BELFORT PLACE DALLAS, TX 75205	\N	EDWINA MCCAIG	214-522-5589	EDWINA MCCAIG DESIGNS 4417 BELFORT PLACE DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+417	516	EF SAUNDERS PROPERTIES	EF SAUNDERS PROPERTIES, LLC 6616 LANGE CIRCLE DALLAS, TX. 75214	\N	\N	917-362-3286	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+418	517	EL CONCEPTO	EL CONCEPTO 1159 CLIFFTOP LANE DALLAS, TX 75208	concepto@conceptoboutique.com	\N	214-762-4913	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+419	518	EL CREATIVO	EL CREATIIVO 514 W. WHITTIER BLVD. MONTEBELLO, CA	hola@elcreativola.com	\N	213-570-7953	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+420	519	ELDRED'S NURSERY	ELDRED'S NURSERY ROBERT & MARGARET CHADWICK 1220 B N. MAIN ST. BELTON, TX  76513	rmchadwick025@yahoo.com	\N	254-444-3587	ELDRED'S NURSERY ROBERT & MARGARET CHADWICK 1220 B N. MAIN ST. BELTON, TX 76513	2026-07-01 17:06:55.900872	\N	\N	\N
+421	520	ELEGANCE FLOWERS AND GIFTS	ELEGANCE FLOWERS AND GIFTS 2811 N. MACARTHUR BLVD IRVING, TX 75062	diegoharos27@gmail.com	\N	972-748-3555	ELEGANCE FLOWERS AND GIFTS 2811 N. MACARTHUR BLVD IRVING, TX 75062	2026-07-01 17:06:55.900872	\N	\N	\N
+422	521	ELEPLANT BY LAURA MISTY	ELEPLANT BY LAURA MISTY LAURA JONES 402 EAST HARRISON AVE HARLINGEN, TX 78550	ELEPLANTBYLAURAMISTY@GMAIL.COM	\N	\N	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+423	522	ELGIN FLOWER SHOP	Elgin Flower Shop Britten Tedford 106 B Depot St Elgin TX 78621	Brittentedford18@gmail.com	\N	512-285-7536	Elgin Flower Shop Britten Tedford 106 B Depot St Elgin TX 78621	2026-07-01 17:06:55.900872	\N	\N	\N
+424	523	EMANUEL COMMUNITY CENTER	EMANUEL COMMUNITY CENTER 4311 SAN JACINTO ST. DALLAS, TX 75204	\N	\N	214-824-8613	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+425	524	EMMA CAITLYN CREATIVE	EMMA CAITLYN CREATIVE 3449 MILTON AVE #3 DALLAS 75205	emmacaitlyncreative@gmail.com	\N	\N	EMMA CAITLYN CREATIVE 3449 MILTON AVE #3 DALLAS 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+426	525	EMMAUS CATHOLIC CHURCH	EMMAUS CATHOLIC CHURCH 1718 LOHMANS CROSSING RD. AUSTIN, TX 78734	purchaser@emmausparish.org	\N	512-261-8500	EMMAUS CATHOLIC CHURCH 1718 LOHMANS CROSSING RD. AUSTIN, TX 78734	2026-07-01 17:06:55.900872	\N	\N	\N
+427	526	EMR DESIGNS	EMR DESIGNS 3419 WESTMINISTER AVE. #50 DALLAS, TX 75205	rossedna@sbcglobal.net	\N	214-526-1596	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+428	527	EN FLEUR	EN FLEUR 6347 VELASCO DALLAS, TX 75214	\N	\N	214-563-3908	EN FLEUR 6347 VELASCO DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+429	528	ENCHANTED FLORIST-AUSTIN	ENCHANTED FLORIST 7801 N. LAMAR UNIT D86 AUSTIN, TX 78752	enchantedaustin@yahoo.com	CHO GARES	512-477-3996	ENCHANTED FLORIST 7801 N. LAMAR UNIT D86 AUSTIN, TX 78752	2026-07-01 17:06:55.900872	\N	\N	\N
+430	529	ENCHANTMENT EVENTS, LLC	ENCHANTMENT EVENTS, LLC ANETTA PAVER 6808 VINE STREET AUSTIN, TX  78757	hello@enchantmentaustin.com	\N	512-826-4199	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+431	530	ENERGY GARDENS	ENERGY GARDENS 1036 INWOOD DR. HURST, TX 76053	energygarden79@gmail.com	\N	469-554-6209	3116 commerce st dallas tx	2026-07-01 17:06:55.900872	\N	\N	\N
+432	531	ENRICH ENTERPRISES	ENRICH ENTERPRISES 4024 GOLDEN ROD DR. HEARTLAND, TX 75126	info@enrichenterprises.com	\N	214-310-6255	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+433	532	ENROOTED SOLUTIONS & CONSULTING	ENROOTED SOLUTIONS & CONSULTING 2830 SOUTHWOOD DR. DALLAS, TX 75233	rita@enrootedsolutions.com	\N	469-431-8390	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+434	533	EPHEMERA!	EPHEMERA! 1208 W. MAGNOLIA #106 FORT WORTH, TX 76104	ephemerafw@gmail.com	\N	817-382-8238	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+435	534	EPISCOPAL CHURCH OF ST. THOMAS THE APOSTL	EPISCOPAL CHURCH OF ST. THOMAS THE APOSTL 6525 INWOOD RD. DALLAS, TX 75209	leeswift@thedoubter.org	\N	214-352-0410	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+436	535	EPISCOPAL CHURCH OF THE EPIPHANY	EPISCOPAL CHURCH OF THE EPIPHANY 421 CUSTER ROAD RICHARSON, TX 75080	lisa@epiphany-richardson.org	\N	972-690-0095	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+437	536	EPISCOPAL CHURCH OF THE TRANSFIGURATION	EPISCOPAL CHURCH OF THE TRANSFIGURATION 14115 HILLCREST RD. DALLAS, TX. 75254	sarah.melissa.cox@gmail.com	\N	972-233-1898	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+438	537	EPISCOPAL SCHOOL OF DALLAS	EPISCOPAL SCHOOL OF DALLAS 4100 MERRELL RD. DALLAS, TX. 75229	anderwaldk@esdallas.org	\N	214-358-4368	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+439	538	EQUINOX FLORAL, INC.	EQUINOX FLORAL, INC. DARRIN HAMMONS 717 COLLEEN DR. CANYON LAKE, TX  78133	darrin@equinoxfloral.com	\N	830-964-3989	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+440	539	ERIKA'S GARDEN	ERIKA'S GARDEN 3111 KINMORE ST DALLAS, TX 75223 214-469-8281	\N	\N	214-469-8281	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+441	540	ERINN'S CREATIONS FLORIST	ERINN'S CREATIONS FLORIST 1221 NORTH CENTER ARLINGTON, TX 76010 enter through alley 817-262-1430 cell	admin@erinnscreations.com	\N	817-523-9661	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+442	541	ESCONDIDO CLUB	ESCONDIDO CLUB PO BOX 8696 HORSESHOE BAY, TX 78657	escondidoaccounting@eglc.org	\N	830-598-7800	211 PLAZA  ESCONDIDO HORSESHOE BAY	2026-07-01 17:06:55.900872	\N	\N	\N
+443	542	ESCUELA VIEJA	Escuela Vieja LLC 8800 Shoal Creek Blvd Unit B Austin, TX 78757	Nick@escuelafarm.com	\N	512-426-2261	6240 US 290 Austin, TX 78735	2026-07-01 17:06:55.900872	\N	\N	\N
+444	543	ESPECIALLY YOURS	ESPECIALLY YOURS 1701 WOOD PLACE LONGVIEW, TX. 75601	\N	\N	(903) 235 3304	ESPECIALLY YOURS 1701 WOOD PLACE LONGVIEW, TX. 75601903-452-1582	2026-07-01 17:06:55.900872	\N	\N	\N
+445	544	ESTATE SALE	ESTATE SALE 7360 LANE PARK COURT DALLAS, TX 75225	vikkiharris@sbcglobal.net	\N	214-232-1062	ESTATE SALE 7360 LANE PARK COURT DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+446	545	EUBANK FLORIST	EUBANK FLORIST 107 W. FRANKLINE WAXAHACHIE, TX 75165	eubankflorist@yahoo.com	\N	972-937-2920	EUBANK FLORIST 512 W MAIN  #102 WAXAHACHIE, TX 75165	2026-07-01 17:06:55.900872	\N	\N	\N
+447	546	EUPHORIA GARDENS	EUPHORIA GARDENS MARYANA PADER 278 BUCK TRAIL CANYON LAKE, TX  78133	euphoriagardenstx@gmail.com	\N	210-840-7521	WE DO NOT DELIVER TO THIS LOCATION	2026-07-01 17:06:55.900872	\N	\N	\N
+448	547	EVENT ESSENTIALS	EVENT ESSENTIALS 14584 BLUEBERRY CT. ADDISON, TX 75001	wintersjames75@yahoo.com	JAMES WINTERS	214-707-8830	EVENT ESSENTIALS 14584 BLUEBERRY CT. ADDISON, TX 75001	2026-07-01 17:06:55.900872	\N	\N	\N
+449	548	EVENT NETWORK, LLC	EVENT NETWORK,LLC 9606 AERO DRIVE SUITE 1000 SAN DIEGO, CA 91223	gwen.nestle@eventnetwork.com	\N	858.222.8955	DALLAS ARBORETUM GIFT SHOP 8525 GARLAND RD. DALLAS, TX 75218 DALLAS, TEXAS 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+450	549	EVENT STEMS	EVENT STEMS MARTHA BANDE 1322 RECORD CROSSING DALLAS, TX 75235	eventstems@gmail.com	\N	214-654-9902	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+451	550	EVERBLOOM NURSERY	EVERBLOOM NURSERY 6800 HADLEY DR. NORTH RICHLAND HILLS, TX 76182	everbloomnursery25@gmail.com	\N	817-226-6755	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+452	551	EVERGREEN FLORIST	EVERGREEN FLORIST 6449 UNIVERSITY HILLS BLVD. DALLAS, TX 75241	evergreenflorist01@gmail.com	\N	(214)376-1521	EVERGREEN FLORIST 6449 UNIVERSITY HILLS BLVD. DALLAS, TX 75241	2026-07-01 17:06:55.900872	\N	\N	\N
+453	552	EVERLASTING EARTH	EVERLASTING EARTH 4901 VISTA RD PASADENA, TX  77505	greenacquisitionstx@gmail.com	\N	713-903-1618	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+454	553	EXECUTIVE ESPIRIT	EXECUTIVE ESPIRIT 6223 MEADOW RD DALLAS, TX 75230	\N	NANCY	214-696-6934	EXECUTIVE ESPIRIT 6223 MEADOW RD DALLAS, TX 75230	2026-07-01 17:06:55.900872	\N	\N	\N
+455	554	EXOTIC PLANT MAINTENANCE	EXOTIC PLANT MAINTENANCE 206 EAST TRAMMEL EVERMAN, TX. 76140	trouble.em@sbcglobal.net	\N	817 832 9105	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+456	555	EXPRESSIONS >>ATHENS <<	EXPRESSIONS >>ATHENS << 301 S. PRAIRIEVILLE ST ATHENS, TX 75751	\N	JERRY DON VAUGHT	903-675-8562	EXPRESSIONS >>ATHENS << 301 S. PRAIRIEVILLE ST ATHENS, TX 75751	2026-07-01 17:06:55.900872	\N	\N	\N
+457	556	EXQUISITE FLOETRY	EXQUISITE FLOETRY 160 W. CANTY ST. #204 DALLAS, TX 75208 305-720-9689	rachia@exquisitefloetry.com	\N	305-720-9689	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+458	557	EXTERIOR SOLUTIONS	EXTERIOR SOLUTIONS P.O. BOX 515765 DALLAS, TX 75251	susannowlin@tx.rr.com	PETE HERES	972-480-8888	EXTERIOR SOLUTIONS P.O. BOX 515765 DALLAS, TX 75251	2026-07-01 17:06:55.900872	\N	\N	\N
+459	558	FACET FLOWERS	FACET FLOWERS 10700 ANDERSON MILL RD. STE. 101 AUSTIN, TX 78750	chonghongyi@hotmail.com	CHONG PARK	512-219-6599	FACET FLOWERS 10700 ANDERSON MILL RD. STE. 101 AUSTIN, TX 78750	2026-07-01 17:06:55.900872	\N	\N	\N
+460	559	FAMILY FLORAL	FAMILY FLORAL 1-800 8424 LAKEWOOD HILL SUITE 110 FT. WORTH, TX 76137	janet@familyfloralftworth.net	\N	817-849-9000	FAMILY FLORAL 1-800 8424 LAKEWOOD HILL SUITE 110 FT. WORTH, TX 76137	2026-07-01 17:06:55.900872	\N	\N	\N
+461	560	FAMOUS IN OREGON	FAMOUS IN OREGON 102 W. BROADWAY PROSPER, TX 75078	famousinoregon@gmail.com	\N	214-305-4142	FAMOUS IN OREGON 102 W. BROADWAY PROSPER, TX 75078	2026-07-01 17:06:55.900872	\N	\N	\N
+462	561	FANCY FLOWERS-SAN SABA	FANCY FLOWERS-SAN SABA KAY BARCLAY 1101 W. WALLACE SAN SABA, TX  76877	fancyflowers@centex.net	\N	325-372-6800	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+463	562	FANCY FREELANCING	FANCY FREELANCING 3108 SILVER SPRINGS LN. RICHARDSON, TX 75082	julie@fancyfreelancing.com	\N	214-552-9630	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+464	563	FANCY PLANTS	FANCY PLANTS 100 N. BALLARD AVE.SUITE A WYLIE, TX 75098	info@fancyplantswylie.com	\N	469-428-7482	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+465	564	FANTASY FLOWER SHOP-G.P.	FANTASY FLOWER SHOP-G.P. 504 E. MAIN ST. GRAND PRAIRIE, TX 75050	fantasytdistribution55@yahoo.com	\N	214-412-3588	FANTASY FLOWER SHOP 504 E.MAIN ST. GRAND PRAIRIE, TX 75050	2026-07-01 17:06:55.900872	\N	\N	\N
+466	565	FANTASY FOLIAGE- LIN BEEN	FANTASY FOLIAGE-LIN BEEN 1050 VZ COUNTY RD. 3515 WILLS POINT, TX 75169	\N	\N	214-457-3960	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+467	566	FARMER FRANNY	FARMER FRANNY 5090 STATE HWY. 78N FARMERSVILLE, TX 75442	lisaviabryan@gmail.com	\N	469-999-3300	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+468	567	FARMERS BRANCH WOMAN'S CLUB	FARMERS BRANCH WOMAN'S CLUB P.O. BOX 815641 FARMERS BRANCH, TX 75381-5641	\N	\N	972-243-1108	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+469	568	FARMHOUSE-WAXAHACHIE	FARMHOUSE-WAXAHACHIE 308 S COLLEGE ST WAXAHACHIE, TX 75165	farmhouse308@gmail.com	\N	972-938-9090	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+470	569	FARMHOUSE DELIVERY INC	FARMHOUSE DELIVERY INC. 9715 BURNET RD. BLDG 7 STE 400 AUSTIN, TX  78758	info@farmhousedelivery.com	\N	512-529-8569	WE DO NOT DELIVER	2026-07-01 17:06:55.900872	\N	\N	\N
+471	570	FARMHOUSE LIVING	FARMHOUSE LIVING 3829 MAIN ST. ROWLETT, TX 75088	shelby@farmhouseliving.com	\N	972-807-3319	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+472	571	FASHION GALLERY	FASHION GALLERY 1163 MILAM RD. VAN ALSTYNE, TX 75495	\N	\N	972-644-6628	FASHION GALLERY 516 LEXINGTON LANE RICHARDSON, TX 75080	2026-07-01 17:06:55.900872	\N	\N	\N
+473	572	FD2 CUSTOM FLORAL	FD2 CUSTOM FLORAL DESIGN 2431 SHORECREST RD SUITE C10 DALLAS, TX 75235	rhonda@fd2customfloral.com	\N	214-906-5689	FD2 CUSTOM FLORAL DESIGN 2431 SHORECREST RD SUITE C10 DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+474	573	FERN & FABLE MOBILE PLANT BAR	FERN & FABLE MOBILE PLANT BAR 3140 LAUREL LN. PARIS, TX 75460	fern.fablemobileplantbar@gmail.com	\N	9003-272-0411	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+475	574	FERN LANDSCAPES	Fern Landscapes LLC PO Box 2165 Georgetown, TX 78627	ferngrow4u@gmail.com	\N	512-949-7992	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+476	575	FERNY'S	FERNY'S MARY KAY MCCALL 291 HARRIS CREEK RD. MCGREGOR, TX 76657	mkstevens80@hotmail.com	\N	254-716-2257	WE DO NOT DELIVER	2026-07-01 17:06:55.900872	\N	\N	\N
+477	576	FERTILE GROUND GARDENS	FERTILE GROUND GARDENS 3303 BREEDLOVE CT AUSTIN, TX 78721	LORETTA@FERTILEGROUNDGARDENS.COM	\N	512-340-0432	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+478	577	FIDDDLESTICKS PLANT BOUTIQUE	FIDDLESTICKS PLANT BOUTIQUE 5805 DOWNING LANE CLEBURNE, TX 76031	Fiddlesticksplants@gmail.com	\N	817-966-4243	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+479	578	FIELD TRIP FRIDAYS	FIELD TRIP FRIDAYS 7008  BIG BEAR LAKE DR. ARLINGTON, TX 76016	kcoleholl@gmail.com	\N	214-797-2107	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+480	579	FIFTH AVENUE GREENHOUSE, INC.	FIFTH AVENUE GREENHOUSE, INC. 1615 FIFTH AVENUE. FT. WORTH, TX 76104	brad@fagreenhouses.com	\N	817-926-3394	FIFTH AVENUE GREENHOUSE, INC. 1615 FIFTH AVENUE. FT. WORTH, TX 76104	2026-07-01 17:06:55.900872	\N	\N	\N
+481	580	FIG AND POM BOTANICALS	FIG AND POM BOTANICALS 8413 JONQUIL WACO, TX 76708	ruthannmckern@gmail.com	\N	254-723-6723	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+482	581	FINAL TOUCH INTERIOR L/S	FINAL TOUCH INTERIOR 3001 COMMUNICATION PKWY STE. 2014 PLANO, TX 75093	\N	SUE MCCARTHY	214-697-2059	FINAL TOUCH INTERIOR 3001 COMMUNICATION PKWY STE. 2014 PLANO, TX 75093	2026-07-01 17:06:55.900872	\N	\N	\N
+483	582	FIORI <<MARY>>	FIORI <<MARY>> 5616 EASTSIDE AVE. DALLAS, TX 75214	\N	MARY	214-821-6146	FIORI <<MARY>> 1007 FITZHUGH DALLAS, TX 75204	2026-07-01 17:06:55.900872	\N	\N	\N
+484	583	FIRST BAPTIST CHURCH - IRVING	FIRST BAPTIST CHURCH-IRVING 403 S. MAIN ST. IRVING, TX.75060	roas@fbcirving.org	\N	972-253-1171	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+485	584	FIRST BAPTIST CHURCH - MESQUITE	FIRST BAPTIST CHURCH - MESQUITE 127 E. KIMBROUGH ST. MESQUITE, TX. 75149	fbc127@yahoo.com	\N	972-288-5407	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+486	585	FIRST BIBLE BAPTIST	FIRST BIBLE BAPTIST 3724 HANCOCK DALLAS, TX 75216	samuel@1stbible.org	\N	214-415-4626	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+487	586	FIRST CHOICE FLORAL	FIRST CHOICE FLORAL 2151 FARRINGTON DALLAS, TX 75207	accounting@firstchoicefloral.com	\N	214-655-1201	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+488	587	FIRST PRESBYTERIAN- GARLAND	FIRST PRESBYTERIAN CHURCH-GARLAND 930 WEST AVENUE B GARLAND, TX 75040	fpcgarlandtx@gmail.com	\N	972-272-2595	FIRST PRESBYTERIAN CHURCH-GARLAND 930 WEST AVENUE B GARLAND, TX 75040	2026-07-01 17:06:55.900872	\N	\N	\N
+489	588	FIRST PRESBYTERIAN CHURCH - MESQUITE	FIRST PRESBYTERIAN CHURCH - MESQUITE 1028 S. BELTLINE MESQUITE, TX. 75149	rstormer.fpc@sbcglobal.net	\N	972-285-5602	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+490	589	FIRST UMC - AUSTIN	FIRST UMC - AUSTIN KEN SPIVEY 1201 LAVACA STREET AUSTIN, TX  78701	ken@fumcaustin.org	\N	512-478-5684	FIRST UMC - AUSTIN KEN SPIVEY 1201 LAVACA STREET AUSTIN, TX 78701	2026-07-01 17:06:55.900872	\N	\N	\N
+491	590	FIRST UMC OF ARLINGTON	FIRST UMC OF ARLINGTON 313 N. CENTER ST. ARLINGTON, TX 76011	ebuckel@firstumcarlington.org	\N	817-274-2571	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+492	591	FIRST UNITED METHODIST - DUNCANVIL	FIRST UNITED METHODIST-DUNCANVILLE 403 S. MAIN ST. DUNCANVILLE, TX.75116	harrc1982@hotmail.com	\N	972-298-6121	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+493	592	FIRST UNITED METHODIST - LEWISVILLE	FIRST UNITED METHODIST - LEWISVILLE 907 W. MAIN ST. LEWISVILLE, TX 75067	NIcole@firstlewisville.org	\N	972-436-2533	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+494	593	FIRST UNTIED METHODIST -LANCASTER	FIRST UNITED METHODIST LANCASTER 201 S. DALLAS AVE LANCASTER, TX 75146	fumclancaster@sbcglobal.net	\N	972-227-1554	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+495	594	FLEURAMETZ USA	FLEURAMETZ 2211 VANTAGE STREET DALLAS, TX 75207 USA	jburton@fleurametz.com	\N	972-345-8545	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+496	595	FLEURS & EVENTS	FLEURS & EVENTS 6841 VIRGINIA PKWY. SUITE 105 MCKINNEY, TX 75071	fleursandevents@gmail.com	\N	972-369-1845	2112 W SPRING CREEK PLANO, TX 75023 214-868-7600 972 369 1845	2026-07-01 17:06:55.900872	\N	\N	\N
+497	596	FLOCK & FLORA	FLOCK & FLORA NICOLE SAVAGE 238 APRIL LN CHINA SPRING, TX 76633	savageflockandflora@gmail.com	\N	254-722-2316	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+498	597	FLORA - AUSTIN	FLORA - AUSTIN 1805 REDLANDS ST AUSTIN, TX 78757	housewrenaustin@gmail.com	\N	512-413-1628	FLORA - AUSTIN 1805 REDLANDS ST AUSTIN, TX 78757	2026-07-01 17:06:55.900872	\N	\N	\N
+499	598	FLORAL AND HARDY	FLORAL AND HARDY 1324 N. ROBINSON AVE. OKLAHOMA CITY, OK 73103	jonahtaft@floralandhardy.com	\N	405-319-9600	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+500	599	FLORAL ARTS STUDIO	FLORAL ARTS STUDIO 3726 KIESTCREST DR DALLAS, TX 75233	michael@floralartsstudio.com	MICHAEL FRITZ	469-774-4925	ACTIVITY  CENTER 800 W. CAMPBELL RD. 75080 CALL W/ETA 469-774-4925 del	2026-07-01 17:06:55.900872	\N	\N	\N
+501	600	FLORAL FLAVORS	FLORAL FLAVORS, LLC SRILATHA VANGALA 3009 PORTULACA DR ROUND ROCK, TX 78681	srilathan@gmail.com	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+502	601	FLORAL INTEGRATION	FLORAL INTEGRATION 549 PRAIRIE DELL ST. LEWISVILLE, TX 75067	amy@floralintegration.com	\N	972-841-9961	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+503	602	FLORAL RENAISSANCE	FLORAL RENAISSANCE 9125 HWY. 71 W. AUSTIN, TX 78735	mike@floralrenaustin.com	\N	512-394-9959	FLORAL RENAISSANCE 9125 HWY. 71 W. AUSTIN, TX 78735	2026-07-01 17:06:55.900872	\N	\N	\N
+504	603	FLORAL STUDIO - SAN MARCOS	FLORAL STUDIO - SAN MARCOS 331 W. HOPKINS STE 100 SAN MARCOS, TX 78666	\N	\N	512-392-4656	FLORAL STUDIO - SAN MARCOS 331 W. HOPKINS STE 100 SAN MARCOS, TX 78666	2026-07-01 17:06:55.900872	\N	\N	\N
+505	604	FLOURISH FLOWERS & GIFTS	FLOURISH FLOWERS & GIFTS 140 W. MAIN ST. LEWISVILLE, TX 75057	cyngam2@aol.com	\N	469-464-3020	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+506	605	FLOURISH PLANT SHOP AND WINE BAR - ATX	Flourish Plant Shop & Wine Bar 5003 Airport Blvd Austin, TX 78751	admin@flourish-austin.com	\N	737-204-8046	Flourish Plant Shop & Wine Bar 5003 Airport Blvd Austin, TX 78751	2026-07-01 17:06:55.900872	\N	\N	\N
+507	606	FLOURISHES	FLOURISHES 4433 EDMONDSON AVE DALLAS, TX 75205	\N	ALICE DONALDSON	214-724-9869	FLOURISHES 4433 EDMONDSON AVE DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+508	607	FLOWER BASKET <FORNEY>	FLOWER BASKET <FORNEY> 414 PINSON RD. FORNEY, TX 75126	\N	\N	972-564-1421	FLOWER BASKET <FORNEY> 414 PINSON RD. FORNEY, TX 75126	2026-07-01 17:06:55.900872	\N	\N	\N
+509	608	FLOWER BUCKET	LONE STAR BLOOM LLC, DBA FLOWER BUCKET KYLE BROWN 5742 DARLING STREET HOUSTON, TX 77007	kyle@lsbco.com	\N	378-877-5563	FLORAL CONCEPTS 4950 KELLER SPRINGS RD. ADDISON, TX 75001	2026-07-01 17:06:55.900872	\N	\N	\N
+510	609	FLOWER COUNTRY > > > > >	FLOWER COUNTRY > > > > > 1900  SOUTH WASHINGTON ST KAUFMAN, TX 75142	CMSTRIBLING@EMBARQMAIL.COM	\N	800-429-2539	FLOWER COUNTRY > > > > > 1900  SOUTH WASHINGTON ST KAUFMAN, TX 75142	2026-07-01 17:06:55.900872	\N	\N	\N
+511	610	FLOWER JUNCTION	FLOWER JUNCTION 1507 LARKWOOD DR. AUSTIN, TX 78723	terrisia@hotmail.com	\N	512-450-1122	FLOWER JUNCTION 1507 LARKWOOD DR. AUSTIN, TX 78723	2026-07-01 17:06:55.900872	\N	\N	\N
+512	611	FLOWER MARKET	FLOWER MARKET STEPHANIE MINAR 1804 S. DAY ST. BRENHAM, TX  77833	sales@brenhamflowermarket.com	\N	979-836-2252	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+513	612	FLOWERAMA	FLOWERAMA 5404 BABCOCK RD SAN ANTONIO, TX 78240	AMANDA@FLOWERAMASANANTONIO.COM	\N	210-827-7767	FLOWERAMA 5404 BABCOCK RD SAN ANTONIO, TX 78240	2026-07-01 17:06:55.900872	\N	\N	\N
+514	613	FLOWERAMA #168	FLOWERAMA #168 1151 W.PARKER RD. #200 PLANO, TX 75023	tom.cao@planoflowerama.com	\N	972-398-6404	FLOWERAMA #168 1151 W.PARKER RD. #200 PLANO, TX 75023	2026-07-01 17:06:55.900872	\N	\N	\N
+515	614	FLOWERFIELDS	FLOWERFIELDS 404 W NASH TERRELL, TX 75160	georgia	\N	972-563-2252	FLOWERFIELDS 404 W NASH TERRELL, TX 75160	2026-07-01 17:06:55.900872	\N	\N	\N
+516	615	FLOWERLAND	FLOWERLAND 1106 N. LBJ DR. SAN MARCOS, TX 78666	flowerlandsm@gmail.com	\N	512-353-5311	FLOWERLAND 1106 N. LBJ DR. SAN MARCOS, TX 78666	2026-07-01 17:06:55.900872	\N	\N	\N
+517	616	FLOWERS 2 U	FLOWERS 2 U CLAUDIA HERNANDEZ 10333 DENTON DR DALLAS, TX. 75220	\N	\N	469-335-4167	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+518	617	FLOWERS BY COLEY	FLOWERS BY COLEY 6915 HILLCREST AVE. DALLAS, TX 75205	kristyweinzimer@yahoo.com	\N	945-293-3233	FLOWERS BY COLEY 6915 HILLCREST AVE. DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+519	618	FLOWERS BY FAITH-WHITESBORO	FLOWERS BY FAITH 101 E. MAIN WHITESBORO, TX 76273	flowersbyfaithwhitesboro@gmail.com	\N	903-564-1819	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+520	619	FLOWERS BY FRAN	FLOWERS BY FRAN 248 S.W. WILSHIRE BLVD. BURLESON, TX 76028	fbyfran@aol.com	\N	817-295-3501	FLOWERS BY FRAN 248 S.W. WILSHIRE BLVD. BURLESON, TX 76028 817-295-3501	2026-07-01 17:06:55.900872	\N	\N	\N
+521	620	FLOWERS BY PAT	FLOWERS BY PAT 616 W OAK ST PALESTINE, TX 75801	flowersbypattx@yahoo.com	\N	903-729-0631	FLOWERS BY PAT 616 W OAK ST PALESTINE, TX 75801	2026-07-01 17:06:55.900872	\N	\N	\N
+522	621	FLOWERS BY ROBERTA	FLOWERS BY ROBERTA 315 N. 9TH ST. MIDLOTHIAN, TX 76065	flowersbyroberta@att.net	\N	972-775-2270	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+523	622	FLOWERS BY ROYAL & BARNES	FLOWERS BY ROYAL & BARNES 901 CLEMENT CT. CEDAR HILL, TX 75104	\N	LINDA ROYAL	469-964-6045	FLOWERS BY ROYAL & BARNES 901 CLEMENT CT. CEDAR HILL, TX 75104	2026-07-01 17:06:55.900872	\N	\N	\N
+524	623	FLOWERS BY TERRANOVA	FLOWERS BY TERRANOVA 2200 ROSS AVE. #170 DALLAS, TX. 75201	flowersbyterranova@aim.com	\N	214-880-9981	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+525	624	FLOWERS BY THE BUNCH	FLOWERS BY THE BUNCH 8604 TURTLE CREEK BLVD. SUITE 12262 DALLAS, TX 75225	brian_bunch@sbcglobal.net	\N	214-683-1841	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+526	625	FLOWERS BY TINA	FLOWERS BY TINA TY S YUN 2328 JANNA WAY CARROLLTON, TX 75006	toppro04ty@gmail.com	\N	469-993-9434	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+527	626	FLOWERS ETC.	FLOWERS ETC. 103 N. MAIN ST. MANSFIELD, TX 76063 817-473-1165	susanreece52@gmail.com	\N	817-473-1165	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+528	627	FLOWERS FLOWERS, INC.-AUSTIN	FLOWERS FLOWERS, INC.-AUSTIN 13492 N. HWY. 183 SUITE 400 AUSTIN, TX 78750	flowersflowersinc@att.net	\N	512-250-1645	FLOWERS FLOWERS, INC.-AUSTIN 13492 N. HWY. 183 SUITE 400 AUSTIN, TX 78750	2026-07-01 17:06:55.900872	\N	\N	\N
+529	628	FLOWERS FOR THE BRIDE	FLOWERS FOR THE BRIDE 407 S. MADISON DALLAS, TX 75208	FLOWERSBYCONDE77@GMAIL.COM	MARY JANE	214-941-8041	FLOWERS FOR THE BRIDE 407 S. MADISON DALLAS, TX 75208	2026-07-01 17:06:55.900872	\N	\N	\N
+530	629	FLOWERS OF LAS COLINAS	FLOWERS OF LAS COLINAS 4030 N. MACARTHUR #120 IRVING, TX 75038	flowersoflascolinas@gmail.com	\N	972-281-1000	FLOWERS OF LAS COLINAS 4030 N. MACARTHUR IRVING, TX 75038	2026-07-01 17:06:55.900872	\N	\N	\N
+531	630	FLOWERS ON THE SQUARE	FLOWERS ON THE SQUARE	\N	\N	817-870-2888	FLOWERS ON THE SQUARE 4701 WHITE SETTLEMENT RD FT WORTH, TX 76114	2026-07-01 17:06:55.900872	\N	\N	\N
+532	631	FLOWERWOOD NURSERY	FLOWERWOOD NURSERY 8001 N. MAGNOLIA ST. LOXLEY, AL 36551	\N	\N	214-412-7681	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+533	632	FOLIAGE AND FLOWER	FOLIAGE AND FLOWER ANGELA JOHNSON 2915 TEXAS DRIVE ARLINGTON, TX 76015	myfoliageandflower@gmail.com	\N	817-271-2669	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+534	633	FORMATION	Formation 8513 Bargamin Dr. Austin, TX 78736	ryan@formationatx.com	\N	858-243-5681	Formation 8513 Bargamin Dr. Austin, TX 78736	2026-07-01 17:06:55.900872	\N	\N	\N
+535	634	FORNEY FLORIST	FORNEY FLORIST MAI BROWN 11342 COUNTY RIDGE FORNEY, TX 75126	maib1973@aol.com	\N	469-236-7520	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+536	635	FORT WORTH BOTANIC GARDEN	FORT WORTH BOTANIC GARDEN 3220 BOTANIC GARDEN BLVD. FT WORTH, TX 76107	jfethke-block@brit.org	\N	817-871-7686	FORT WORTH BOTANIC GARDEN 3220 BOTANIC GARDEN BLVD. FT WORTH, TX 76107	2026-07-01 17:06:55.900872	\N	\N	\N
+537	636	FOUNDATION CHRISTIAN MINISTRIES	FOUNDATION CHRISTIAN MINISTRIES SHARON MORRIS 177 UNION CHAPEL ROAD EAST BASTROP, TX  78602	info@myfcm.org	\N	512-332-0000	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+538	637	FOUNDRY MARKET & FLORAL	THE FOUNDRY MARKET & FLORAL 409 E. AVE. C VALLEY MILLS, TX 76689	thefoundryandfloral@outlook.com	\N	254-932-5004	THE FOUNDRY MARKET & FLORAL 409 E. AVE. C VALLEY MILLS, TX 76689	2026-07-01 17:06:55.900872	\N	\N	\N
+539	638	FOUR LEAF LANDSCAPE	FOUR LEAF LANDSCAPE 6843 CORONADO DALLAS, TX 75214	\N	PAUL O'CONNOR	972-831-9393	FOUR LEAF LANDSCAPE 6843 CORONADO DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+540	639	FOUR SEASONS PLANTSCAPING	FOUR SEASON PLANTSCAPING, LLC PO BOX 793429 DALLAS, TX 75379	justin@fsplantscaping.com	\N	214-686-4557	3218 East Beltline rd suite 544 Farmers Branch (214) 686-4557	2026-07-01 17:06:55.900872	\N	\N	\N
+541	640	FOX &  FIG	FOX & FIG 624 MAIN ST. SULPHUR SPRINGS, TX 75482	laura@foxandfig.com	\N	903-780-1991	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+542	641	FRANK BOTANICALS	FRANK BOTANICALS 6102 RIDAN LANE DALLAS, TX 75211	frankbotanicals@gmail.com	\N	469-328--9922	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+543	642	FRANKLINS FLOWERS	FRANKLINS FLOWERS 1807 NORTH GRAVES MCKINNEY, TX 75069	franklinsflowers@yahoo.com	PEGGY	972-542-0000	FRANKLINS FLOWERS 1807 NORTH GRAVES MCKINNEY, TX 75069	2026-07-01 17:06:55.900872	\N	\N	\N
+544	643	FREEMAN'S FLOWERS > > > > >	FREEMAN'S FLOWERS 127 E. REUNION ST. FAIRFIELD, TX 75840	\N	LESLIE	903-389-5887	FREEMAN'S FLOWERS 101 W.COMMERCE ST FAIRFIELD, TX 75840	2026-07-01 17:06:55.900872	\N	\N	\N
+545	644	FRENCH FLORIST	FRENCH FLORIST 5400 E. MOCKINGBIRD LN. DALLAS, TX 75206	dallascentral@frenchflorist.com	\N	214-764-2130	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+546	645	FRENCH PEAS<<TYLER>>	FRENCH PEAS<<TYLER>> 4601 OLD BULLARD RD TYLER, TX 75703 .	shop@frenchpeasflowers.com	MARY CAROLINE	903-939-3907	FRENCH PEAS<<TYLER>> 4601 OLD BULLARD RD TYLER, TX 75703 LEAVE PLANTS ON PORCH	2026-07-01 17:06:55.900872	\N	\N	\N
+547	646	FREYTAG'S , INC.	FREYTAG'S , INC. 2211 W. ANDERSON LANE AUSTIN, TX 78757	chad@freytag.com	KEN	512-345-4142	FREYTAG'S , INC. 2211 W. ANDERSON LANE AUSTIN, TX 78757	2026-07-01 17:06:55.900872	\N	\N	\N
+548	647	FRIENDLY NATIVES	FRIENDLY NATIVES MATTHEW KOLODZIE 1107 NORTH LLANO FREDERICKSBURG, TX 78624	jenna.schipper@gmail.com	\N	830-997-6288	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+549	648	FROGS & FLAMINGOS FLORIST	FROGS & FLAMINGOS FLORIST 101 W. COLORADO ST. LA GRANGE, TX 78945	frogsnflamingos@cvctx.com	ELAINE ZBRANEK	979-968-8214	FROGS & FLAMINGOS FLORIST 101 W. COLORADO ST. LA GRANGE, TX 78945	2026-07-01 17:06:55.900872	\N	\N	\N
+550	649	FROM THE GROUND UP	FROM THE GROUND UP P.O. BOX 543126 DALLAS, TX 75354	michael@ftgul.com	\N	214-515-0875	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+551	650	FROND LLC	FROND LLC CECILIA GARZA-BARNES 1904 S. LAMAR AUSTIN, TX 78704	frondaustin@gmail.com	\N	512-755-2866	FROND LLC CECILIA GARZA-BARNES 1904 S. LAMAR AUSTIN, TX 78704	2026-07-01 17:06:55.900872	\N	\N	\N
+552	651	FROST AND LAWRENCE	FROST AND LAWRENCE 7719 CARUTH BLVD DALLAS, TX 75225	\N	JULIE FROST COCHRAN	214-691-3851	FROST AND LAWRENCE 7719 CARUTH BLVD DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+553	652	FULLER NURSERY	FULLER NURSERY 4701 STONEWALL GREENVILLE, TX 75401 214-491-7417	Money.debbie@gmail.com	\N	972-754-1526	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+554	653	GAIL MCCRORY HORTICULTURIST	GAIL MCCRORY HORTICULTURIST 9510 ROCKBROOK DR. DALLAS, TX 75220	accounting@gailmccrory.com	GAIL MCCRORY	214-908-3391	GAIL MCCRORY HORTICULTURIST 9510 ROCKBROOK DR. DALLAS, TX 75220 2149083391	2026-07-01 17:06:55.900872	\N	\N	\N
+555	654	GALE SLIGER PRODUCTIONS	GALE SLIGER PRODUCTIONS 1405 S MAIN DUNCANVILLE, TX 75137	\N	\N	972-298-2298	GALE SLIGER PRODUCTIONS 1405 S MAIN DUNCANVILLE, TX 75137	2026-07-01 17:06:55.900872	\N	\N	\N
+556	655	GARDEN CO.	THE GARDEN CO. 217 N. KESSLER SCHULENBURG, TX 78956	thegarco99@gmail.com	\N	979-743-4648	THE GARDEN CO. 217 N. KESSLER SCHULENBURG, TX 78956	2026-07-01 17:06:55.900872	\N	\N	\N
+557	656	GARDEN DESIGN	GARDEN DESIGN 1925 VALLEY VIEW DALLAS, TX 75234	\N	\N	214-350-2525	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+558	657	GARDEN DESIGN<<OKLAHOMA>>	GARDEN DESIGN<<OKLAHOMA>> 4310 N WALNUT OKLAHOMA CITY, OK 73105	marquette@gardendesignok.com	\N	405-525-2275	GARDEN DESIGN<<OKLAHOMA>> 4310 N WALNUT OKLAHOMA CITY, OK 73105	2026-07-01 17:06:55.900872	\N	\N	\N
+559	658	GARDEN GATE <<DALLAS>>	GARDEN GATE <<DALLAS>> 2303 FARRINGTON ST SUITE #10 DALLAS, TX 75207	sales@gardengatefloral.com	\N	214-220-1272	GARDEN GATE <<DALLAS>> 2303 FARRINGTON ST SUITE #10 DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+560	659	GARDEN GATE FLOWER SHOP-ENNIS	GARDEN GATE FLOWER SHOP 110 S McKINNEY ST ENNIS, TX 75119	sgkfloraldesign@gmail.com	\N	972-878-6616	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+561	660	GARDEN LAB	GARDEN LAB 7775 FIREFALL WAY #1138 DALLAS, TX 75230	garden_lab@aol.com	\N	214-304-0768	weir furniure 4550 travis st joe 214 945 7829 call eta  9 00	2026-07-01 17:06:55.900872	\N	\N	\N
+562	661	GARDEN SOURCE	GARDEN SOURCE 200 E RIVERSIDE DR AUSTIN, TX 78704	robertleeper7@gmail.com	\N	512-751-4642	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+563	662	GARDEN STYLE <<TYLER>>	GARDEN STYLE <<TYLER>> 4809 OLD BULLARD RD #200 TYLER, TX 75703	wava@gardenstylefloraldesign.com	\N	903-526-0664	GARDEN STYLE <<TYLER>> 4809 OLD BULLARD RD #200 TYLER, TX 75703	2026-07-01 17:06:55.900872	\N	\N	\N
+564	663	GARDENIA	GARDENIA 5422 CLIFF HAVEN CT DALLAS, TX 75236	\N	SONIA AYALA	214-467-0300	GARDENIA 2512 DELMAC DR DALLAS, TX 75233	2026-07-01 17:06:55.900872	\N	\N	\N
+565	664	GARDENSCAPES	GARDENSCAPES SUSAN LANE 24002 FOSSIL TRAIL SPICEWOOD, TX 78669	gardenscapes.slane@gmail.com	\N	512-426-2755	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+566	665	GARDENSCAPES BY DIANE	GARDENSCAPES BY DIANE 1820 MOCKINGBIRD LN MIDLOTHIAN, TX 76065	dkb_r@sbcglobal.net	DIANE RICHARDS	214-882-1494	FIRST CHRISTIAN CHURCH OF DUNCANVILLE 203 S.MAIN DUNCANVILLE,TX 75116 214-882-1494	2026-07-01 17:06:55.900872	\N	\N	\N
+567	666	GARY OWENS DESIGN	GARY OWENS DESIGN 6060  N. CENTRAL #560 DALLAS, TX 75206	\N	GARY OWENS	214-526-2290	GARY OWENS DESIGN 6060  N. CENTRAL #560 DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+568	667	GARY W STOCKS & ASSOC	GARY W STOCKS & ASSOC PO BOX 260474 PLANO, TX 75026	\N	\N	214-402-3301	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+569	668	GARZA INTERIORS	GARZA INTERIORS 2515 GLADIOLUS LN. DALLAS, TX 75233	garzainteriors@gmail.com	\N	806-392-2413	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+570	669	GAVINS LLC	GAVINS LLC 608 HOLSTEIN DRIVE BELTON, TX 76513	llcgavins@gmail.com	\N	254-346-9997	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+571	670	GAYLORD TEXAN	GAYLORD TEXAN 1501 GAYLORD TRAIL GRAPEVINE, TX. 76051-1945 ATT: RUTHIE	vusovich@gaylordhotels.com	\N	817-778-1000	GAYLORD TEXAN 1501 GAYLORD TRAIL GRAPEVINE,TX 76051 CELL 817-205-7900 DOCK-C ATTN;	2026-07-01 17:06:55.900872	\N	\N	\N
+572	671	GECKO WORLD AUSTIN	GECKO WORLD AUSTIN SEAN COLLIE 102 CREEKSIDE TRAIL SUITE B KYLE, TX 78640	gworldaustin@gmail.com	\N	512-262-7205	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+573	672	GET YOUR GREEN ON	GET YOUR GREEN ON 119 N. POLK ST. JEFFERSON, TX 75657	jeffersongetyourgreenon@gmail.com	\N	713-203-9472	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+574	673	GHOST DANCE	GHOST DANCE 9347 BISCAYNE DALLAS, TX 75218	\N	LEIGH ANN	214-321-7159	GHOST DANCE 9347 BISCAYNE DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+575	674	GIDDINGS NURSERY & GARDEN CENTER	GIDDINGS NURSERY & GARDEN CENTER LANE & ROBYN JACOB 191 NORTH MADISON ST. GIDDINGS, TX 78942	info@giddingsnursery.com	\N	974-542-5565	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+576	675	GIFTS BY GAIL FLORIST	GIFTS BY GAIL FLORIST 8851 WEST FREEWAY FT. WORTH, TX 76116	giftsbygail@prodigy.net	\N	817-732-1723	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+577	676	GILDED HEIGHTS	GILDED HEIGHTS AUBREY BUTCHER 5435 RICHMOND AVE DALLAS, TX 75206	hello@gildedheights.com	\N	214-315-9352	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+578	677	GLAMOROUS GREENERY	GLAMOROUS GREENERY CANDELARIO GONZALES 1902 S STATE HWY 121 APT #512 LEWISVILLE, TX 75067	glamorousgreenery@gmail.com	\N	817-751-3835	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+579	678	GLASHAUS FLORAL DESIGN	GLASHAUS FLORAL DESIGN 507A EAST HIGHWAY STREET FREDERICKSBURG, TX 78624	INFO@GLASHAUSFLORAL.COM	\N	830-998-1247	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+580	679	GLLOW	GLLOW 3216 STEAMBOAT DR. FT. WORTH, TX 76123	info@gllowco.com	\N	213-308-1168	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+581	680	GLORIA'S FLOWERS & GIFTS	GLORIA'S FLOWERS & GIFTS 2752 W DAVIS ST DALLAS, TX 75211	\N	PAULA MENDOZA	214-339-9273	GLORIA'S FLOWERS & GIFTS 2752 W DAVIS ST. DALLAS, TX 75211	2026-07-01 17:06:55.900872	\N	\N	\N
+582	681	GLORIA DESIGNS INC.	GLORIA DESIGNS INC. 4500 ROLAND #101 DALLAS, TX 75219	\N	GLORIA NICOUD	214-676-6136	GLORIA DESIGNS INC. 4500 ROLAND #101 DALLAS, TX 75219	2026-07-01 17:06:55.900872	\N	\N	\N
+583	682	GONZALES FLORAL	GONZALES FLORAL & GIFTS 910 W. HENDERSON ST SUITE B CLEBURNE, TX 76033	gonzalesfloralcleburne@gmail.com	\N	817-526-5300	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+584	683	GOOD EARTH INC.	GOOD EARTH INC. 7922 FORNEY RD. DALLAS, TX 75227	\N	\N	214-381-5899	GOOD EARTH INC. 8020 HEINEN DRIVE DALLAS, TX 75227	2026-07-01 17:06:55.900872	\N	\N	\N
+585	684	GOOD SHEPHERD CATHOLIC CHURCH	GOOD SHEPHERD CATHOLIC CHURCH 1224 MAIN ST. GARLAND, TX 75040	jsalzman@gschurch.org	\N	972-276-8587 X:310	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+586	685	GOOD THINGS MERCANTILE	GOOD THINGS MERCANTILE KIMBERLY BUTLER 302 BIRD DOG BEND BASTROP, TX 78602	goodthingsmercantile@yahoo.com	\N	325-212-5280	We do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+587	686	GORDON BOSWELL FLOWERS	GORDON BOSWELL FLOWERS 1220 PENNSYLVANIA  AVE. FT WORTH, TX 76104	customerservice@gordonboswell.com	\N	817-332-2265	GORDON BOSWELL FLOWERS 1220 PENNSYLVANIA AVE FT WORTH, TX 76104 817-332-2265	2026-07-01 17:06:55.900872	\N	\N	\N
+588	687	GRACE AVENUE UMC	GRACE AVENUE UMC 3521 MAIN ST. FRISCO, TX 75034	jessica@graceavenue.org	\N	972-335-2882	jesscia call eta 3186583816 3186583816	2026-07-01 17:06:55.900872	\N	\N	\N
+589	688	GRANBURY FLOWERS AND GIFTS	GRANBURY FLOWERS AND GIFTS 1439 F W. HWY. 377 GRANBURY, TX 76048	granburyflower@gmail.com	\N	817-573-1300	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+590	689	GRANDMA'S HOUSE	GRANDMA'S HOUSE 306 GAZLEY ST. SMITHVILLE, TX 78957	\N	KATIE	512-924-8363	GRANDMA'S HOUSE 306 GAZLEY ST. SMITHVILLE, TX 78957	2026-07-01 17:06:55.900872	\N	\N	\N
+591	690	GRANNY BEAR'S PLANTS	GRANNY BEAR'S PLANTS 18284 BELLFOUNDER DR. CONROE, TX 77306	houston.979@icloud.com	\N	936-446-8081	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+592	691	GRAYSTONE GARDENS	GRAYSTONE NURSERY LLC 791 HWY EAST BASTROP, TX 78602	info@graystonegardenstx.com	\N	979-777-6614	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+593	692	GREAT INDOORS	GREAT INDOORS 110 WILLIAMS WAY HUTTO, TX 78634	agreatindoors@gmail.com	\N	512-947-9322	GREAT INDOORS 110 WILLIAMS WAY HUTTO, TX  78634	2026-07-01 17:06:55.900872	\N	\N	\N
+594	693	GREEN'S PRODUCE & PLANTS	GREEN'S PRODUCE & PLANTS 3001 W. ARKANSAS LANE ARLINGTON, TX 76016	carriebogard10@yahoo.com	\N	817-274-2435	GREEN'S PRODUCE & PLANTS 3001 W. ARKANSAS LANE ARLINGTON, TX 76016	2026-07-01 17:06:55.900872	\N	\N	\N
+595	694	GREEN ACRES NURSERY - MELISSA	GREEN ACRES NURSERY-MELISSA 1818 N. CENTRAL EXPWY. MELISSA, TX 75454	mel.houseplants@idiggreenacres.com	\N	lanie kennedy	GREEN ACRES NURSERY-MELISSA 1818 N. CENTRAL EXPWY. MELISSA, TX 75454 972 242 7574	2026-07-01 17:06:55.900872	\N	\N	\N
+596	695	GREEN ACRES NURSERY SUPPLY	GREEN ACRES NURSERY SUPPLY 2800 RANCH TRAIL IRVING, TX 75063	accountspayable.tx@idiggreenacres.com	\N	972-256-8363	GREEN ACRES IRVING TX 2800 RANCH TRAIL IRVING, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+597	696	GREEN ARTS	GREEN ARTS 5545 NEW HOPE DR AUBREY, TX. 76227	\N	\N	940-440-9393	GREEN ARTS 5545 NEW HOPE DR AUBREY, TX. 76227	2026-07-01 17:06:55.900872	\N	\N	\N
+598	697	GREEN DOT	GREEN DOT GARY JONES 1223 VIEWRIDGE DR. SAN ANTONIO, TX  78213	Gary@FabGreenDot.com	\N	210-875-1060	GREEN DOT GARY JONES 1223 VIEWRIDGE DR. SAN ANTONIO, TX 78213	2026-07-01 17:06:55.900872	\N	\N	\N
+599	698	GREEN FEELINGS CO.	GREEN FEELINGS COMPANY 9985 CR 540 LAVON, TX 75166	cmendoza200@yahoo.com	CATHY MENDOZA	972-679-8383	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+600	699	GREEN GENE'S INTERIORSCAPE	GREEN GENE'S INTERIORSCAPE 214 HILLTOP LANE HIDEAWAY, TX. 75771	\N	\N	903-530-7217	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+601	700	GREEN GENTRY	GREEN GENTRY 7332 CONNOR RD. ABILENE, TX 79602	leiakeith28055@gmail.com	\N	325-430-2475	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+602	701	GREEN HAND	GREEN HAND 1213 YORKSHIRE LN ROUND ROCK, TX 78664	ame_lurz@yahoo.com	AMANDA ALVAREZ	512-851-6304	GREEN HAND 1213 YORKSHIRE LN ROUND ROCK, TX 78664	2026-07-01 17:06:55.900872	\N	\N	\N
+603	702	GREEN HORIZONS LANDSCAPING	GREEN HORIZONS LANDSCAPING 3936 TRAVIS UNIT #6 DALLAS, TX 75204	rvhgrnhorizons@aol.com	ROBERT VAN HATTUM	214-673-0425	GREEN HORIZONS LANDSCAPING 3936 TRAVIS UNIT #6 DALLAS, TX 75204	2026-07-01 17:06:55.900872	\N	\N	\N
+604	703	GREEN INTERIORS, LLC	GREEN INTERIORS, LLC PO BOX 180373 AUSTIN, TX. 78718	info@greeninteriorscompany.com	\N	512-550-2883	GREEN INTERIORS, LLC PO BOX 180373 AUSTIN, TX 78718	2026-07-01 17:06:55.900872	\N	\N	\N
+605	704	GREEN LANDSCAPE SERVICES	GREEN LANDSCAPE SERVICES P.O. BOX 253 FORNEY, TX 75126	garyraith@sbcglobal.net	GARY RAITH	214-507-6589	GREEN LANDSCAPE SERVICES P.O. BOX 253 FORNEY, TX 75126	2026-07-01 17:06:55.900872	\N	\N	\N
+606	705	GREEN LIFE- SAN ANTONIO	GREEN LIFE - SAN ANTONIO 4305 SILVER HILLS RD. KERVILLE, TX  78028	greenlife444@yahoo.com	\N	210-274-7138	GREEN LIFE - SAN ANTONIO 4600 SETON CENTER PKWY. #714 AUSTIN, TX  78759	2026-07-01 17:06:55.900872	\N	\N	\N
+607	706	GREEN LIFE INTERIORS-WACO	GREEN LIFE INTERIORS- WACO 300 DEPOT WOODWAY, TX. 76712	sarah@greenlifeinteriors.com	\N	\N	GREEN LIFE INTERIORS- WACO 300 DEPOT WOODWAY, TX 76712	2026-07-01 17:06:55.900872	\N	\N	\N
+608	707	GREEN OASIS PLANTSCAPES	GREEN OASIS PLANTSCAPES 981 ISOM RD SAN ANTONIO, TX 78216	marcus@greenoasis.com	\N	210-653-8900	GREEN OASIS PLANTSCAPES 981 ISOM RD SAN ANTONIO, TX 78216	2026-07-01 17:06:55.900872	\N	\N	\N
+609	708	GREEN PLANET SCAPES OF AUSTIN	GREEN PLANET SCAPES OF AUSTIN CYNTHIA COLLINS 10807 N. FM 620 AUSTIN, TX 78726	cynthia@greenplanetscapes.com	\N	512-693-9575	GREEN PLANET SCAPES OF AUSTIN CYNTHIA COLLINS 10807 N. FM 620 AUSTIN, TX 78726	2026-07-01 17:06:55.900872	\N	\N	\N
+610	709	GREENE HOUSE GATHERING	GREENE HOUSE GATHERING ERNIE 'ANDREA' GREENE 1402 BOHICA WAY CEDAR PARK, TX 78613	ADMIN@GREENEHOUSE.EDUCATION	\N	512-560-9586	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+611	710	GREENER PASTURES	GREENER PASTURES 2525 MANANA DR. DALLAS, TX 75220	johnb446130@gmail.com	AUDREY BROWN	214-634-0806	RICHARDSON NAZARENE CHURCH 2101 E.RENNER RD RICHARDSON TX CALL W/ETA 214-682-2635	2026-07-01 17:06:55.900872	\N	\N	\N
+612	711	GREENERY EXPRESSIONS	GREENERY EXPRESSIONS EVEYLN VILLARREAL ATASCOSA, TX 78002	ERVUS334@yahoo.com	\N	\N	GREENERY EXPRESSIONS c/o GREEN OASIS 3400 NACADOCHES RD. SAN ANTONIO, TX 78217	2026-07-01 17:06:55.900872	\N	\N	\N
+613	712	GREENERY VILLAGES, LLC	GREENERY VILLAGES, LLC TAYLOR EICHELBERGER 1304 TUXFORD COVE AUSTIN, TX 78753	contact@thegreeneryvillages.com	\N	512-987-3741	GREENERY VILLAGES, LLC TAYLOR EICHELBERGER 1304 TUXFORD COVE AUSTIN, TX 78753	2026-07-01 17:06:55.900872	\N	\N	\N
+614	713	GREENHOUSE PLANTSCAPES	GREENHOUSE PLANTSCAPES 3035 CANDLEWICK LN. FARMERS BRANCH, TX. 75234	\N	JEFF PATTON	214-929-7487	GREENHOUSE PLANTSCAPE 3035 CANDELWICK LN FARMERS BRANCH, TX 75234	2026-07-01 17:06:55.900872	\N	\N	\N
+615	714	GREENLEAVES-TYLER	GREENLEAVES-TYLER PO BOX 7277 TYLER, TX. 75711	terrid1@att.net	\N	\N	HOUSE 1740 FARM TO MARKET 1844 LONGVIEW, TX 75605 903-738-5277-CALL w/ ETA GATE CODE 2144SEND	2026-07-01 17:06:55.900872	\N	\N	\N
+616	715	GREENLEAVES OF LONGVIEW	GREENLEAVES OF LONGVIEW 285 FIR RD. GLADEWATER, TX 75647	greenleavesoflongview@gmail.com	\N	903-738-3473	1010 energy dr go to front door 903 7383473 killgore tx	2026-07-01 17:06:55.900872	\N	\N	\N
+617	716	GREENMAN NURSERY	GREENMAN NURSERY 102 W 2ND COLORADO CITY, TX 79512	juliebarber@fireskyarts.com	\N	325-436-9175	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+618	717	GREENSLEEVES NURSERY	GREENSLEEVES NURSERY 601 W PECAN ST PFLUGERVILLE, TX 78660	lizgreensleeves@gmail.com	\N	512-243-8355	GREENSLEEVES NURSERY 601 W PECAN ST PFLUGERVILLE, TX 78660	2026-07-01 17:06:55.900872	\N	\N	\N
+619	718	GRO DESIGNS	GRO DESIGNS 407 S. HASKELL AVE. DALLAS, TX 75226	RACHEL@grodesigns.com	\N	214-783-8873	GRO DESIGNS 407 S. HASKELL AVE. DALLAS, TX 75226	2026-07-01 17:06:55.900872	\N	\N	\N
+620	719	GROUNDED	GROUNDED, LLC 211 W MAIN ST MESQUITE, TX 75181	hello@groundedloungetx.com	\N	817-716-2429	GROUNDED, LLC 211 W MAIN ST MESQUITE, TX 75181	2026-07-01 17:06:55.900872	\N	\N	\N
+621	720	GROW AND GLOW	GROW AND GLOW 614 HWY. 754 CHURCH POINT, LA 70525	taminydoucet@gmail.com	\N	337-331-4165	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+622	721	GROW INDOOR PLANTS	GROW INDOOR PLANTS 110 S. 4TH STREET GUNTER, TX 75058	info@growplantshoptx.com	\N	469-644-2656	MEET @ CVS PARKING LOT PRESTON RD.at broadway prosper texas 469 644 2656 201 preston rd at broadway	2026-07-01 17:06:55.900872	\N	\N	\N
+623	722	GROW IT LAND DESIGN*PO REQUIRED	GROW IT LAND DESIGN*PO REQUIRED 794 S. DENTON TAP COPPELL, TX 75019	office@growitlanddesigns.com	\N	972-462-7161	GROW IT LAND DESIGN*PO REQUIRED 794 S. DENTON TAP COPPELL	2026-07-01 17:06:55.900872	\N	\N	\N
+624	723	GROW PLANT SHOP	GROW PLANT SHOP 4800 CAMP BOWIE FT. WORTH, TX 76107	hello@growplantshop.com	\N	817-343-6312	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+625	724	GROWING ART CO.	GROWING ART 214 SPIREHAVEN DR. FATE, TX 75087	hannah@growingartco.com	\N	469-931-9955	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+626	725	GUARDADO LANDSCAPE	GUARDADO LANDSCAPE 3228 ALTA MERE FT WORTH, TX 76116	tina@guardadolandscaping.net	ELOY GUARDADO	817-732-3434	GUARDADO LANDSCAPE 3228 ALTA MERE FT WORTH, TX 76116	2026-07-01 17:06:55.900872	\N	\N	\N
+627	726	GUILLERMINA L RODRIGUEZ	GUILLERMINA L RODRIGUEZ 3118 CARLSON DALLAS, TX 75235	asmith@vickerygreenhouse.com	LETICIA RODRIGUEZ	214-523-8992	GUILLERMINA L RODRIGUEZ 3118 CARLSON DALLAS, TX 75235 COURIER WILL PICK UP AM.  PAID BY CC 12/3	2026-07-01 17:06:55.900872	\N	\N	\N
+628	727	GUZICK ELEMENTARY	GUZICK ELEMENTARY 500 BERRIDGE DALLAS, TX 755227	\N	KATHRYN GIDDENS	972-502-5901	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+629	728	H & H DESIGNS	H & H DESIGNS 7114 WESTLAKE DALLAS, TX 75214	\N	JERI HUBER	214-324-4841	H & H DESIGNS 7114 WESTLAKE DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+630	729	H & H GIFTS<<ENNIS>>	H & H GIFTS<<ENNIS>> 503 S. PARIS ENNIS, TX 75119	evelynzmolik@yahoo.com	\N	214-549-6885	ST. JOHN CATHOLIC CHURCH 401 E LAMPASAS ENNIS TX 75119CALL W/ETA 214-549-6885 EVELYN	2026-07-01 17:06:55.900872	\N	\N	\N
+631	730	H.E. CANNON FLORAL CO, INC	H. E CANNON FLORAL CO, INC 512 W. Division St. Arlington, TX 76011	cannon1893@aol.com	\N	8172612731	12 W. Division St. Arlington, TX 76011	2026-07-01 17:06:55.900872	\N	\N	\N
+632	731	HABITAT PLANT CAFE	HABITAT PLANT CAFE 214 N. KENTUCKY STE. A MCKINNEY, TX 75069 214-799-5481	karina@habitat-plants.com	\N	214-799-5481	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+633	732	HABITATS BY B & D	HABITATS BY B & D 217 TEELING TRL. WHITNEY, TX 76692	habitats@swbell.net	\N	214-528-1936	6908 HUNTERS GLEN DALLAS TC 972-310-8929 BRAD	2026-07-01 17:06:55.900872	\N	\N	\N
+634	733	HAND WHOLESALE NURSERIES	HAND WHOLESALE NURSERIES 15522 HWY 64 WEST TYLER, TX 75704	handnurseries@gmail.com	\N	903-316-9356	HAND WHOLESALE NURSERIES 15522 HWY 64 WEST TYLER 75704	2026-07-01 17:06:55.900872	\N	\N	\N
+635	734	HANGING BY THE VINE	HANGING BY THE VINE JULIA HARRIS 2317 VAN CLEAVE DR DALLAS, TX 75216	mssjmh46@gmail.com	\N	214-537-0034	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+636	735	HANNAH'S FLORIST	HANNAH'S FLORIST, LLC 225 S. TRAVIS ST SHERMAN, TX 75090	hsoflowers@gmail.com	\N	903-893-8171	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+637	736	HAPPY SUNRIZE	HAPPY SUNRIZE 1705 DAMIAN WAY RICHARDSON, TX 75081	happysunrizelle@gmail.com	\N	469-386-3734	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+638	737	HARRIS METHODIST HOSPITAL	HARRIS METHODIST HOSPITAL 1301 PENNSYLVANIA FT. WORTH, TX. 76104	THRAPInvoices@texashealth.org	\N	\N	HARRIS METHODIST HOSPITAL 1301 PENNSYLVANIA CALL WHEN THERE 817-250-3879 CALL FIRST 817-600-3470 SARAH 2ND FT. WORTH, TX 76104s	2026-07-01 17:06:55.900872	\N	\N	\N
+639	738	HARTLAND HOME	HARTLAND HOME 420 N. CENTER ST. SUITE 6 LONGVIEW, TX 75601	harlandhomelongview@gmail.com	\N	903-238-1404	HARTLAND HOME 420 N. CENTER ST. SUITE 6 LONGVIEW, TX 75601 the lab on center	2026-07-01 17:06:55.900872	\N	\N	\N
+640	739	HATHA GOODS	HATHA GOODS CO 1110 DRAGON ST DALLAS, TX 75207	kelsey@hikidsco.com	\N	214-797-2107	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+641	740	HAUTE FLORAL	HAUTE FLORAL 2431 SHORECREST DR. STE D-9 DALLAS, TX 75235	\N	KRISTEN WOLCHIK	214-578-6046	HAUTE FLORAL 2431 SHORECREST DR STE D-9 DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+642	741	HAWK INTERIORS	HAWK INTERIORS 3012 WYCLIFF DALLAS, TX 75219	\N	\N	214-526-0433	HAWK INTERIORS 3012 WYCLIFF DALLAS, TX 75219	2026-07-01 17:06:55.900872	\N	\N	\N
+643	742	HAWKINS ISD	HAWKINS ISD 231 HAWK DRIVE HAWKINS, TX 75765	charlotte.main@hawkinsisd.org	\N	903-769-0525	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+644	743	HAWTHORNE'S FLORAL	HAWTHORNE'S FLORAL 1704 MARION DR. GARLAND, TX 75042	hawthornesfloralco@gmail.com	\N	214-817-9107	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+645	744	HAYES RESIDENTIAL DEVELOPMENT	HAYES RESIDENTIAL DEVELOPMENT 3400 CARLISLE STREET SUITE 310 DALLAS, TX 75204	\N	SUSAN MCQUADE	214-954-1899	HAYES RESIDENTIAL DEVELOPMENT 3400 CARLISLE STREET SUITE 310 DALLAS, TX 75204	2026-07-01 17:06:55.900872	\N	\N	\N
+646	745	HEART AND HOME FLOWERS	HEART AND HOME FLOWERS 601 GREAT OAKS DR. SUITE 102 ROUND ROCK, TX 78681	jacinto@heartnhomeflowers.com	LISA GUILLAUME	512-433-6786	HEART AND HOME FLOWERS 601 GREAT OAKS DR. SUITE 102 ROUND ROCK, TX 78681	2026-07-01 17:06:55.900872	\N	\N	\N
+647	746	HEART N'SOIL	Heart N'Soil 906 Monte Vista Lockhart, TX 78644	heartnsoiltx@gmail.com	\N	512-650-5789	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+648	747	HEART OF TEXAS LANDSCAPE & IRRIGATION CO.	HEART OF TEXAS LANDSCAPE 6363 FM 439 BELTON, TX 76513	CHRISTINE@HOTLANDSCAPE.COM	\N	254-939-6795	HEART OF TEXAS LANDSCAPE 6363 FM 439 BELTON, TX 76513 USA DOUGLAS ROWALD	2026-07-01 17:06:55.900872	\N	\N	\N
+649	748	HEATHER CALLAHAN	HEATHER CALLAHAN 4236 ARMSTRONG PKWY DALLAS, TX. 75205	\N	\N	214-505-4235	8301 Harry Hines Rd. Dallas, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+650	749	HEDERHORST FARMS	HEDERHORST FARMS GEORGE HEDERHORST 28750 FM 2920 HWY WALLER, TX 77484	tx.farmer@sbcglobal.net	\N	936-372-1916	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+651	750	HEDGEROW	HEDGEROW 8350 N. CENTRAL EPWY. SUITE 1300 DALLAS, TX 75206	Preston@hedgerowinteriors.com	\N	214-542-5100	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+652	751	HEDGES DISTINCTIVE LANDSCAPES,L.L.C.	HEDGES DISTINCTIVE LANDSCAPES,L.L.C. 6832 JOYCE WAY DALLAS, TX 75225	\N	LEE SIEDELL	214-264-1848	HEDGES DISTINCTIVE LANDSCAPES, L.L.C. 6832 JOYCE WAY DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+653	752	HENNEBERGER CONSTRUCTION	HENNEBERGER CONSTRUCTION 8928 FAIRGLEN DR DALLAS, TX 75231	\N	CYNTHIA HENNEBERGER	214-341-3569	HENNEBERGER CONSTRUCTION 8928 FAIRGLEN DR DALLAS, TX 75231	2026-07-01 17:06:55.900872	\N	\N	\N
+654	753	HERNANDEZ LANDSCAPING	HERNANDEZ LANDSCAPING 10216 SAND SPRINGS AVE DALLAS, TX 75227	\N	ELICIO HERNANDEZ	214-714-1516	HERNANDEZ LANDSCAPING 10216 SAND SPRINGS AVE DALLAS, TX 75227	2026-07-01 17:06:55.900872	\N	\N	\N
+655	754	HESTER'S BOOKS ON THE SQUARE	HESTER'S BOOKS ON THE SQUARE 516 E 4TH STREET LAMPASAS, TX 76550	hestersbooksandplants@gmail.com	\N	254-368-2892	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+656	755	HEY KONEKO	HEY KONEKO 3901 MAIN ST DALLAS, TX 75226	littlelinda@one.com	\N	214-827-0074	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+657	756	HEY THERE DAHLIA	HEY THERE DAHLIA 260 BEASLEY RD. COMBINE, TX 75159	faith@heytheredahlia.com	\N	214-842-1071	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+658	757	HIDEAWAY BLOOMS	HIDEAWAY BLOOMS 540 GLEN CANYON DR. PROSPER, TX 75078	hideawayblooms@gmail.com	\N	940-736-9749	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+659	758	HIEP THAI - ARLINGTON	HIEP THAI <ARLINGTON> 2430 E. PIONEER PKWY ARLINGTON, TX 76010	\N	\N	817-459-1311	1124 w division st	2026-07-01 17:06:55.900872	\N	\N	\N
+660	759	HIGHLAND LAKES TREE SERVICE	HIGHLAND LAKES TREE SERVICE LLC 613 SANDY HARBOR HORSESHOE BAY, TX 78657	highlandlakestreeservice@gmail.com	\N	830-613-1937	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+661	760	HIGHLAND PARK UNITED METHODIST	HIGHLAND PARK UNITED METHODIST 3300 MOCKINGBIRD LANE DALLAS, TX. 75205	millers@hpumc.org	\N	214-521-3111	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+662	761	HILL COUNTRY HIVE	HILL COUNTRY HIVE 6015 LOHMAN FORD SUITE 109/110 LAGO VISTA, TX 78645	hillcountryhive@gmail.com	\N	512-291-7718	HILL COUNTRY HIVE 6015 LOHMAN FORD SUITE 109/110 LAGO VISTA, TX 78645	2026-07-01 17:06:55.900872	\N	\N	\N
+663	762	HILLSIDE NURSERY, INC.	HILLSIDE NURSERY, INC. 5901 WILLIAMS DR. GEORGETOWN, TX 78633	hillsidenurseryinc@yahoo.com	ROSIE & AROLDO SERNA	512-930-1300	HILLSIDE NURSERY, INC. 5901 WILLIAMS DR. GEORGETOWN, TX 78633	2026-07-01 17:06:55.900872	\N	\N	\N
+664	763	HIP HORTICULTURE	HIP HORTICULTURE 729 NOMAD SPICEWOOD, TX 78669	\N	\N	512-900-0455	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+665	764	HIVE PLANTS	HIVE PLANTS NOLAN POORBAUGH 13122 BRISTOL BERRY DR CYPRESS, TX 77429	nolanpoorbaugh@hivplants.com	\N	832-418-7411	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+666	765	HM DESIGNS	HM DESIGNS 400 SOUTH RECORD ST. #1600 DALLAS, TX 75202	ekelly@labora.com	\N	214-812-9075	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+667	766	HOBSON STORE	HOBSON STORE 512 COUNTY ROAD 220 HOBSON, TX 78117	hobsonstore@aol.com	\N	830-780-3169	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+668	767	HOFFMAN FLOWERS	HOFFMAN FLOWERS 309 W. MAIN ST. GRAND PRAIRIE, TX 75050	hoffmanflowers@gmail.com	\N	972-264-1914	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+669	768	HOLLANDIA PLANTS	HOLLANDIA PLANTS P.O. BOX 570219 DALLAS, TX 75357	\N	\N	469-939-0110	HOLLANDIA PLANTS 3019 ACOCA ST DALLAS, TEXAS 75228	2026-07-01 17:06:55.900872	\N	\N	\N
+670	769	HOLLEY HOUSE LLC	Holley House LLC 4318 Manzanillo Drive Austin, TX 78749	evan@holleyhouse.co	\N	512-897-4519	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+671	770	HOLLY'S GARDENS & FLORIST	HOLLY'S GARDENS & FLORIST 700 E. SHERMAN DR. DENTON, TX 76209	hollysgardens@verizon.net	\N	940-380-1464	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+672	771	HOLLY B FARRELL	HOLLY B. FARRELL & ASSOC. 5329 MONTROSE DR DALLAS, TX. 75209	\N	\N	214-352-0090	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+673	772	HOLY TRINITY GREEK ORTHODOX CHURCH	HOLY TRINITY GREEK ORTHODOX CHURCH 13555 HILLCREST DALLAS, TX. 75240	lstrong@holytrinitydallas.org	\N	972-991-1166	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+674	773	HOLY VIETNAMESE MARTYRS PARISH	HOLY VIETNAMESE MARTYRS PARISH 1107 E. YAGER LANE AUSTIN, TX 78753	anenguyen@aol.com	\N	512-834-8483	HOLY VIETNAMESE MARTYRS PARISH 1107 E. YAGER LANE AUSTIN,TX  78753	2026-07-01 17:06:55.900872	\N	\N	\N
+675	774	HOME JOUGE	HOME JOUGE 9302 W. LAKE HIGHLANDS DR. DALLAS, TX 75218	homejouge@gmail.com	\N	214-403-6094	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+676	775	HONEY LOCUST FARMS	HONEY LOCUST FARMS 4571 STATE HWY 276 ROCKWALL, TX 75032	po@honeylocustfarmsbylandart.com	\N	972-771-6025	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+677	776	HONEY POTS AND MORE	HONEY POTS AND MORE MARILU CASTRELLON 12675 WARE SEGUIN RD SCHERTZ, TX 78154	marilucast8489@gmail.com	\N	210-625-1238	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+678	777	HONEYSUCKLE HILL FLOWERS	HONEYSUCKLE HILL FLOWERS 18113 COUNTY ROAD 431 LINDALE, TX 75771	stefaniefleming@gmail.com	\N	903-245-4781	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+679	778	HOOP LAWN	HOOP LAWN BILL HOOPER 2808 CANYON VALLEY TR PLANO, TX 75075	\N	\N	972-800-7311	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+680	779	HOPKINS NURSERY	HOPKINS NURSERY 1000 N. TOOL DR. TOOL, TX 75143	melanie@hopkinsnursery.com	\N	214-980-5313	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+681	780	HOPPY FARMS NEIGHBORHOOD NURSERIES	HOPPY FARMS NEIGHBORHOOD NURSERIES 2626 N. CENTER ST. BONHAM, TX 75418	kyla@hoppyfarms.com	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+682	781	HORSEMEN CO.	HORSEMEN CO. BEN AND FAITH BENITEZ 601 CHESTNUT ST BASTROP, TX 78602	hello@horsemenco.com	\N	512-965-8182	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+683	782	HORTICALL	HORTICALL 664 N. GLENVILLE DR. RICHARDSON, TX 75081-2832	bonniebplantlady@sbcglobal.net	\N	972-690-1001	HORTICALL 664 N. GLENVILLE DR. RICHARDSON, TX 75081-2832	2026-07-01 17:06:55.900872	\N	\N	\N
+684	783	HOUSE OF CLRK	HOUSE OF CLRK 2271 MONITOR ST DALLAS, TX 75207	emily@emilyclarkeevents.com	\N	214-617-6691	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+685	784	HOUSE OF FLOWERS	HOUSE OF FLOWERS hot spings ar 631 PENINSULA DR HOT SPRINGS, AR 71901	\N	\N	501-262-3639	HOUSE OF FLOWERS 631 PENINSULA DR HOT SPRINGS, AR 71901	2026-07-01 17:06:55.900872	\N	\N	\N
+891	990	LULU'S FLORAL DESIGN	LULU'S FLORAL DESIGN 100 COUNTRY CLUB RD SUITE 114 ARGYLE, TX 76226	\N	\N	940-464-4141	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+686	785	HOUSE OF MARGOT BLAIR	HOUSE OF MARGOT BLAIR 2408 LAKE AUSTIN BLVD. AUSTIN, TX  78703	carly@houseofmargotblair.com	\N	512-709-9578	No delivery service	2026-07-01 17:06:55.900872	\N	\N	\N
+687	786	HOUSEPLANT THINGS	HOUSEPLANT THINGS EMILY LUCAS 6060 VILLAGE BEND DR DALLAS, TX 75206	houseplantthings@gmail.com	\N	972-742-2929	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+688	787	HR PEROT	H.R. PEROT 3000 TURTLE CREEK BLVD DALLAS, TX 75219	ERNESTOSILVA71@YAHOO.COM	\N	972-535-1900	10444 STRAIT LN DALLAS TX 75000 214-882-9058 ERNESTO CELL 214-882-9058 ERNESTO CELL	2026-07-01 17:06:55.900872	\N	\N	\N
+689	788	HRISANTHE PATTS DESIGNS	HRISANTHE PATTS DESIGNS 4215 NORMANDY AVE. DALLAS, TX 75205	\N	HRISANTHE PATTS	214-526-2952	HRISANTHE PATTS DESIGNS 4215 NORMANDY AVE. DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+690	789	HUE LAM BUDDHIST CENTER	HUE LAM BUDDHIST CENTER 11901 JOHNSON ROAD MANOR, TX. 78653	hanhduc99np@gmail.com	\N	512-278-0787	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+691	790	HUGHES QUARTER HORSE	HUGHES QUARTER HORSE 5901 COUNTY RD. 605 BURLESON, TX 76028	\N	\N	817-757-8902	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+692	791	HUGS GREENHOUSE	HUGS GREENHOUSE 1151 E COTTAGE HILL PKWY MCKINNEY, TX 75071	bill@hugsgreenhouse.org	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+693	792	HUMBLE ROOTS	HUMBLE ROOTS 116 N. BROADWAY SUITE E SILOAM SPRINGS, AR 72761	nicolle3lilbirds@outlook.com	\N	539-345-4028	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+694	793	HUNNY'S URBAN HOMESTEAD	HUNNY'S URBAN HOMESTEAD 7150 SKILLMAN STE. 160-205 DALLAS, TX 75231	rootstock@urbanhunnys.com	\N	832-647-7697	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+695	794	HUNTSVILLE FEED & FARM	HUNTSVILLE FEED & FARM 1429 AVENUE I HUNTSVILLE, TX 77340	\N	KIM RAYMOND	214-557-1182   Kim	HUNTSVILLE FEED & FARM 1429 AVENUE I HUNTSVILLE, TX 77340	2026-07-01 17:06:55.900872	\N	\N	\N
+696	795	HUYEN QUANG BUDDHIST TEMPLE	HUYEN QUANG BUDDHIST TEMPLE 2828 S. FM 1138 ROYSE CITY, TX 75189	harvesttran@yahoo.com	\N	972-635-2821	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+697	796	HWY 80 PRODUCE	HWY 80 PRODUCE 903 E US HWY 80 CLARKSVILLE CITY, TX 75693	ABLOTT@HOTMAIL.COM	\N	903-241-6003	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+698	797	I LOVE ROSE'S FLORIST & GIFTS	I LOVE ROSE'S FLORIST & GIFTS 1205 N. HAMPTON RD DALLAS, TX 75208	info@iloverosesflorist.com	\N	214-339-1962	I LOVE ROSE'S FLORIST & GIFTS 1205 N. HAMPTON RD DALLAS, TX 75208	2026-07-01 17:06:55.900872	\N	\N	\N
+699	798	IBPS	IBPS 1111 INTERNATIONAL PKWY RICHARDSON, TX. 75081	shalitsai@yahoo.com	\N	972-907-0588	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+700	799	ILLUSIONS BY GLOW	ILLUSIONS BY GLOW 814 S WILLOMET AVE DALLAS, TX 75208	\N	GLORIANA AGUINAGA	214-253-8022	ILLUSIONS BY GLOW 814 S WILLOMET AVE DALLAS, TX 75208	2026-07-01 17:06:55.900872	\N	\N	\N
+701	800	IMAGE CREATIONS	IMAGE CREATIONS 3720 BUCKBOARD PLANO, TX. 75074	valeriecox123@yahoo.com	\N	214-546-0638	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+702	801	IMAGESCAPES OF TEXAS, INC.	IMAGESCAPES OF TEXAS, INC. 514 RIVERSIDE CT. ALLEN, TX 75013	danplants1@gmail.com	DAN BARNES	972-396-9669	IMAGESCAPES OF TEXAS, INC. 514 RIVERSIDE CT. ALLEN, TX 75013	2026-07-01 17:06:55.900872	\N	\N	\N
+703	802	IMAGINE THAT	IMAGINE THAT 2796 STATE HWY 198 CANTON, TX 75103	imaginethattx@gmail.com	CARMEN WAGNER	903-385-0795	ACROSS THE STREET FROM FREE STATE STORAGE 801 OLD KAUFMAN RD. 903-385-0795 CARMEN CANTON, TX 75103	2026-07-01 17:06:55.900872	\N	\N	\N
+704	803	IMPERIAL PARTNERSHIP	IMPERIAL PARTNERSHIP 4537 BEVERLY DR. DALLAS, TX 75205	\N	\N	214-435-8726	IMPERIAL PARTNERSHIP 4537 BEVERLY DR. DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+705	804	IN BLOOM FLOWERS	IN BLOOM FLOWERS 1035 TREND CARROLLTON, TX 75006	jennifer@inbloomflowers.com	LORI FUTTERMAN	972-488-1905	IN BLOOM FLOWERS 1035 TREND DR. CARROLLTON, TX 75006 EMAIL INVOICES TO LAUREN	2026-07-01 17:06:55.900872	\N	\N	\N
+706	805	INDIGO SOIL	Indigo Soil 8116 Sebastapol Cv Austin, TX 78726	indigosoiltx@gmail.com	\N	512-578-5839	Indigo Soil 8116 Sebastapol Cv Austin, TX 78726	2026-07-01 17:06:55.900872	\N	\N	\N
+707	806	INDOOR GARDENS LAREDO	INDOOR GARDENS LLC 4501 MCPHERSON RD STE 2 LAREDO, TX 78041	shop.indoor.gardens@gmail.com	\N	956-473-9190	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+708	807	INDOORS, OUTDOORS	INDOORS, OUTDOORS 4208 LONE OAK DRIVE FT WORTH, TX 76107	bethnphillips@att.net	BETH NEWBE PHILLIPS	817-737-0033	INDOORS, OUTDOORS 4208 LONE OAK DRIVE FT WORTH, TX 76107	2026-07-01 17:06:55.900872	\N	\N	\N
+709	808	INNOVATIVE DESIGNS	INNOVATIVE DESIGNS 3629 ASBURY DALLAS, TX. 75205	\N	\N	972-203-9111	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+710	809	INS & OUTS	INS & OUTS 3794-C HWY 67 W GLEN ROSE, TX. 76043	bhill@hillranch.us	\N	254-897-7881	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+711	810	INSTANT RAIN DESIGN	INSTANT RAIN DESIGN 5311 PARKLAND AVE. DALLAS, TX 75235	\N	\N	469-767-4565	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+712	811	INTERCITY INVESTMENTS	INTERCITY INVESTMENTS 4301 WESTSIDE DR. #100 DALLAS, TX. 75209	khall@icirealestate.com	\N	214-520-2565	4301 WESTSIDE DR SUITE 100 DALLAS 75209 214-520-2565	2026-07-01 17:06:55.900872	\N	\N	\N
+713	812	INTERIOR GARDENER	INTERIOR GARDENER 11802 TOBLER TR. AUSTIN, TX. 78753	\N	\N	512-217-8316	INTERIOR GARDENER 11802 TOBLER TR. AUSTIN, TX. 78753	2026-07-01 17:06:55.900872	\N	\N	\N
+714	813	INTERIOR GARDENS- KERENS	INTERIOR GARDENS- KERENS 1135 S. HWY 309 KERENS, TX. 75144	1pamelacarroll@gmail.com	\N	903-396-2466	INTERIOR GARDENS- KERENS 1135 S. HWY 309 KERENS, TX. 75144	2026-07-01 17:06:55.900872	\N	\N	\N
+715	814	INTERIOR GARDENS-<ARLINGTON>	INTERIOR GARDENS-<ARLINGTON> 4809 OAK SPRINGS DR. ARLINGTON, TX 76016	gardens@sbcglobal.net	MARY KATHE BIERNACKI	817-561-6640	4809 OAK SPRINGS DR. ARLINGTON TC 76016	2026-07-01 17:06:55.900872	\N	\N	\N
+716	815	INTERIOR GARDENS AUSTIN	INTERIOR GARDENS AUSTIN ZAHRA DURRANI 107 HALMAR COVE #161 GEORGETOWN, TX  78628	administrator@igaustin.com	\N	512-930-0541	INTERIOR GARDENS AUSTIN ZAHRA DURRANI 107 HALMAR COVE #161 GEORGETOWN, TX 78628	2026-07-01 17:06:55.900872	\N	\N	\N
+717	816	INTERIOR PLANT CONCEPTS	INTERIOR PLANT CONCEPTS 1411 FERNWOOD AVE DALLAS, TX 75216	ipctx@outlook.com	\N	2146698946	544 E. WHEATLAND RD. DUNCONVILLE, TX. 75116 214669-8946 TEXT HIM 1 HOUR TEXT ONLY PLAESE	2026-07-01 17:06:55.900872	\N	\N	\N
+718	817	INTERIOR SOLUTIONS	INTERIOR SOLUTIONS 4712 WILDWOOD RD DALLAS, TX 75205	\N	\N	214-562-5857	INTERIOR SOLUTIONS 4712 wildwood rd DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+719	818	INTERIORS BY LAURI GRIFFIN	INTERIORS BY LAURI GRIFFIN 5045 MILAM DALLAS, TX 75206	lauriduvall@yahoo.com	\N	214-325-0186	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+720	819	INTERIORSCAPE SERVICE	INTERIORSCAPE SERVICE 1138 N. CANTERBURY CT. DALLAS, TX 75208	r.mankin@att.net	\N	972-263-6247	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+721	820	INVITATION WAREHOUSE	INVITATION WAREHOUSE 7165 ROLLING FORK DR DALLAS, TX 75227	\N	LOIS LANE	214-381-6367	INVITATION WAREHOUSE 7165 ROLLING FORK DR DALLAS, TX 75227	2026-07-01 17:06:55.900872	\N	\N	\N
+722	821	IRIS' BLOOMS (ROCKWALL WEDDING CHAPEL)	IRIS' BLOOMS (ROCKWALL WEDDING CHAPEL) 1630 COASTAL DRIVE ROCKWALL, TX 75087	irissmith.rwc@sbcglobal.net	IRIS SMITH	214-226-9858	IRIS' BLOOMS (ROCKWALL WEDDING CHAPEL) 1630 COASTAL DRIVE ROCKWALL, TX 75087	2026-07-01 17:06:55.900872	\N	\N	\N
+723	822	IRVING FLOWER GIFTS<<STEVE>>	IRVING FLOWER GIFTS<<STEVE>> 1228 N. BELTLINE RD IRVING, TX 75061	\N	STEVE	972-513-9800	IRVING FLOWER GIFTS<<STEVE>> 1228 N. BELTLINE RD IRVING, TX 75061	2026-07-01 17:06:55.900872	\N	\N	\N
+724	823	IT'S PERFECTLY CLEAR	IT'S PERFECTLY CLEAR. 4942 THUNDER RD DALLAS 75244	\N	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+725	824	ITTY BITTY PLANTIES	ITTY BITTY PLANTIES 2301 CHAD LANE GRANBURY, TX 76047	ittybittyplanties@gmail.com	\N	817-905-9153	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+726	825	IVAN WALTON DESIGN	IVAN WALTON DESIGN 5225 FLEETWOOD OAKS #113 DALLAS, TX 75235	ivan_walton@yahoo.com	IVAN WALTON	\N	6325 PRESTON PARKWAY DALLAS TX CALL W/ETA 214-505-4312 DO NOT SHOW INVOICE after 12 noon please!	2026-07-01 17:06:55.900872	\N	\N	\N
+727	826	IVY HALL	IVY HALL 3933 WENTWOOD DR DALLAS, TX. 75225	\N	\N	972-754-0213	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+728	827	IVY JANE	IVY JANE 3320 NORTHWEST CROSSING NORTHLAKE, TX 76247	jamie@ivyjaneplants.com	\N	903-824-3057	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+729	828	IVY LEAGUE BOTANY CLUB	IVY LEAGUE BOTANY CLUB AUTUMN BARKER 4608 SHERWYN DR. AUSTIN, TX  78725	ivyleaguebotanyclub@gmail.com	\N	512-470-2027	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+730	829	IVY PLANTS	IVY PLANTS 2000 HILLVIEW ST MESQUITE, TX 75149	\N	\N	972-595-8083	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+731	830	J & E WHOLESALE	J & E WHOLESALE 515 S. CROCKETT AMARILLO, TX 79106	doug.jne@gmail.com	\N	806-372-2301	J & E WHOLESALE 515 S. CROCKETT AMARILLO, TX 79106	2026-07-01 17:06:55.900872	\N	\N	\N
+732	831	J & J DESIGN GROUP	J & J DESIGN GROUP 1410 SERENO DR DALLAS, TX 75218	\N	\N	214-244-2525	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+733	832	J AND C DESIGN	J AND C DESIGN 2223 LIPSCOMB FT. WORTH, TX 76110	\N	CHRIS WHANGER	214-641-7354	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+734	833	J BROWN FOR THE HOME	J BROWN FOR THE HOME 121 COLLEGE DR. TEXARKANA, TX 75503	jbrown2607@aol.com	JEFF BROWN	903-793-4114	J BROWN FOR THE HOME 121 COLLEGE DR. TEXARKANA, TX 75503	2026-07-01 17:06:55.900872	\N	\N	\N
+735	834	J. R. LANDSCAPING	J. R. LANDSCAPING 5805 BUFFRIDGE DALLAS, TX 75252	\N	ROBERT RODRIGUEZ	214-906-1799	J. R. LANDSCAPING 5805 BUFFRIDGE DALLAS, TX 75252	2026-07-01 17:06:55.900872	\N	\N	\N
+736	835	JABO'S ACE HARDWARE	JABO'S ACE HARDWARE 1580 KELLER PKWY. SUITE 50 KELLER, TX 76248	vida@jabosace.com	BRANDY	817-482-1000	JABO'S ACE HARDWARE 1580 KELLER PKWY. SUITE 50 KELLER, TX 76248	2026-07-01 17:06:55.900872	\N	\N	\N
+737	836	JAC FLORAL DESIGN	JAC FLORAL DESIGN 117 NEWMAN RD. SHERMAN, TX 75090	jacfloraldesign@gmail.com	\N	469-552-4242	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+738	837	JACKALOPE PLANT CO.	JACKALOPE PLANT CO. 135 OLIVE ST. KELLER, TX 76248	meghan@jackalopeplantco.com	\N	817-937-6201	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+739	838	JACKIE'S ANTIQUES	JACKIE'S ANTIQUES 561 MAPLE LANE FAIRVIEW, TX 75069	jackiehelsley@att.net	\N	214-679-9947	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+740	839	JACKSON'S POTTERY	JACKSON'S POTTERY 2146 EMPIRE CENTRAL ATTN; ACCOUNTS PAYABLE DALLAS, TX 75235	ap@jacksonshg.com;ARohde@jacksonshg.com	LAURA DIAL	214-350-9200	JACKSON'S POTTERY 6950 LEMMON AVE DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+741	840	JACKSON DURHAM	JACKSON DURHAM 1272 SECURITY DR DALLAS, TX 75247	elaine@jacksondurham.com	HEATH RAY	214-780-0257	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+742	841	JADE AND CLOVER	JADE AND CLOVER 2635 MAIN ST. DALLAS, TX 75226	giselle@jadeandclover.com	\N	214-663-2337	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+743	842	JADE OMNI GROUP	JADE OMNI GROUP 2512 PROGRAM DR. #101 DALLAS, TX 75220	\N	\N	469-810-6819	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+744	843	JARDINAGE	JARDINAGE INTERIORS 4413 OVERLOOK CT GRANDBURY TX 76049 LEADIE 682-553-9951	david@jardinageint.com	\N	817-467-5321	6020 west parker rd. plano tx call w/eta 817-726-6360 david go to south entrance	2026-07-01 17:06:55.900872	\N	\N	\N
+745	844	JASE JONES & ASSOCIATES	JASE JONES & ASSOCIATES 603 FIRST ST. TERRELL, TX 75160	jason@jasejones.com	\N	469-474-7022	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+746	845	JASON OSTERBERGER DESIGNS	JASON OSTERBERGER DESIGNS PO BOX 2381 COPPELL, TX 75019	jason@osterbergergroup.com	JASON OSTERBERGER	972-304-8700	JASON OSTERBERGER DESIGNS PO BOX 2381 COPPELL, TX 75019	2026-07-01 17:06:55.900872	\N	\N	\N
+747	846	JAY INTERIORS	JAY INTERIORS 10614 PAGEWOOD DR. DALLAS, TX. 75230	julie1jayinteriors@gmail.com	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+748	847	JAYNES MEMORIAL CHAPEL	JAYNES MEMORIAL CHAPEL 811 S. COCKRELL HILL RD. DUNCANVILLE, TX 75137	Jayneslaura@gmail.com	\N	972-298-2334	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+749	848	JEAN'S GREENS	JEAN'S GREENS 645 WESTER RD. FERRIS, TX. 75125	plantlady645@rocketmail.com	\N	214-912-6412	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+750	849	JEAN TOBEY	JEAN TOBEY 313 W. 19TH ST. HOUSTON, TX  77035	jtobey66@yahoo.com	\N	941-400-0589	WE DO NOT DELIVER TO HOUSTON	2026-07-01 17:06:55.900872	\N	\N	\N
+751	850	JEFFERSON TOWER EVENTS	JEFFERSON TOWER EVENTS 351 W. JEFFERSON BLVD SUITE 800 DALLAS, TX 75208	info@jeffersontowerevents.com	\N	214-946-4238	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+752	851	JENA SALMON INTERIOR DESIGN	JENA SALMON INTERIOR DESIGN 6671 CRESTWAY CT. DALLAS, TX 75230	jena@jenasalmon.com	\N	404-863-5998	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+753	852	JENNIFER'S GARDENS	JENNIFER'S GARDENS 1101 WEST 31ST ST. AUSTIN, TX 78705	madeleinemlandry@gmail.com	\N	512-569-6406	JENNIFER'S GARDENS 1101 WEST 31ST ST. AUSTIN, TX 78705	2026-07-01 17:06:55.900872	\N	\N	\N
+754	853	JESSICA'S FLOWER & GIFTS	JESSICA'S FLOWER & GIFTS 612 CEDAR ST CEDAR HILL, TX 75104	jfgcedarhill@gmail.com	JESSICA HAHN	972-291-3848	JESSICA'S FLOWER & GIFTS 612 CEDAR ST CEDAR HILL, TX 75104	2026-07-01 17:06:55.900872	\N	\N	\N
+755	854	JILL FORTNEY PRODUCTIONS,INC.	JILL FORTNEY PRODUCTIONS, INC. 6229 INDIAN CREEK DR. FT. WORTH, TX 76107	jill@jfortney.com	\N	817-738-8018	BLOOMOLOGY 1332 CRAMTON ST. DALLAS TX 817-738-8018	2026-07-01 17:06:55.900872	\N	\N	\N
+756	855	JIM IRWIN FLORAL	JIM IRWIN FLORAL 3801 CAMP BOWIE BLVD. FT WORTH, TX 76107	lrk.jimirwinfloral@att.net	JIM	817-377-4721	JIM IRWIN FLORAL 3801 CAMP BOWIE BLVD. FT WORTH, TX 76107	2026-07-01 17:06:55.900872	\N	\N	\N
+757	856	JIMMY ANDERSON	JIMMY ANDERSON 1019 DANDELION DR MESQUITE, TX 75149	\N	\N	214-766-1932	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+758	857	JJ'S PLANTS	JJ'S PLANTS 5814 WHITE SETTLEMENT RD. WESTWORTH VILLAGE, TX 76114-4263	justjoan4354@yahoo.com	\N	817-578-6097	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+759	858	JKS BY DESIGN	JKS BY DESIGN, LLC JANET SHERLIP 4411 SERENITY TRAIL MCKINNEY, TX 75071	janet@jksdesign.com	\N	469-795-1316	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+760	859	JO.AN FLORAL DESIGN	JO.AN FLORAL DESIGN LLC 127 THISTLE LANE MAXWELL, TX 78656	design@joanflorals.com	\N	737-318-6721	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+761	860	JOAN O'REILLY	JOAN O'REILLY 525  CHEROKEE LAKE  CT GRANBURY, TX 76049	\N	\N	817-578-6097	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+762	861	JOCHE W. FLORAL & EVENT DESIGN	JOCHE W. FLORAL & EVENT DESIGN 3001 QUEBEC ST. SUITE 107 DALLAS, TX 75247	joche@jochew.com	\N	214-690-8851	JOCHES W.FLORAL & EVENT DESIGNS 3001 QUEBEC ST.#107 DALLAS, TX 75247	2026-07-01 17:06:55.900872	\N	\N	\N
+763	862	JOE KAIN HOMES, INC.	JOE KAIN HOMES, INC. 5319 CALADIUM DR DALLAS, TX 75229	arleen@joekainhomes.com	\N	972-437-5600	JOE KAIN HOMES, INC. 5319 CALADIUM DR DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+764	863	JOEL MONTOYA	JOEL MONTOYA 8817 RUSTOWN DR DALLAS, TX 75228	\N	JOEL MONTOYA	214-535-6316	JOEL MONTOYA 8817 RUSTOWN DR DALLAS, TX 75228	2026-07-01 17:06:55.900872	\N	\N	\N
+765	864	JOHN LENDVAY LANDSCAPE DESIGN	JOHN LENDVAY LANDSCAPE DESIGN 155 CLASSEN DR. DALLAS, TX 75218	\N	\N	214-293-5789	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+766	865	JOHN R YOUNG & ASSOCIATES	JOHN R YOUNG & ASSOCIATES PO BOX 180189 DALLAS, TX. 75218	\N	\N	214-321-5059	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+767	866	JOHN TURNER ASSC.	JOHN TURNER ASSC. 19 GLENMEADOW CT. DALLAS, TX 75225	\N	JOHN TURNER	214-642-0091	JOHN TURNER ASSC. 19 GLENMEADOW CT. DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+768	867	JONMAR SERVICES	JONMAR SERVICES 1930 HINTON DRIVE IRVING, TX 75061	\N	\N	972-488-1404	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+892	991	LUMIN ARTE DESIGNS, LLC	LUMIN ARTE DESIGNS, LLC 11616 TUSCANY WAY DALLAS, TX. 75218	\N	\N	214-914-4503	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+769	868	JONSON LANDSCAPE & DESIGN	JONSON LANDSCAPE & DESIGN 915 N. BUCKNER DALLAS, TX 75218	\N	ROSIE JONSON	972-854-1034	JONSON LANDSCAPE & DESIGN 915 N. BUCKNER DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+770	869	JORDAN FLOWERS & EVENTS	JORDAN FLOWERS & EVENTS JORDANFLOWERS 502 GREEN VALLEY COVE PFLUGERVILLE, TX 78660	info@jordanflowersandevents.com	\N	512-718-1688	JORDAN FLOWERS & EVENTS JORDANFLOWERS 502 GREEN VALLEY COVE PFLUGERVILLE, TX 78660	2026-07-01 17:06:55.900872	\N	\N	\N
+771	870	JOSEPH APARICIO INTERIORS	JOSEPH APARICIO INTERIORS 2268 MONITOR ST. SUITE A DALLAS, TX 75244	joseph@josephaparicio.com	\N	214-385-7449	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+772	871	JOSEPH MINTON ANTIQUES	JOSEPH MINTON ANTIQUES 1411 SLOCUM DALLAS, TX 75207	\N	JOSEPH MINTON	214-744-3111	JOSEPH MINTON ANTIQUES 1411 SLOCUM STREET DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+773	872	JOY COOK DESIGN	JOY COOK DESIGN 3737 ATWELL ST. DALLAS, TX 75209	joy@joycookdesigns.com	\N	214-443-0075	1332 crampton st dallas tx 214-356-7190	2026-07-01 17:06:55.900872	\N	\N	\N
+774	873	JOYCE FLORIST	JOYCE FLORIST 2729 SOUTH HAMPTON RD. DALLAS, TX 75224	\N	\N	214-942-1776	JOYCE FLORIST 2729 SOUTH HAMPTON RD. DALLAS, TX 75224	2026-07-01 17:06:55.900872	\N	\N	\N
+775	874	JPB DESIGN STUDIO	JPB DESIGN STUDIO 503 W 38TH ST AUSTIN, TX 78705	MATT@JPBDESIGNSTUDIO.COM	\N	512-329-1926	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+776	875	JRAD CREATIVE	JRAD CREATIVE, LLC 1409 BOTHAM JEAN BLVD. #841 DALLAS, TX 75215	jeff@fibonacciplants.com	\N	469-600-6196	JRAD CREATIVE LLC 2928 MAIN ST. DALLAS, TX 75226 suit 102	2026-07-01 17:06:55.900872	\N	\N	\N
+777	876	JS FLOWERS	JS FLOWERS JASON SARENITO ROBERSON 3550 COUNTRY SQ DR #605 CARROLLTON, TX 75006	jasonsarenito@gmail.com	\N	469-900-8095	4151 BELTLINE RD #109 ADDISON TX 75001 501-554-4961	2026-07-01 17:06:55.900872	\N	\N	\N
+778	877	JULIA'S FLORAL	JULIA'S FLORAL 2431 SHORECREST DR. SUITE C-6 DALLAS, TX 75235	\N	\N	214-708-7237	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+779	878	JUNIOR CHARITY LEAGUE	JUNIOR CHARITY LEAGUE 7208 WINTERWOOD LANE DALLAS, TX 75248	mariepper@aol.com	\N	972-672-4015	JUNIOR CHARITY LEAGUE 7208 WINTERWOOD LANE DALLAS, TX 75248	2026-07-01 17:06:55.900872	\N	\N	\N
+780	879	JUNIPER TREE MARKET	JUNIPER TREE MARKET 301 WEST MERCER ST., STE A DRIPPING SPRINGS, TX 78620	JUNIPERTREEMARKET@GMAIL.COM	\N	512-363-2183	JUNIPER TREE MARKET 301 WEST MERCER ST., STE A DRIPPING SPRINGS, TX 78620	2026-07-01 17:06:55.900872	\N	\N	\N
+781	880	JUST FOR YOU	JUST FOR YOU 601 LOS VISTA DRIVE LEANDER, TX 78641	jfyfloral@gmail.com	EVE	512-267-9182	JUST FOR YOU 601 LOS VISTA DRIVE LEANDER, TX 78641	2026-07-01 17:06:55.900872	\N	\N	\N
+782	881	JUST ONE MORE PLANTS	JUST ONE MORE PLANTS 2309 FOREST HILL LN. GRANBURY, TX 76048	justonemoreplants.sell@gmail.com	\N	949-545-8781	JUST ONE MORE PLANT 1412 SHROPSHIRE ST. KELLER, TX 76248 949-545-8781	2026-07-01 17:06:55.900872	\N	\N	\N
+783	882	JWP LTD	JWP LTD 2114 IRVING BLVD. DALLAS, TX 75207	\N	JOHANNA/JOJO WHITE	214-741-5597	JWP LTD 2114 IRVING BLVD. DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+784	883	K. COOPER CREATIVE	K. COOPER CREATIVE 3930 VAN NESS LN. DALLAS, TX 75220	kcoopercreative@gmail.com	\N	214-793-7868	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+785	884	KAELSON & CO.	KAELSON & CO. 501-B SECOND AVE DALLAS, TX. 75226	\N	\N	214-828-1414	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+786	885	KALLISTO EVENTS	KALLISTO EVENTS 1690 E. FM 875 MIDLOTHIAN, TX 76065	julia@kallistoevents.com	\N	909-238-0204	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+787	886	KANE & COMPANY	KANE & COMPANY 170 LESLIE ST. SUITE A DALLAS, TX 75207	mkr@kaneandco.com	\N	214-214-4144	4200 shenandoah st dallas tx	2026-07-01 17:06:55.900872	\N	\N	\N
+788	887	KAREN LOCHRIDGE	KAREN LOCHRIDGE 107 N. LAVACA WHITNEY, TX 76692	karenlochridge@gmail.com	\N	254-694-5997	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+789	888	KAREN MUSGRAVES	KAREN MUSGRAVES 125  N. JOHNSON ST. MINEOLA, TX 75773	karen@karenmusgraves.com	\N	903-262-8068	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+790	889	KASPAR HOUSE	KASPAR HOUSE 21909 SURREY LN LAGO VISTA, TX	MIKEKASPAR@AOL.COM	\N	202-277-1365	501 BRANCH STREET TAYLOR, TX 76574	2026-07-01 17:06:55.900872	\N	\N	\N
+791	890	KATHERINE MAXWELL INTERIORS	KATHERINE MAXWELL INTERIORS 5420 SPRINGMEADOW DR. DALLAS, TX 75229	skmaxwell16@gmail.com	SUSAN K MAXWELL	214-368-1006	KATHERINE MAXWELL INTERIORS 5420 SPRINGMEADOW DR. DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+792	891	KATIE'S DESIGN & THE ART OF FLORISTRY LLC	KATIE'S DESIGN & THE ART OF FLORISTRY LLC KATIE GRIEGO 115 S. WATER PLEASANTON, TX 78064	katiesdesign22@gmail.com	\N	830-200-6134	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+793	892	KEEP COMPANY	KEEP COMPANY CRISMAN LIVERMAN 826 CEDAR HILL AVE DALLAS, TX 75205	crismankeeling@gmail.com	\N	214-934-0959	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+794	893	KEI KAMESAWA	KEI KAMESAWA PO BOX 612331 DALLAS, TX 75261	\N	KEI KAMESAWA	469-426-6767	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+795	894	KEITH CREEL LANDSCAPES	KEITH CREEL LANDSCAPES 5212 FARQUHAR DALLAS, TX 75209	\N	CHRISTA CHANCE	214-350-4181	KEITH CREEL LANDSCAPES 5212 FARQUHAR DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+796	895	KEITH S. GIESE/ FLORAL DESIGN	KEITH S. GIESE 18959 DALLAS PKWY DALLAS, TX 75287	\N	KEITH GIESE	\N	KEITH S. GIESE/ FLORAL DESIGN	2026-07-01 17:06:55.900872	\N	\N	\N
+797	896	KELLER FLORIST AND GIFTS	KELLER FLORIST AND GIFTS 901 KELLER PKWY SUITE E KELLER, TX 76244	bcanokbj@yahoo.com	\N	817-881-5442	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+798	897	KENSAI-CHRISTIAN DESIGNS	KENSAI-CHRISTIAN DESIGNS CYLYNN BRASWELL 15817 BENT ROSE WAY FT. WORTH, TX 76177	cc20tsu@gmail.com	\N	903-681-6296	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+799	898	KGH DESIGN	KGH DESIGH ASSOC 5154 STONEGATE RD DALLAS, TX. 75209	\N	\N	214-350-8813	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+800	899	KIERAN TROPICAL PLANT SERVICE	KIERAN TROPICAL PLANT SERVICES 7224 WESTLAKE AVE. DALLAS, TX75214	\N	\N	214-693-0251	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+801	900	KIM'S CREATIONS	KIM'S CREATIONS 10010 ANTELOPE WAY FORNEY, TX 75126	kims1086@gmail.com	KIM FRANKLIN	972-357-7687	KIM'S CREATIONS 10010 ANTELOPE WAY FORNEY, TX 75126	2026-07-01 17:06:55.900872	\N	\N	\N
+802	901	KINDRED OAKS	KINDRED OAKS 2100 C.R. 176 GEORGETOWN, TX 78628	elaine@kindredoaks.com	KATHERINE MAGUIRE	512-260-9690	KINDRED OAKS 2100 C.R. 176 GEORGETOWN, TX 78628	2026-07-01 17:06:55.900872	\N	\N	\N
+803	902	KING FEED LLC	KING FEED LLC P.O. BOX 110 WIMBERLEY, TX 78676	kingfeednursery@gmail.com	\N	512-847-2618	KING FEED LLC 14210 RANCH ROAD 12 WIMBERLEY, TX 78676	2026-07-01 17:06:55.900872	\N	\N	\N
+804	903	KING FLORIST OF AUSTIN	KING FLORIST OF AUSTIN 1806 W KOENIG LANE AUSTIN, TX 78757	contact@kingflorist.com	BENOIT	512-453-6633	KING FLORIST OF AUSTIN 1806 W KOENIG LANE AUSTIN, TX 78757	2026-07-01 17:06:55.900872	\N	\N	\N
+805	904	KITA'S GREEN GALLERY	KITA'S GREEN GALLERY 1857 NIGHT OWL WAY MESQUITE, TX 75181	\N	\N	757-338-3770	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+806	905	KNOT TREE HILL	KNOR TREE HILL P.O. BOX 184 WOODLAWN, TX 75694	knottreehill@gmail.com	\N	903-472-9347	266 WOODLAWN OAKS RD. JEFFERSON, TX 75657	2026-07-01 17:06:55.900872	\N	\N	\N
+807	906	KOKE	KOKE 8246 SAN BENITO WAY DALLAS, TX 75218	\N	PATTY GOYA	214-923-8571	KOKE 8246 SAN BENITO WAY DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+808	907	KRAUSE LANDSCAPE	KRAUSE LANDSCAPE CONTRACTORS, INC PO BOX 10241 AMARILLO, TX. 79116-0241	kelci@krauselandscape.cpm	\N	806-373-4591	1400 MARYLAND DR IRVING, TX 75061	2026-07-01 17:06:55.900872	\N	\N	\N
+809	908	KRISTI SEVERN INTERIORS	KRISTI SEVERN INTERIORS 136 BRENTWOOD DR. HEATH, TX 75032	kristisevern@mac.com	\N	214-679-8660	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+810	909	KTH DESIGNS	KTH DESIGNS 4406 NORMANDY DALLAS, TX. 75205	\N	\N	214-587-9990	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+811	910	KURT ANDERSON DESIGN	KURT ANDERSON DESIGN 3716 NORTH VERSAILLES DALLAS, TX 75209	\N	KURT ANDERSON	214-415-5454	500 CRESENT COURT DALLAS TX STANLEY KORSHACK CALL 30MIN W/ETA 214-415-5454	2026-07-01 17:06:55.900872	\N	\N	\N
+812	911	KYLE FLOWER SHOP LLC	KYLE FLOWER SHOP LLC KRISTY CLANTON 21150 S IH 35, STE E KYLE, TX 78640	kyledesigners@yahoo.com;kyleflowershop@yahoo.com	\N	512-504-3528	KYLE FLOWER SHOP LLC KRISTY CLANTON 21150 S IH 35, STE E KYLE, TX 78640	2026-07-01 17:06:55.900872	\N	\N	\N
+813	912	KYLE TATUM, STYLIST	KYLE TATUM, STYLIST 6903 HAMMOND AVE DALLAS, TX 75223	kyletatum@hotmail.com	\N	214-212-0084	2292 VANTAGE #100 DALLAS TX 75207 CALL W/ETA FRONT DOR 214-435-7733 KYLE	2026-07-01 17:06:55.900872	\N	\N	\N
+814	913	KYLE WOLLOCK INTERIORS	KYLE WOLLOCK INTERIORS 2615 WHITE ROCK RD. DALLAS, TX 75214	kylewollockinteriors@gmail.com	\N	303-815-7865	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+815	914	LA FOOFARAW INC.LLC	LA FOOFARAW INC.LLC 1008 E. FIFTEENTH ST. PLANO, TX 75074	\N	MICHAEL HAMILTON	972-998-3953	LA FOOFARAW INC.LLC 1008 E. FIFTEENTH ST. PLANO, TX 75074	2026-07-01 17:06:55.900872	\N	\N	\N
+816	915	LA FOY SERVICES, INC.	LA FOY SERVICES, INC. 5960 W. PARKER RD. #278-180 PLANO, TX 75093	\N	\N	972-783-8699	LA FOY SERVICES, INC. 5960 W. PARKER RD. #278-180 PLANO, TX 75093	2026-07-01 17:06:55.900872	\N	\N	\N
+817	916	LA JEANNE'S PLANTS N THINGS	LA JEANNE'S PLANTS N THINGS 6909 ENOS ROAD KINGSTON, OK 73439	lajeannes@gmail.com	LA JEANN REID	580-564-2613	LA JEANNE'S PLANTS N THINGS	2026-07-01 17:06:55.900872	\N	\N	\N
+818	917	LA PANERIA USA INC.	LA PANERIA USA INC. 13733 NEUTRON RD. FARMERS BRANCH, TX 75244	purchasing@sanmartinbakery.com	\N	469-687-0373	3120 McKinney Ave Dallas, TX 75204	2026-07-01 17:06:55.900872	\N	\N	\N
+819	918	LA TEE DA FLOWERS	LA TEE DA FLOWERS 4520 S BROADWAY TYLER, TX 75701	events.lateeda@gmail.com	THOMAS & BARBARA TIDWELL	903-566-1566	LA TEE DA FLOWERS 4520 S BROADWAY 903-566-1586 TYLER, TX 75701	2026-07-01 17:06:55.900872	\N	\N	\N
+820	919	LACEWING SUSTAINABLE GARDENING	LACEWING SUSTAINABLE GARDENING 4414 DOVEMEADOW DR. AUSTIN, TX  78744	lmbuttrill@gmail.com	\N	513-324-4623	LACEWING SUSTAINABLE GARDENING 4414 DOVEMEADOW DR. AUSTIN, TX  78744	2026-07-01 17:06:55.900872	\N	\N	\N
+821	920	LADYBUG LANDSCAPE <PLANO>	LADYBUG LANDSCAPE <PLANO> 3901 LEATHERTOP DRIVE PLANO, TX 75075	\N	MARK	\N	LADYBUG LANDSCAPE <PLANO> 3901 LEATHERTOP DRIVE PLANO, TX 75075	2026-07-01 17:06:55.900872	\N	\N	\N
+822	921	LAKE DELTA GARDENS	LAKE DELTA GARDEN 7706 CARUTH BLVD. DALLAS, TX 75205	\N	SONDRA	214-522-3001	LAKE DELTA GARDENS 7706 CARUTH BLVD DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+823	922	LAKE HIGHLANDS FLOWERS	LAKE HIGHLANDS FLOWERS 9661 AUDELIA RD #340 DALLAS, TX 75238	shoplhf@yahoo.com	\N	214-340-9950	LAKE HIGHLANDS FLOWERS 9661 AUDELIA RD #340 DALLAS, TX 75238 Call w/ETA 214-340-9950	2026-07-01 17:06:55.900872	\N	\N	\N
+824	923	LAKE HIGHLANDS PRESBYTERIAN	LAKE HIGHLANDS PRESBYTERIAN CHURCH 8525 AUDELIA DALLAS, TX. 75238	derrada@lhpres.org	\N	214-348-2133	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+825	924	LAKELINE FLORIST & GIFTS	LAKELINE FLORIST & GIFTS 12233 RM 620 N. AUSTIN, TX 78750	sales@lakelineflorist.com	JAE/YONG	512-219-6020	LAKELINE FLORIST & GIFTS 12233 RM 620 N. AUSTIN, TX 78750	2026-07-01 17:06:55.900872	\N	\N	\N
+826	925	LAKESIDE FLORIST<ROCKWALL>	LAKESIDE FLORIST<ROCKWALL> 506 N. GOLIAD ST. ROCKWALL, TX 75087	lakesideflorist@yahoo.com	\N	972-771-4600	LAKESIDE FLORIST<ROCKWALL> 506 N. GOLIAD ST. ROCKWALL, TX 75087	2026-07-01 17:06:55.900872	\N	\N	\N
+827	926	LAKEWOOD SUCCULENT DESIGN	LAKEWOOD SUCCULENT DESIGN 7215 LAKEWOOD BLVD. DALLAS, TX 75214	lakewoodsucculentdesign@gmail.com	\N	469-733-2091	LAKEWOOD SUCCULENT DESIGN 7215 LAKEWOOD BLVD. DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+828	927	LAKEWOOD UNITED METHODIST	LAKEWOOD UNITED METHODIST CHURCH 2443 ABRAMS RD. DALLAS, TX. 75214	barbarabrooks747@yahoo.com	\N	214-823-9623	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+829	928	LAMBERT'S LANDSCAPE	LAMBERT'S LANDSCAPE ATTN: ACCOUNTS PAYABLE P.O. BOX 565787 DALLAS, TX 75356	accountspayable@lamberts.net	PAUL FIELDS	214-350-8350	LAMBERT'S LANDSCAPE P.O. REQUIRED/PURCHASER NAME 2950 IRVING BLVD. DALLAS, TX 75247	2026-07-01 17:06:55.900872	\N	\N	\N
+830	929	LANCASTER & ASSOC.	LANCASTER & ASSOC. 10910 ALDER CR. DALLAS, TX 75238	\N	\N	214-340-0359	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+831	930	LAND ART OF ROCKWALL	LAND ART OF ROCKWALL 4571 ST. HWY 276 ROCKWALL, TX 75032	landartofrockwall@att.net	\N	972-771-6025	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+832	931	LAND SEA SOUL LANDSCAPING	LAND SEA SOUL LANDSCAPING KEVIN WEDEEN-ZITTLE 5900 BALCONES DRIVE STE 100 AUSTIN, TX 78723	KEVIN@LANDSEASOULLANDSCAPING.COM	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+833	932	LANDECOR	LANDECOR 7300 STATE HIGHWAY SB#640 MCKINNEY, TX 75050	ap@landecorllc.com	\N	469-291-8176	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+834	933	LANDSCAPE & FLORAL GROUP	LANDSCAPE & FLORAL GROUP 4516 LOVERS LANE #110 DALLAS, TX 75225	christi@landscapeandfloral.com	CHRISTIE STOVALL	214-679-6337	will call back with address	2026-07-01 17:06:55.900872	\N	\N	\N
+835	934	LANDY'S LANDSCAPE INC.	LANDY'S LANDSCAPE INC. PO BOX 743215 DALLAS, TX 75374	michele@saintpaulchurch.org	GREG	214-536-8659	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+836	935	LANE'S	LANE'S KIMBERLY NIELSEN 1601 AUSTIN AVE WACO, TX  76701	kimberly@experiencelanes.com	\N	254-754-3641	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+837	936	LANE FLORIST	LANE FLORIST 4655 N. CENTRAL EXPWY. DALLAS, TX 75205	angela@laneflorist.com	ANGELA	214-363-1637	LANE FLORIST 4655 N. CENTRAL EXPWY. DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+838	937	LANGFORD PROPERTY CO	LANGFORD PROPERTY CO 5924 TWIN COVES DALLAS, TX. 75248	\N	\N	972-788-2232	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+839	938	LARKSPUR SPECIALTY FLORISTS	LARKSPUR SPECIALTY FLORISTS AMY HANRAHAN 2920 COHOBA DRIVE AUSTIN TX 78748	amybhanrahan@gmail.com	\N	512-914-0026	LARKSPUR SPECIALTY FLORISTS AMY HANRAHAN 2920 COHOBA DRIVE AUSTIN, TX 78748	2026-07-01 17:06:55.900872	\N	\N	\N
+840	939	LASHELL'S UNIQUE DESIGNS	LASHELL'S UNIQUE DESIGNS 3032 ST. NICHOLAS DR. DALLAS, TX 75233	\N	LASHELL BOOKER	214-944-5411	LASHELL'S UNIQUE DESIGNS 3032 ST. NICHOLAS DR. DALLAS, TX 75233	2026-07-01 17:06:55.900872	\N	\N	\N
+841	940	LATTICE STUDIO	BIG RED SUN 1312 E. CESAR CHAVEZ AUSTIN, TX 78702	operations@latticestudiolandscape.com	SELENA SOUDERS	512-480-0688	BIG RED SUN 1312 E. CESAR CHAVEZ AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+842	941	LAURA HOLLAND	LAURA HOLLAND 3946 FAR WEST BLVD. AUSTIN, TX 78731	lholland1116@gmail.com	\N	512-796-4760	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+843	942	LAUREN AND PLANTS	LAUREN AND PLANTS 2221 WAKECREST DR. FT. WORTH, TX 76108	lauren@laurenandplants.com	\N	817-992-0201	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+844	943	LAUREN LIGHTFOOT	LAUREN LIGHTFOOT 6573 ASCOT LN. DALLAS, TX 75214 469-348-8074	lauren.lightfoot@gmail.com	\N	469-348-8074	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+845	944	LAUREN REYNOLDS DESIGN	LAUREN REYNOLDS DESIGN 6706 JOYCE WAY DALLAS, TX 75225	lauren@laurenreynoldsdesign.com	\N	214-405-7344	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+846	945	LAURENT MOREAU	LAURENT MOREAU 5600 W LOVERS LN #125 DALLAS, TX. 75209	brianna@iaagency.com	\N	214-350-7897	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+847	946	LAURYNAS TANKEVICIUS	LAURYNAS TANKEVICIUS 5720 MARGUITA  AVE. DALLAS, TX 75206	alliswell360@gmail.com	\N	3129545+6405	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+848	947	LAWN AND GARDEN ALCHEMY	LAWN AND GARDEN ALCHEMY 6006 POMPTON CT. DALLAS, TX 75248-2136	lawnandgardenalchemy@gmail.com	\N	214-585-3190	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+849	948	LCP ORIGINAL TOUCH	LCP ORIGINAL TOUCH 8769 SCOTTYS LAKE LN. THE COLONY, TX 75056	lcpdesign@me.com	\N	214-906-0452	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+850	949	LE MONT	LE MONT 7152 FAIR OAKS AVE. UNIT 2179 DALLAS, TX 75231	erick_md15@yahoo.com	ERICK MONTERIUSIO	469-685-7180	LE MONT 7152 FAIR OAKS AVE UNIT 2179 DALLAS, TX 75231	2026-07-01 17:06:55.900872	\N	\N	\N
+851	950	LEAF & STEM CO.	LEAF & STEM CO. 1206 BOW CREEK DR. DUNCANVILLE, TX 75116	pchavez06@gmail.com	\N	214-868-2397	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+852	951	LEAF LANDSCAPE SUPPLY	LEAF LANDSCAPE SUPPLY 5700 HWY. 290 W. AUSTIN, TX  78735	admin@leaflandscapesupply.com	\N	512-288-5900	LEAF LANDSCAPE SUPPLY 5700 HWY. 290 W. AUSTIN, TX 78735	2026-07-01 17:06:55.900872	\N	\N	\N
+853	952	LEAGUE OF WOMEN VOTERS	LEAGUE OF WOMEN VOTERS 6060 N. CENTRAL #500 DALLAS, TX 75206	\N	ANNADOLE ROSS	214-688-4125	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+854	953	LEISA SNYDER	LEISA SNYDER INTERIORS 6115 OAKCREST RD DALLAS, TX. 75248	\N	\N	972-385-8810	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+855	954	LEMON TREE FLORIST > > > > >	LEMON TREE FLORIST > > > > > PO BOX 374 KEMP, TX 75143	kelleymjones@hotmail.com	RHONDA HAZELUP	903-498-7211	LEMON TREE FLORIST > > > > > NORTHLAKE SHOPPING CENTER Hwy 274 (5mi frm cntr of city) 106 HWY 274 KEMP, TX 75143	2026-07-01 17:06:55.900872	\N	\N	\N
+856	955	LENA PARKER DESIGNS	LENA PARKER DESIGNS 8602 WEST WILDERNESS WAY SHREVEPORT, LA 71106	\N	\N	318-797-7209	LENA PARKER DESIGNS 8602 WEST WILDERNESS WAY SHREVEPORT, LA 71106	2026-07-01 17:06:55.900872	\N	\N	\N
+857	956	LENNIE LAWLER INTERIORS	LENNIE LAWLER INTERIORS 4527 SHADYHILL DR. DALLAS, TX 75229	lynn@reese.com	LENNIE LAWLER	214-552-0092	LENNIE LAWLER INTERIORS 4527 SHADYHILL DR. DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+858	957	LEONE DESIGNS	LEONE DESIGNS LLC 2410 LUNA DR STE. 100 CARROLLTON, TX 75006	larryleone99@gmail.com	\N	817-614-4491	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+859	958	LEXINGTON DESIGN GROUP	LEXINGTON DESIGN GROUP, INC. 6300 BROOKSHIRE DALLAS, TX. 75230	\N	\N	214-363-5300	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+860	959	LEXLIN RESIDENCE	LEXLIN RESIDENCE 510 ROUND TOP DUNCANVILLE, TX 75116	\N	\N	469-431-8390	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+861	960	LIBERTY GARDENS	LIBERTY GARDENS PO BOX 824722 DALLAS, TX. 75382	libertygardens1@verizon.net	\N	972-271-3314	LIBERTY GARDENS PO BOX 824722 DALLAS, TX. 75382	2026-07-01 17:06:55.900872	\N	\N	\N
+862	961	LIEN HOA BUDDHIST MONASTERY	LIEN HOA BUDDHIST MONASTERY 2014 ROSE ST. IRVING, TX 75061	\N	\N	972-445-1646	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+863	962	LIFESTYLE GARDENS LLC	LIFESTYLE GARDENS LLC 5531 TAMARON COURT DALLAS, TX 75287	dianaharris@sbcglobal.net	DIANA HARRIS	972-248-3602	LIFESTYLE GARDENS LLC 5531 TAMARON COURT DALLAS, TX 75287	2026-07-01 17:06:55.900872	\N	\N	\N
+864	963	LIL RED FLOWER TRUCK	LIL RED FLOWER TRUCK 227 Rushcreek Wylie, TX 75098	info@lilredflowertruck.com	\N	214-534-6277	LIL RED FLOWER TRUCK 227 Rushcreek Wylie, TX 75098	2026-07-01 17:06:55.900872	\N	\N	\N
+865	964	LILAC ANNE COLLECTIVE	LILAC ANNE COLLECTIVE 4507 HOLLAND AVE. DALLAS, TX 75219	lilacannehome@gmail.com	\N	318-447-2317	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+866	965	LILENE FLORALS	Lilene Florals 75 Saint Marks Place Brooklyn, NY 11217	lileneflorals@gmail.com	\N	210-957-9647	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+867	966	LILIES OF THE FIELD	LILIES OF THE FIELD 800 VIA BARCELONA MESQUITE, TX 75150	slpiland@tx.rr.com	\N	214-564-9117	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+868	967	LILIUM FLORAL DESIGNS, LLC	LILIUM FLORAL DESIGNS, LLC 4800 COLLEYVILLE BLVD. COLLEYVILLE, TX 76034	accounting@liliumflorals.com	LISA PRITCHETT	817-481-1565	LILIUM FLORAL DESIGNS 4800 COLLEYVILLE BLVD COLLEYVILLE, TX 76034	2026-07-01 17:06:55.900872	\N	\N	\N
+869	968	LILLIAN SIMONS FLOWERS	LILLIAN SIMONS FLOWERS PO BOX 6281 FT WORTH, TX 76115	lilliansimons1938@gmail.com	\N	817-731-6461	FIRST UNITED METHODIST CHJURCH 800 W.5TH ST. FT WORTH TX 76102	2026-07-01 17:06:55.900872	\N	\N	\N
+870	969	LILLIANNA VINES	LILLIANNA VINES LILLIANNA BOLES 4505 DUVAL ST #107 AUSTIN, TX 78751	HELLO@LILLIANNAVINES.COM	\N	682-309-2533	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+871	970	LILLIES AND PEARLS EVENTS	LILLIES AND PEARLS EVENTS 1113 RISING RIDGE DR. DESOTO, TX 75115	lpearls@gmail.com	\N	972-898-9659	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+872	971	LILLY PROFESSIONAL	LILLY PROFESSIONAL 4002 W.MILLER RD.#140 GARLAND, TX 75041	\N	JULIE LILLY	214-893-5579	LILLY PROFESSIONAL 4002 W.MILLER RD.#140 GARLAND, TX 75041	2026-07-01 17:06:55.900872	\N	\N	\N
+873	972	LINDA'S GARDEN	LINDA'S GARDEN 11232 ASHWOOD DR. DALLAS, TX 75253	lindasgarden1964@outlook.com	\N	214-516-5631	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+874	973	LINDA BALAGIA LANDSCAPE DESIGNS	LINDA BALAGIA LANDSCAPE DESIGNS 2805 BOWMAN AVE. AUSTIN, TX 78703	lindabalagia@gmail.com	LINDA	512-751-2894	LINDA BALAGIA LANDSCAPE DESIGNS 2805 BOWMAN AVE. AUSTIN, TX 78703	2026-07-01 17:06:55.900872	\N	\N	\N
+875	974	LINDA BARROW INTERIORS	LINDA BARROW INTERIORS 1127 JUDSON RD.#126 LONGVIEW, TX 75601	\N	LINDA D BARROW	903-235-2005	LINDA BARROW INTERIORS 1127 JUDSON RD.#126 LONGVIEW, TX 75601	2026-07-01 17:06:55.900872	\N	\N	\N
+876	975	LITTLE BOX NURSERY	LITTLE BOX NURSERY 413 HALTOM ROAD FT. WORTH, TX 76117	littleboxnursery@yahoo.com	\N	817-475-1488	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+877	976	LITTLE LEA'S FLOWER TRUCK	LITTLE LEA'S FLOWER TRUCK 3636 MCKINNEY AVE. #316 DALLAS, TX 75204	sandandsoilflowers@gmail.com	\N	440-554-4060	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+878	977	LIVE INTERIORS	LIVE INTERIORS 6400 CARMEL FALLS CT MCKINNEY, TX. 75070	\N	\N	972-342-1697	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+879	978	LIVE TRENDS DESIGN GROUP	LIVE TRENDS DESIGN GROUP PO BOX 2025 APOPKA, FL 32704	Terah@livetrends.com;chris.vaughn@livetrends.com	\N	407-814-4907	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+880	979	LIVING INTERIORS INC.	LIVING INTERIORS INC. P.O. BOX 5298 SHREVEPORT, LA 71135	livinginteriorsinc@gmail.com	\N	318-797-6837	1403 NOBLE DRIVE LONGVIEW TX 75601 20 MIN'S W/ETA 318-797-6837 KRISTY	2026-07-01 17:06:55.900872	\N	\N	\N
+881	980	LIZZIE BEE'S FLOWER SHOPPE	LIZZIE BEE'S FLOWER SHOPPE 506 LOCKWOOD DR. #200 RICHARDSON, TX 75081	lizziebeesflowershoppe@gmail.com	ELIZABETH BLANFORD	972-495-7969	LIZZIE BEE'S FLOWER SHOPPE 506 LOCKWOOD DR. #200 RICHARDSON, TX 75081	2026-07-01 17:06:55.900872	\N	\N	\N
+882	981	LLUVIA PLANT SHOP	LLUVIA PLANT SHOP 7859 PARK FALLS CT. FT. WORTH, TX 76137	hisgraceabounds200@gmail.com	\N	469-735-0209	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+883	982	LOAM STUDIO	LOAM STUDIO, LLC SIOBHAN MANGAN 1610 JULIET STREET AUSTIN, TX 78704	weareloam@gmail.com	\N	508-479-0018	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+884	983	LOCAL CATERING	LOCAL CATERING 2936A ELM ST DALLAS, TX 75226	\N	\N	214-752-7500	LOCAL CATERING 2936A ELM ST DALLAS, TX 75226	2026-07-01 17:06:55.900872	\N	\N	\N
+885	984	LONE CHIMNEY MERCANTILE	LONE CHIMNEY MERCANTILE 205 W. MAIN RICHARDSON, TX 75081	hello@lonechinmeymercantile.com	\N	214-734-8691	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+886	985	LONGO LANDSCAPE	LONGO LANDSCAPE 8376 HWY 79 S WICHITA FALLS, TX 76310	\N	DONNIE LONG	940-691-7625	LONGO LANDSCAPE 8376 HWY 79 S WICHITA FALLS, TX 76310	2026-07-01 17:06:55.900872	\N	\N	\N
+887	986	LORI L ARCHER	LORI L ARCHER 7012 EMERALD CREEK DR. MCKINNEY TX 75071	\N	\N	972-467-0176	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+888	987	LUBY DESIGN	LUBY DESIGN ASSOCIATES 1209 SLOCUM #400 DALLAS, TX 75207	info@lisalubyryan.com	\N	214-360-4211	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+889	988	LUCKY SCHMIDT GARDENS	LUCKY SCHMIDT GARDENS MADISON HOENSCHEIDT 12345 ALAMEDA TRACE CIR. #931 AUSTIN, TX  78727	luckyschmidtgardens@gmail.com	\N	361-215-5480	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+890	989	LUIS ANDRADE DESIGNS	LUIS ANDRADE DESIGNS 2310 WYNNEWOOD DR DALLAS, TX 75224	LANDRADEDESIGNS@AOL.COM	\N	214-289-1278	LUIS ANDRADE DESIGNS 2310 WYNNEWOOD DR DALLAS, TX 75224	2026-07-01 17:06:55.900872	\N	\N	\N
+893	992	LUTERMAN GREENHOUSE SERVICE	LUTERMAN GREENHOUSE SERVICE 8650 SOUTHWESTERN BLVD #3515 DALLAS, TX 75206	\N	GERALD LUTERMAN	818-297-7172	LUTERMAN GREENHOUSE SERVICE 8650 SOUTHWESTERN BLVD.#3515 DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+894	993	LUXE SEASON DESIGNS	LUXE SEASON DESIGNS 1707 N. HALL ST. APT. 438 DALLAS, TX 75204	luxeseasondesignsllc@gmail.com	\N	210-837-1223	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+895	994	LUXE STEMS	LUXE STEMS 4350 MAIN ST #120 FRISCO, TX 75033	ntxluxestems@gmail.com	\N	702-575-2334	LUXE STEMS 4350 MAIN ST #120 FRISCO, TX 75033	2026-07-01 17:06:55.900872	\N	\N	\N
+896	995	LUXURY EVENTS	LUXURY EVENTS 2431 SHORECREST. DR. ST-C-10 DALLAS, TX 75235	hello@leflorals.com	\N	469-601-1446	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+897	996	LYN MCKINNEY	LYN MCKINNEY 11805 GREEN KNOLL DR DALLAS, TX 75230	lynmckinney@gmail.com	LYN MCKINNEY	214-616-9507	LYN'S HOUSE 11805 GREEN KNOLL DR GATE CODE # 2497 214-616-9507 DALLAS, TX 75230	2026-07-01 17:06:55.900872	\N	\N	\N
+898	997	LYN MUSE INTERIORS	LYN MUSE INTERIORS 4800 PRESTON RD. DALLAS, TX 75205	lmuse@lynmuseinteriors.com	KEVIN ERINKLEY	214-526-8482	LYN MUSE INTERIORS 4800 PRESTON RD. DALLAS, TX 75205 call with ETA 1 hour	2026-07-01 17:06:55.900872	\N	\N	\N
+899	998	LYNN BEHRENDT INTERIORS	LYNN BEHRENDT INTERIORS 10015 MEADOWBROOK DR. DALLAS, TX 75229	r.behrendt@sbcglobal.net	LYNN BEHRENDT	214-368-5021	HILLCREST DALLAS, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+900	999	LYSA J. ROHAN INTERIOR DESIGN	LYSA J. ROHAN INTERIOR DESIGN 3715 CRAIGMONT AVE DALLAS, TX 75205	\N	\N	214-559-2136	LYSA J. ROHAN INTERIOR DESIGN 3715 CRAIGMONT AVE DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+901	1000	M & J EVENTS AND DECOR	M & J EVENTS AND DECOR 4808 CLUB VIEW CIRCLE MESQUITE, TX 75150	mnjevents@outlook.com	\N	214-542-4055	M & J EVENTS AND DECOR 4808 CLUB VIEW CIRCLE MESQUITE, TX 75150	2026-07-01 17:06:55.900872	\N	\N	\N
+902	1001	M.M. MOORE CONSTRUCTION	M.M. MOORE CONSTRUCTION 4399 WESTGROVE DR ADDISON, TX 75001	\N	\N	972-248-0123	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+903	1002	M.R. DESIGNS	M.R. DESIGNS 4242 SHORECREST DALLAS, TX 75209	\N	MALEE RAUSCHER	214-902-4833	M.R. DESIGNS 4242 SHORECREST DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+904	1003	MABANK FLORAL AND GIFTS	MABANK FLORAL AND GIFTS 701 S. THIRD ST. MABANK, TX 75147	mabankfloral@yahoo.com	\N	903-887-3112	MABANK FLORAL AND GIFTS 604 S. THIRD ST. MABANK, TX 75147	2026-07-01 17:06:55.900872	\N	\N	\N
+905	1004	MAD ABOUT FLOWERS	MAD ABOUT FLOWERS 4209 GLOSTER RD. DALLAS, TX 75220	msdockery@sbcglobal.net	\N	214-353-9838	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+906	1005	MAGNOLIA PLANTSCAPES	MAGNOLIA PLANTSCAPES 500 E.  ARAPAHO RD. SUITE 105 RICHARDSON, TX	accounting@magnoliaplantscapes.com	\N	972-291-9000	MAGNOLIA PLANTSCAPES 777 N.GROVE RD.SUITE #119 RICHARDSON, TX 75081 SAM 786-445-8429 CALL ETA ETA ETA ETA	2026-07-01 17:06:55.900872	\N	\N	\N
+907	1006	MAGPIE BLOSSOM BOUTIQUE	MAGPIE BLOSSOM BOUTIQUE 3500 RR 620 SOUTH F-100 BEE CAVE, TX  78738	nikki@magpieblossoms.com	NIKKI MACKENZIE	512-494-6198	MAGPIE BLOSSOM BOUTIQUE 3500 RR 620 SOUTH F-100 BEE CAVE, TX  78738 (BACK DOOR DELIVERIES)	2026-07-01 17:06:55.900872	\N	\N	\N
+908	1007	MAJESTIC BLOOMS	MAJESTIC BLOOMS 621 CHRISTIE CT EVERMAN, TX 76140	sales@majesticblooms.com	\N	469-258-4258	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+909	1008	MANDARIN FLOWER CO.	MANDARIN FLOWER CO. 8412 SOUTH CONGRESS AVE AUSTIN, TX 78745	SOFIA@MANDARINDESIGNLAB.COM	\N	512-300-3163	MANDARIN FLOWER CO. 8412 SOUTH CONGRESS AVE AUSTIN, TX 78745 GO AROUND BACK	2026-07-01 17:06:55.900872	\N	\N	\N
+910	1009	MANE & IVY SALON & PLANTHOUSE	MANE & IVY SALON & PLANTHOUSE 6724 PALUXY DR. STE. 100 TYLER, TX 75703	\N	\N	713-657-9422	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+911	1010	MANSFIELD GARDENS	MANSFIELD GARDENS 815 N MAIN ST. MANSFIELD, TX 76063	mansfieldgardenstx@gmail.com	\N	682-433-1324	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+912	1011	MANUEL'S TREE SERVICE	MANUEL'S TREE SERVICE 4316 MANNING LN. DALLAS, TX 75220	dan@manuelstreeandgarden.com	\N	214-358-1191	MANUEL'S TREE SERVICE 4316 MANNING LN. DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+913	1012	MARCELLA STUDIO	MARCELLA STUDIO MARCELLA BROE 2211 CANTERBURY ST AUSTIN, TX 78702	HOLA@MARCELLA.STUDIO	\N	954-806-0805	MARCELLA STUDIO MARCELLA BROE 2211 CANTERBURY ST AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+914	1013	MARCY PLANTS & CO.	MARCY PLANTS & CO. ANNA MARCY 123 LAKEVIEW DR DURANT, OK 74701	acahill2004@yahoo.com	\N	580-916-5898	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+915	1014	MARGOT'S FLOWERS AND GIFTS	MARGOT'S FLOWERS AND GIFTS 204 N.  MAIN ST. SUITE 101 DUNCANVILLE, TX 75116	margotsndg@gmail.com	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+916	1015	MARIA'S GARDEN<<ARDMORE>>	MARIA'S GARDEN<<ARDMORE>> 112 WHEELER ARDMORE, OK 73401	maria@mariasgarden.net	\N	580-223-2500	MARIA'S GARDEN<<ARDMORE>> 112 WHEELER ARDMORE, OK 73401	2026-07-01 17:06:55.900872	\N	\N	\N
+917	1016	MARIA A. LUNA	MARIA A. LUNA	jkhomesdallas@gmail.com	MARIA A LUNA	214-328-2662	MARIA A. LUNA 2411 AUBURN DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+918	1017	MARIA CLARIA NIEVES	MARIA CLARIA NIEVES 3201 DIBRELL DR. PLANO, TX 75023	armordriver@aol.com	MARIA NIEVES	214-431-8941	MARIA CLARIA NIEVES 3201 DIBRELL DR. PLANO, TX 75023	2026-07-01 17:06:55.900872	\N	\N	\N
+919	1018	MARIO LANDSCAPE	MARIO LANDSCAPE 1011 MARTINIQUE AVE. DALLAS, TX 75223	mariolandscape@yahoo.com	\N	469-693-3055	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+920	1019	MARIOLY'S FLOWERS	MARIOLY'S FLOWERS 4611 S. MALCOM X DALLAS, TX 75215	\N	\N	214-431-7012	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+921	1020	MARISA DUKOWITZ	MARISA DUKOWITZ, LLC 206 SOUTH SHORE DR DALLAS, TX 75216	marisa@marisadukowitz.com	\N	214-701-7464	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+922	1021	MARLIN LANDSCAPE SYSTEMS	MARLIN LANDSCAPE SYSTEMS 1849 EMPIRE CENTRAL DALLAS, TX 75235	rosa@marlinlandscape.com	\N	214-731-0706	5526 DELOACH DALLAS TX 75220 JESUS-972-998-5479	2026-07-01 17:06:55.900872	\N	\N	\N
+923	1022	MARTHA'S FLOWERS<LANCASTER>>	MARTHA'S FLOWERS<LANCASTER>> 811 W. PLEASANT RUN LANCASTER, TX 75146	sharronhollisflorist@yahoo.com	\N	972-227-6295	MARTHA'S FLOWERS<LANCASTER>> 811 W. PLEASANT RUN LANCASTER, TX 75146	2026-07-01 17:06:55.900872	\N	\N	\N
+924	1023	MARTIN'S LANDSCAPING	MARTIN'S LANDSCAPING 2123 BARLOW AVE. DALLAS, TX75224	\N	\N	469-556-7383	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+925	1024	MARY WILLIAMS	MARY WILLIAMS 4501 EDMONDSON DALLAS, TX 75205	caycekemp@me.com	MARY WILLIAMS	214-528-9029	MARY WILLIAMS 4501 EDMONDSON DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+926	1025	MASCAD DESIGN	MASCAD DESIGN 5068 AVERY LN. THE COLONY, TX 75056	\N	TERESA MASDON	214-587-4616	MASCAD DESIGN 5068 AVERY LN. THE COLONY, TX 75056	2026-07-01 17:06:55.900872	\N	\N	\N
+927	1026	MASTERCARE LAWN & LANDSCAPE	MASTERCARE LAWN & LANDSCAPE PO BOX 180801 DALLAS, TX 75218	\N	RICHARD P LUNA	214-324-3324	MASTERCARE LAWN & LANDSCAPE PO BOX 180801 DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+928	1027	MATTER OF TASTE	MATTER OF TASTE 1603 NORTHWEST BLVD BLDG B GEORGETOWN, TX 78628	lindsay@amatteroftasteflorist.com	\N	512-863-0789	MATTER OF TASTE 1603 NORTHWEST BLVD BLDG B GEORGETOWN, TX 78628	2026-07-01 17:06:55.900872	\N	\N	\N
+929	1028	MAVORNEEN.COM	MAVORNEEN.COM 6413 CEDAR HOLLOW DR. DALLAS, TX 75248	gabrielhochberg@yahoo.com	\N	469-753-3755	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+930	1029	MBA INTERIORS	MBA INTERIORS 7615 SOUTHWESTERN BLVD DALLAS, TX 75225	\N	\N	214-363-5246	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+931	1030	MCADAMS FLORAL INC.	MCADAMS FLORAL INC. CLAY ATCHINSON, III	clay@mcadamsfloral.com	\N	361-575-2307	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+932	1031	MCSHAN FLORIST INC.	MCSHAN FLORIST INC. 10311 GARLAND RD. DALLAS, TX 75218	jodi@mcshan.com	BRUCE MCSHAN	214-324-2481	MCSHAN FLORIST INC. 10311 GARLAND RD. DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+933	1032	MD MCDONALD CO, INC	MD MCDONALD CO, INC 10840 SANDEN DR DALLAS, TX 75238	janeadmiremd@msn.com	\N	214-621-5777	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+934	1033	MEDLEY'S MUSING	MEDLEY'S MUSING 10154 RICHARD CIRCLE FORNEY, TX 75126	medleysmusings@gmail.com	\N	214-794-6684	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+935	1034	MELISSA GERSTLE DESIGN	MELISSA GERSTLE DESIGN 6308 DOUGLAS DALLAS, TX. 75205	\N	\N	214-677-6456	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+936	1035	MEMORIES FLOWER SHOP	MEMORIES FLOWER SHOP 707 N. MACARTHUR BLVD. IRVING, TX 75061	sbrown@brownmem.com	\N	972-253-2600	MEMORIES FLOWER SHOP 707 N. MACARTHUR BLVD. IRVING, TX 75061	2026-07-01 17:06:55.900872	\N	\N	\N
+937	1036	MENA'S LAWN SERVICE	MENA'S LAWN SERVICE 410 JARRELL CIRCLE GARLAND, TX 75042	juanhernandez0810@gmail.com	\N	214-502-9014	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+938	1037	MERVEILLE FLOWERS, EVENTS LLC	MERVEILLE FLOWERS, EVENTS LLC 1009 LORRAIN ST. AUSTIN, TX 78703	katherine@merveilleevents.com	\N	512-445-7227	MERVEILLE 209 E. BEN WHITE SUITE 210 AUSTIN, TX  78704	2026-07-01 17:06:55.900872	\N	\N	\N
+939	1038	MESA	MESA 2001 N. LAMAR SUITE 100 DALLAS, TX 75202	\N	\N	214-871-0568	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+940	1039	MESQUITE H.S.--BOOSTER CLUB	MESQUITE H.S.--BOOSTER CLUB 1807 CEDARBROOK MESQUITE, TX 75181	\N	PATTI WOMACK	214-378-8200	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+941	1040	METKA FLORAL	METKA FLORAL 5200 MARTEL #32B DALLAS, TX 75206	metka@dallaseventfloral.com	METKA TERSELICH	214-450-0613	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+942	1041	METRO FLORIST & GIFTS	METRO FLORIST & GIFTS 115 S. MAIN ST. FERRIS, TX 75125	metrofloristgifts@gmail.com	\N	972-544-8877	METRO FLORIST & GIFTS 115 S. MAIN ST. FERRIS, TX 75125	2026-07-01 17:06:55.900872	\N	\N	\N
+943	1042	MGD DESIGNS	MGD DESIGNS 709 S. THIRD ST. MIDLOTHIAN, TX. 76065	\N	\N	972-213-7351	MGD DESIGNS 709 S.THIRD ST. MIDLOTHIAN, TX 76065	2026-07-01 17:06:55.900872	\N	\N	\N
+944	1043	MIA FIORI	MIA FIORI 7300 LONE STAR DR SUITE C103 PLANO, TX 75024	miafiori@gmail.com	\N	972-599-9697	8560 BELVIEW DR. PLANO TX 75024 LEAVE BY PLANTER BOX IN LOBBY CALL W/ETA 972-599-9697	2026-07-01 17:06:55.900872	\N	\N	\N
+945	1044	MICHELE FONZI DESIGNS, LLC	MICHELE FONZI DESIGNS, LLC MICHELE FONZI 309 MONTOPOLIS DR. AUSTIN, TX  78741	michele@mfonzidesigns.com	\N	716-400-4322	400 Colorado Street Austin, TX 78701	2026-07-01 17:06:55.900872	\N	\N	\N
+946	1045	MICKEY'S FLORIST<<LEWISVILLE>>	MICKEY'S FLORIST<<LEWISVILLE>> 1134 WEST MAIN STREET LEWISVILLE, TX 75067	mickeysflorist@hotmail.com	\N	972-436-4041	MICKEY'S FLORIST<<LEWISVILLE>> 1134 WEST MAIN STREET LEWISVILLE, TX 75067	2026-07-01 17:06:55.900872	\N	\N	\N
+947	1046	MIKE WICKER LANDSCAPE	MIKE WICKER LANDSCAPE DESIGN 523 HOEL DR DALLAS, TX 75224	mikewicker1@gmail.com	\N	214-727-7812	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+948	1047	MILESTONE DISTRIBUTORS	MILESTONE DISTRIBUTORS 2615 E. BELTLINE RD. CARROLLTON, TX. 75006	\N	\N	214-217-2801	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+949	1048	MILLE FLEURS	MILLE FLEURS 4901 KELLER SPRINGS RD SUITE 109 ADDISON, TX 75001	fleurs@swbell.net	\N	972-960-1021	MILLE FLEURS 4901 KELLER SPRINGS RD AT ADDISON RD SUITE 109 ADDISON, TX 75001	2026-07-01 17:06:55.900872	\N	\N	\N
+950	1049	MILLER ROZELLE INTERIORS	MILLER ROZELLE INTERIORS 4206 SHORECREST DALLAS, TX. 75209	\N	\N	214-350-5498	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+951	1050	MILLIE'S LANDSCAPE DESIGNS	MILLIE'S LANDSCAPE DESIGNS 6901 WINDY RIDGE DR DALLAS TX 75248	\N	MILDRED TEAS	214-369-0239	MILLIE'S LANDSCAPE DESIGNS 6901 WINDY RIDGE DR DALLAS TX 75248	2026-07-01 17:06:55.900872	\N	\N	\N
+952	1051	MINDY BELL INTERIOR	MINDY BELL INTERIOR 5841 MONTGOMERY RD. MIDLOTHIAN, TX 76065	mindybell@yahoo.com	\N	972-965-2231	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+953	1052	MINNIS INTERIORS	MINNIS INTERIORS PO BOX 260701 PLANO, TX. 75026-0701	fpbp1603@yahoo.com	\N	972-768-6517	319VZ Cr. 2426 CANTON, TX. 75103	2026-07-01 17:06:55.900872	\N	\N	\N
+954	1053	MISH MASH	MISH MASH 1201 W LAMAR ST MCKINNEY, TX 75069	becca_ag00@hotmail.com	\N	214-405-1745	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+955	1054	MISSION WACO, MISSION WORLD, INC.	MISSION WACO, MISSION WORLD, INC. 1315 NORTH 15TH ST. WACO, TEXAS  76707	urbanreapdirector@missionwaco.org	\N	254-300-8029	C/O URBAN REAP 1509 NORTH 15TH ST. WACO, TEXAS  76707	2026-07-01 17:06:55.900872	\N	\N	\N
+956	1055	MONTICELLO GARDENS, INC.	MONTICELLO GARDENS, INC. 3641 CR 1320 EMORY TX 75440	\N	\N	972-722-0120	3641 CR 1320 EMORY TX 75440 972-670-9094 ROBIN CALL W/ETA	2026-07-01 17:06:55.900872	\N	\N	\N
+957	1056	MOON VALLEY NURSERY OF TEXAS	MOON VALLEY NURSERY 14000 N. PIMA RD  STE 150 SCOTTSDALE, AZ 85260	jcusma@mvncorp.com	\N	602-493-0403	MOON VALLEY NURSERY 3525 WILLIAM D TATE GRAPEVINE, TX 76051 USA	2026-07-01 17:06:55.900872	\N	\N	\N
+958	1057	MOONFLOWER	MOONFLOWER 129 N COLLINS RD SUITE 2202 SUNNYVALE, TX 75182	lgoodhart4@gmail.com	\N	214-537-2813	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+959	1058	MORRISON FLORAL CO.	MORRISON FLORAL CO. 4801 N. MERIDIAN OKLAHOMA CITY, OK 73112	\N	RICKY	405-789-1622	MORRISON FLORAL CO. 4801 N. MERIDIAN OKLAHOMA CITY, OK 73112	2026-07-01 17:06:55.900872	\N	\N	\N
+960	1059	MOSS-WHERE FLOWERS ARE FAIR	MOSS-WHERE FLOWERS ARE FAIR 237 S. BROADWAY TYLER, TX 75702	info@welovemoss.com	MEAGAN LISSNER	903-787-8822	MOSS-WHERE FLOWERS ARE FAIR 237 S BROADWAY TYLER TX 75702	2026-07-01 17:06:55.900872	\N	\N	\N
+961	1060	MOSS FLORAL DESIGN	MOSS FLORAL DESIGN 4308 BALBOA DR. FT. WORTH, TX 76133	mossfloraldesign@gmail.com	\N	817-501-8039	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+962	1061	MOSS MERAKI	MOSS MERAKI 1222 DUMONT DR. RICHARDSON, TX 75080	porter.marcyanne@yahoo.com	\N	469-323-9943	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+963	1062	MRB DESIGN	MRB DESIGN 4316 RAWLINS ST DALLAS, TX 75219	\N	MICHAEL	214-528-3473	MRB DESIGN 4316 RAWLINS ST DALLAS, TX 75219	2026-07-01 17:06:55.900872	\N	\N	\N
+964	1063	MS JO'S PLANTS & GIFTS, LLC	MS. JO'S PLANTS & GIFTS, LLC JO PHILLIPS 9545 OSR MIDWAY, TX  75852	jophil41@yahoo.com	\N	936-348-4409	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+965	1064	MUSTARD SEED HOBBIES	MUSTARD SEED HOBBIES 504 S. HIGH ST. SAN SABA, TX 76877	mandy.mccoury@gmail.com	\N	325-248-3095	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+966	1065	MY BOUJEE LITTLE PLANT SHOP	My Boujee Little Plant Shop 2317 Sweetbriar Ct Mesquite, TX 75150	shuntia@mylittleplant.shop	\N	972-595-7816	My Boujee Little Plant Shop 2317 Sweetbriar Ct Mesquite, TX 75150 972-595-7816	2026-07-01 17:06:55.900872	\N	\N	\N
+967	1066	MY OBSESSION FLORAL	MY OBSESSION 6211 W. NORTHWEST HWY. DALLAS, TX 75225	myobsessionfloral@gmail.com	\N	214-416-2823	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+968	1067	MY PERFECT PETALS	MY PERFECT PETALS 1513 MORNING DOVE AUBREY, TX 76227	myperfectpetalstx@gmail.com	\N	870-833-7104	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+969	1068	MY PLANT WAGON	MY PLANT WAGON 405 BEN PAYNE RD. FATE, TX 75087	myplantwagon@gmail.com	\N	214-532-8291	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+970	1069	MY SECRET GARDEN	MY SECRET GARDEN 5219 MAPLE SPRINGS DALLAS, TX 75235	mysecretgarden@att.net	TERRY INMAN	214-559-0565	ST.MICHAEL AND ALL ANGELS 8011 DOUGLASS AVE. DALLAS TX 75225 CALL W/ETA 214-559-2565	2026-07-01 17:06:55.900872	\N	\N	\N
+971	1070	MYPEACE.SHOP	MYPEACE.SHOP JAZZMYNNE DORSEY 6902 OLD OX DALLAS, TX 75241	jazzmynned@yahoo.com	\N	214-463-9671	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+972	1071	NABI FLORIST	NABI FLORIST SHOOIN HONG 13201 RR 620 N., SUITE 202 AUSTIN, TX  78717	admin@nabiflorist.com	\N	512-383-5140	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+973	1072	NASH-ROBINSON & CO.	NASH-ROBINSON & CO. 9307 FAIRCREST DR DALLAS, TX 75238 214-334-6606	\N	GARY S NASH	214-343-6606	NASH-ROBINSON & CO. 9307 FAIRCREST DR DALLAS, TX 75238	2026-07-01 17:06:55.900872	\N	\N	\N
+1095	1194	PLANTMOSPHERES	PLANTMOSPHERES 10701 WILSON RD. PILOT POINT, TX. 76258	\N	\N	940-686-5025	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+974	1073	NATHANIEL'S FLOWERS ETC.	NATHANIEL'S FLOWERS ETC. 10115 BRENTRIDGE COURT DALLAS, TX 75243	nshell@sbcglobal.net	\N	214-793-3730	NATHANIEL'S FLOWERS ETC. 10115 BRENTRIDGE COURT DALLAS, TX 75243	2026-07-01 17:06:55.900872	\N	\N	\N
+975	1074	NATIONAL CHARITY LEAGUE-PARK CITIES	NATIONAL CHARITY LEAGUE-PARK CITIES P.O. BOX 12234 DALLAS, TX 75225	\N	CELIA CRANK	214-725-0434	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+976	1075	NATIONAL LANDSCAPER INTERIOR TROPICAL	NATIONAL LANDSCAPER INTERIOR TROPICAL 1309 PASA TIEMPO LEANDER, TX. 78641	john@housmanandassociates.com	\N	737-215-5958	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+977	1076	NATIVE INSIGHT LANDSCAPE	NATIVE INSIGHT LANDSCAPE 1209 N. SAGINAW BLVD. SUITE G, 307 SAGINAW, TX 76179	info@nativeinsightdesign.com	\N	469-352-5286	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+978	1077	NATIVE ROOTS PERENNIAL FARM & GARDEN	NATIVE ROOTS PERENNIAL FARM & GARDEN 8463 CRESTVIEW RD. SANGER, TX 76266	kannrandolph0110@aol.com	\N	940-395-0886	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+979	1078	NATURA <AUSTIN>	PLANT INTERSCAPES 1130 RUTHERFORD LN., #280 AUSTIN, TX 78753	jhowell@plantinterscapes.com	LISA	512-258-7357	PLANT INTERSCAPES 1130 RUTHERFORD LN., #280 AUSTIN, TX 78753	2026-07-01 17:06:55.900872	\N	\N	\N
+980	1079	NATURAL ENVIRONS, INC.	NATURAL ENVIRONS, INC. CINDY WINCHESTER 11843 BRAESVIEW #405 SAN ANTONIO, TX  78213	cj6strings@gmail.com	\N	210-307-6337	TBD	2026-07-01 17:06:55.900872	\N	\N	\N
+981	1080	NATURAL GARDENER	NATURAL GARDENER 8648 OLD BEE CAVE RD AUSTIN, TX. 78735	cactus@tngaustin.com;plants@naturalgardeneraustin.com	\N	512-288-6113	NATURAL GARDENER 8648 OLD BEE CAVE RD AUSTIN, TX 78735	2026-07-01 17:06:55.900872	\N	\N	\N
+982	1081	NATURE INDOORS	NATURE INDOORS 16216 STEWART RD. #b AUSTIN, TX. 78734	lestra@natureindoors.com	\N	512-483-1106	512-483-1106	2026-07-01 17:06:55.900872	\N	\N	\N
+983	1082	NATURES NOOK	NATURE'S NOOK INDU NAVEEN 8404 WARREN PKWY #128 FRISCO, TX 75034	naturesnook064@gmail.com	\N	802-342-8877	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+984	1083	NATURESCAPES<DALLAS>	NATURESCAPES<DALLAS> 3601 turtle creek blvd dallas 75219 DALLAS, TX 75219	\N	NANCY ROBERTS	214-929-4944	NATURESCAPES<DALLAS> 6404 WILLIAMS PARKWAY DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+985	1084	NENA'S GARDEN	NENA'S GARDEN 1027 SW 89TH ST. OKLAHOMA CITY, OK 73160	crisgarden2023@gmail.com	\N	045-517-9688	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+986	1085	NEON BLOOM	NEON BLOOM AMANDA MORPHIS 3985 DAVILA DR DALLAS, TX 75220	neonbloomtx@gmail.com	\N	432-770-2329	6224 la vista dallas 214 938 8059 dallas, 10am to 8pm	2026-07-01 17:06:55.900872	\N	\N	\N
+987	1086	NESTING COMPANY	NESTING COMPANY P.O. BOX 382 BURTON, TX 77835	\N	\N	979-289-0007	NESTING COMPANY 511 N. MAIN ST. BURTON, TX 77835	2026-07-01 17:06:55.900872	\N	\N	\N
+988	1087	NEW COVENANT UNITED METHODIST CHURCH	NEW COVENANT UNITED METHODIST CHURCH 3032 BELT LINE RD. SUNNYVALE, TX 75182	office@newcovenantumc.com	\N	972-226-1092	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+989	1088	NEW DIRECTIONS	NEW DIRECTIONS 5850 E. LOVERS LANE DALLAS, TX 75206	\N	LARRY CLEMENTS	972-255-5133	NEW DIRECTIONS 5850 E. LOVERS LANE DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+990	1089	NEW HAT GARDENING	NEW HAT GARDENING SUE VALLADARES 800 PRIZE OAKS DRIVE CEDAR PARK, TX  78613	SUE@NEWHATGARDENING.COM	\N	512-839-5339	NEW HAT GARDENING SUE VALLADARES we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+991	1090	NEW NATIVE GARDENS, LLC	NEW NATIVE GARDENS, LLC JACKSON GILES 3813 HYDRIDGE DR. AUSTIN, TX  78759	matt@newnativegardens.com	\N	512-266-6496	NEW NATIVE GARDENS, LLC JACKSON GILES 3813 HYDRIDGE DR. AUSTIN, TX 78759	2026-07-01 17:06:55.900872	\N	\N	\N
+992	1091	NEW ORLEANS MANAGEMENT	NEW ORLEANS MANAGEMENT 5001 JUDSON RD. LONGVIEW, TX 75605	michellerholloway@yahoo.com	\N	903-576-6895	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+993	1092	NEWPORT CONCESSIONS	NEWPORT CONCESSIONS 1704 CEDAR COVE CEDAR HILL, TX 75104	\N	CAROLINE NEWPO MCKEE	214-533-5171	NEWPORT CONCESSIONS 1704 CEDAR COVE CEDAR HILL, TX 75104	2026-07-01 17:06:55.900872	\N	\N	\N
+994	1093	NICHOLSON-HARDIE	NICHOLSON-HARDIE 5757 WEST LOVERS LN. STE. 350 DALLAS, TX 75209	BLUFFVIEW@NICHOLSON-HARDIE.COM	BOB WILSON	214-357-4348	NICHOLSON-HARDIE 5757 WEST LOVERS LN. STE. 350 DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+995	1094	NICK SCHANKE REPTILES	NICK SCHANKE REPTILES 1630 HIGH POINT DR LEWISVILLE, TX 75077	meganG524@gmail.com	\N	770-315-7893	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+996	1095	NIKKI'S GREEN SCENE	NIKKI'S GREEN SCENE 3414 SOUTH PEACHTREE RD. BALCH SPRINGS, TX 75180	jewelry.desigsn.by.nikki@gmail.com	\N	469-274-0409	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+997	1096	NITSCHE CONVENTION FLORIST	NITSCHE CONVENTION FLORIST 1014 BEAVER CREEK DR DUNCANVILLE, TX 75137	\N	\N	469-358-6938	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+998	1097	NOEL DAVID PULLAM	NOEL DAVID PULLAM 2401 S. ERVAY #304 DALLAS, TX. 75215	ndpgd@aol.com	NOEL D PULLAM	214-557-5675 CELL	2401 S. ERVAY #304 DALLAS, TX 75215	2026-07-01 17:06:55.900872	\N	\N	\N
+999	1098	NOPAL & CO	NOPAL & CO, LLC JORDIAN GRAY 916 OKLAHOMA BLVD ALVA, OK 73717	cactus.collc@yahoo.com	\N	580-821-0754	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1000	1099	NORTEX LANDSCAPE MGMT	NORTEX LANDSCAPE MGMT. P.O. BOX 271521 FLOWER MOUND, TX 75027	mheath@nortexlandscape.com	\N	214-808-4285	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1001	1100	NORTH DALLAS GARDEN DESIGN,INC.	NORTH DALLAS GARDEN DESIGN,INC. P O BOX 111667 CARROLLTON, TX 75011	\N	DEBORAH ROTHERMEL	214-914-5865	NORTH DALLAS GARDEN DESIGN, INC. P O BOX 111667 CARROLLTON, TX 75011	2026-07-01 17:06:55.900872	\N	\N	\N
+1002	1101	NORTH RICHLAND HILLS FARMERS MARKET	NORTH RICHLAND HILLS FARMERS MARKET 7700 DAVIS BLVD. NRH, TX 76180	nrhfarmersmarket@gmail.com	\N	817-428-7075	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1003	1102	NORTH STAR FLORIST	NORTH STAR FLORIST 301 N. GARLAND RD GARLAND, TX 75040	northstaarflorist@gmail.com	\N	972-276-6956	NORTH STAR FLORIST 301 N. GARLAND RD GARLAND, TX 75040 972 276 6956	2026-07-01 17:06:55.900872	\N	\N	\N
+1004	1103	NORTH TEXAS GREENSCAPES	NORTH TEXAS GREENSCAPES 7063 TWIN HILLS DR DALLAS, TX 75231	drew@nor-texgreenscapes.com	\N	214-402-5780	NORTH TEXAS GREENSCAPE 7063 TWIN HILLS DR DALLAS, TEXAS 75231	2026-07-01 17:06:55.900872	\N	\N	\N
+1005	1104	NOTABLE ACCENTS	NOTABLE ACCENTS 7814 GLEN ALBENS CIRCLE DALLAS, TX 75225	\N	\N	214-369-5525	NOTABLE ACCENTS 7814 GLEN ALBENS CIRCLE DALLAS, TX 75225 2146758564	2026-07-01 17:06:55.900872	\N	\N	\N
+1006	1105	NOURISH	NOURISH MELISSA OLVERA 16518 HOUSE HAHL RD. CYPRESS TX 77433	connect@theartofeminine.com	\N	713-585-1985	WE DO NOT DELIVER TO CYPRESS	2026-07-01 17:06:55.900872	\N	\N	\N
+1007	1106	NRH FARMER'S MARKET	NRH FARMER'S MARKET ANNETTE LEE 7700 DAVIS BLVD NO.RICHLAND HILLS, TX 76180	nrhfm@sbcglobal.net	\N	817-428-7075	NRH FARMER'S MARKET ANNETTE LEE 7700 DAVIS BLVD NO.RICHLAND HILLS, TX 76180	2026-07-01 17:06:55.900872	\N	\N	\N
+1008	1107	NUTTY BROWN FARM	Nutty Brown Farm 10400 Wildwood Hills Austin, TX 78737	kstearns@nuttybrownfarm.com	\N	512-924-2008	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1009	1108	OASIS PLANT SHOP	OASIS PLANT SHOP 416 W. 8TH ST. DALLAS, TX 75208	oasisplantshop@gmail.com	\N	972-773-9989	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1010	1109	ODE A LA ROSE	ODE A LA ROSE ELINOR BRAVO 21-43 44TH RD NEW YORK, NY 11101	accounting@odealarose.com	\N	512-663-8733	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1011	1110	OHR GIFTS AND COLLECTIBLES	OHR GIFTS AND COLLECTIBLES 9460 WATERVIEW RD. DALLAS, TX 75218	OHR.GIFTANDCOLLECTIBLES@GMAIL.COM	\N	469-426-7839	6600 snider plaza llana sueno rest	2026-07-01 17:06:55.900872	\N	\N	\N
+1012	1111	OLIVE BRANCH FLORAL DESIGN	OLIVE BRANCH FLORAL DESIGN 6839 CASA LOMA AVE. DALLAS, TX 75214	tara@olivebranchdallas.com	\N	214-734-3186	OLIVE BRANCH FLORAL DESIGNS 6839 CASA LOMA AVE. DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1013	1112	ONE LOVE ROSE AND GARDENS	ONE LOVE ROSE AND GARDENS 9210 MOUNTAIN CABIN RD DALLAS, TX 75217	oneloveroseandgardens@gmail.com	\N	469-540-4282	ONE LOVE ROSE AND GARDENS 9210 MOUNTAIN CABIN RD DALLAS, TX 75217	2026-07-01 17:06:55.900872	\N	\N	\N
+1014	1113	ONE o THREE	ONE o THREE JANA MCCANN 126 N LIVE OAK FAYETTEVILLE, TX 78940	JANA@SCM-DESIGN.COM	\N	979-702-1330	ONE o THREE JANA MCCANN 126 N LIVE OAK FAYETTEVILLE, TX 78940	2026-07-01 17:06:55.900872	\N	\N	\N
+1015	1114	OOH SUCCULENTS	OOH SUCCULENTS 6710 VIRGINIA PKWY  #215-111 MCKINNEY, TX 75071	laura@oohsucculents.com	\N	916-402-3484	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1016	1115	ORCHIDARIUM	ORCHIDARIUM 2312 HWay 121  Apt 2105 Bedford, TX 76021	\N	JERRY BRANDENBURG	972-279-4075	ORCHIDARIUM 11045 SWAFFAR DR DALLAS, TX 75228	2026-07-01 17:06:55.900872	\N	\N	\N
+1017	1116	OUR REDEEMER LUTHERAN	OUR REDEEMER LUTHERAN CHURCH 7611 PARK LANE DALLAS, TX. 75225	ap@ordallas.org	\N	214-368-1371	OUR REDEEMER LUTHERAN CHURCH 7611 PARK LANE DALLAS, TX 75225 214 368 1371	2026-07-01 17:06:55.900872	\N	\N	\N
+1018	1117	OUT OF THE GARDEN- GRAPEVINE	OUT OF THE GARDEN- GRAPEVINE 1201 MINTERS CHAPEL RD. GRAPEVINE, TX. 76051	donna@outofthegarden.com	\N	817-416-6653	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1019	1118	OUT OF THE GREEN	OUT OF THE GREEN 606 W. CORSLIN ST. AUSTIN, TX. 78752	ptplants@grandecom.net	\N	512-733-3316	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1020	1119	OUTDOOR AESTHETICS	OUTDOOR AESTHETICS PO BOX 671122 DALLAS, TX 75367	stephanie@outdooraesthetics.com	\N	469-312-8775	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1021	1120	OUTSIDE GARDEN CENTERS	OUTSIDE GARDEN CENTERS 2343 CHARLES ST. DALLAS, TX 75228	gardens@outsidegarden.com	MIKE MUNSTERMAN	214-943-1100	OUTSIDE GARDEN CENTERS 2343 CHARLES ST DALLAS, TX 75228	2026-07-01 17:06:55.900872	\N	\N	\N
+1022	1121	OUTSTANDING PRODUCTIONS	OUTSTANDING PRODUCTIONS 4410 WALNUT HILL DALLAS, TX 75229	\N	\N	214-350-6282	OUTSTANDING PRODUCTIONS 4410 WALNUT HILL DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+1023	1122	OZ GARDENS LLC	OZ GARDENS LLC 800 HIGH WILLOW DR PROSPER, TX 75078	\N	SCOTT VAN OSDAOL	972-880-5209	OZ GARDENS LLC 800 HIGH WILLOW DR PROSPER, TX 75078	2026-07-01 17:06:55.900872	\N	\N	\N
+1024	1123	PALETTE FLOWERS	PALETTE FLOWERS 203 WESTFIELD DRIVE GEORGETOWN, TX 78628	paletteflowertx@gmail.com	\N	737-775-8570	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1025	1124	PAPER LEAVES	PAPER LEAVES 510 WATER STREET WAXAHACHIE, TX 75165	paperleavesinquiry@gmail.com	\N	972-697-7664	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1026	1125	PAPPAS DESIGN	PAPPAS DESIGN 4618 EDMONDSON AVE DALLAS, TX 75209	\N	\N	214-455-3303	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1027	1126	PAPPAS LANDSCAPING [PRM]	PAPPAS LANDSCAPING [PRM] PO BOX 41567 HOUSTON, TX 77241	accountspayable@pappas.com	LISA MASON	713-869-0151	PAPPAS L/S GREENHOUSE 10381 LOMBARDY DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+1028	1127	PARADISE TROPICALS	PARADISE TROPICALS 610 TWILIGHT TRAIL RICHARDSON, TX. 75080	\N	\N	972-671-8774	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1029	1128	PARK CITIES LAWN & LANDSCAPE	PARK CITIES LAWN & LANDSCAPE 3207 CITATION DR. DALLAS, TX 75229	\N	BILL COLEMAN	214-350-6402	PARK CITIES LAWN & LANDSCAPE 3207 CITATION DR. DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+1030	1129	PARK CITIES PETALS	PARK CITIES PETALS 6445 CEDAR SPRINGS RD. #107 DALLAS, TX 75235	dianehobbs@parkcitiespetals.com	\N	214-500-9176	6445 CEDAR SPRINGS RD. #107 DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+1031	1130	PARK CITIES SUCCULENTS	PARK CITIES SUCCULENTS 2930 ANDREA LANE DALLAS, TX 75228	arie@parkcitiessucculents.com	\N	469-247-9663	PARK CITEIES SUCCLENT 2930 ANDREA LANE DALLAS, TEXAS 75228 USA	2026-07-01 17:06:55.900872	\N	\N	\N
+1032	1131	PARKCREST FLORAL DESIGN	PARKCREST FLORAL DESIGN 3307 - C  HANCOCK DR. AUSTIN, TX 78731	martha@parkcrestfloral.com	MARTHA SATTERFIELD	512-467-4024	PARKCREST FLORAL DESIGN 3307 - C  HANCOCK DR. AUSTIN, TX 78731	2026-07-01 17:06:55.900872	\N	\N	\N
+1033	1132	PARKER PASCHALL DESIGNS	PARKER PASCHALL DESIGNS 136 N. PASCHALL RD. SUNNYVALE, TX 75182	parkerpaschalldesigns@gmail.com	\N	214-803-2597	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1034	1133	PATINA BLEU	PATINA BLEU 835 W. 7TH ST. DALLAS, TX. 75208	\N	\N	214-941-1131	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1035	1134	PATRICIA M DYE LANDSCAPE CONSULTATION	PATRICIA M DYE LANDSCAPE CONSULTATION 606 SO.COTTONWOOD DR RICHARDSON, TX 75080	pmdlandscape@earthlink.net	PATRICIA M DYE	972-690-1536	WILSON HOUSE 2922 SWISS AVE DALLAS TX 75204 CALL W/ETA  214-821-3290 EMMA	2026-07-01 17:06:55.900872	\N	\N	\N
+1036	1135	PATTI ANN'S FLOWERS	PATTI ANN'S FLOWERS 7043 WEST MAIN ST. FRISCO, TX 75034	hello@pattiannsflowers.com	\N	972-377-9351	PATTI ANN'S FLOWERS 7043 WEST MAIN ST. FRISCO, TX 75034	2026-07-01 17:06:55.900872	\N	\N	\N
+1037	1136	PATTON'S CORNER	PATTON'S CORNER P.O. BOX 140782 DALLAS, TX 75214	yvettepatton@sbcglobal.net	\N	214-232-7587	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1038	1137	PAUTZ LANDSCAPES	PAUTZ LANDSCAPES 824 EXPOSITION SUITE 2 DALLAS, TX 75226	\N	JASON PAUTZ	214-432-4468	PAUTZ LANDSCAPES 824 EXPOSITION SUITE 2 DALLAS, TX 75226	2026-07-01 17:06:55.900872	\N	\N	\N
+1039	1138	PEACE CHURCH MINISTRIES	PEACE CHURCH MINISTRIES 2401 N. BELTLINE MESQUITE, TX. 75150	\N	\N	281-413-5669	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1040	1139	PECAN STREET MARKET	PECAN STREET MARKET 100 E PECAN STREET STE 101 PFLUGERVILLE, TX 78660	pecanstreetmkt@gmail.com	\N	512-551-2222	PECAN STREET MARKET 100 E PECAN STREET STE 101 PFLUGERVILLE, TX 78660	2026-07-01 17:06:55.900872	\N	\N	\N
+1041	1140	PEGGY FRANKLIN	PEGGY FRANKLIN 2300 CARRAIGE ESTATES SHERMAN, TX 75092	fgotg@yahoo.com	\N	469-667-3571	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1042	1141	PEGGY TAPP LANDSCAPE SERVICE	PEGGY TAPP LANDSCAPE SERVICE 9949 WOODGROVE DR DALLAS, TX 75218	\N	PEGGY TAPP	214-793-8216	PEGGY TAPP LANDSCAPE SERVICE 9949 WOODGROVE DR DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+1043	1142	PERFECT GROWTH & EXOTIC PLANTS	PERFECT GROWTH & EXOTIC PLANTS 2607 PRINCE GEORGE AVE. #3401 DESOTO, TX 75115	chrisjam@sbcglobal.net	\N	972-821-1022	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1044	1143	PERFECTING THE NEST	PERFECTING THE NEST 310 W 6TH ST TYLER, TX 75701	info@perfectingthenest.com	\N	903-805-1954	PERFECTING THE NEST 4379 CASCADES BLVD. TYLER, TX 75709	2026-07-01 17:06:55.900872	\N	\N	\N
+1045	1144	PERFECTLY IMPERFECT VINTAGE	PERFECTLY IMPERFECT VINTAGE 1217 UW HWY 259 BROKEN BOW, OK 74728	dixiedarlin102672@gmail.com	\N	580-579-8941	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1046	1145	PERIDOT PLANT CO	PERIDOT PLANT CO 402 E LOUISIANA MCKINNEY, TX 75069	maridith37@aim.com	\N	915-588-9310	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1047	1146	PET COUNTRY PRODUCTS	PET COUNTRY PRODUCTS 3324 DILIDO RD SUITE N DALLAS, TX 75228	dnafeeders@yahoo.com	\N	214-284-4802	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1048	1147	PETAL PEDDLERS FLORIST	PETAL PEDDLERS FLORIST 1205 FOURTH STREET LAMPASAS, TX 76550	petalpeddlersflorist@gmail.com	\N	512-556-4667	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1049	1148	PETALS & STEMS FLORIST	PETALS & STEMS FLORIST 7989 BELTLINE RD. SUITE 142 DALLAS, TX 75248	brad@petalsandstems.com	\N	214-694-2184	PETALS & STEMS FLORIST 7989 BELTLINE RD. SUITE 142 DALLAS, TX 75248	2026-07-01 17:06:55.900872	\N	\N	\N
+1050	1149	PETALS A FLORIST	PETALS, A FLORIST 7800 PRESTON RD. SUITE 115 PLANO, TX 75024	petalsaflorist@verizon.net	CATHY SCHULTZ	972-781-0878	PETALS, A FLORIST 7800 PRESTON RD. SUITE 115 PLANO, TX 75024	2026-07-01 17:06:55.900872	\N	\N	\N
+1051	1150	PETALS PLUS FLORIST & GIFTS	PETALS PLUS FLORIST & GIFTS 276 EAST OVILLA RD. RED OAK, TX 75154	petalsplus@yahoo.com	SANDRA WOODS	972-617-7587	PETALS PLUS FLORIST & GIFTS 276 EAST OVILLA RD. RED OAK, TX 75154	2026-07-01 17:06:55.900872	\N	\N	\N
+1052	1151	PETERS CATES DESIGN	PETERS CATES DESIGN 2118 BARBERRY DR. DALLAS, TX 75211	bill@peterscates.com	\N	214-282-2058	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1053	1152	PFLUGERVILLE PFOLIAGE & PLANTS	PFLUGERVILLE PFOLIAGE & PLANTS KATHRYN BURLESON 1900 NIGHTVIEW DR. PFLUGERVILLE TX  78660	krysdelish@gmail.com	\N	512-496-1886	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1054	1153	PHILLIPS & PHILLIPS	PHILLIPS & PHILLIPS 7143 VALBURN DR. AUSTIN, TX. 78731	\N	\N	512-418-1941	7143 VALBURN DR. AUSTIN, TX  78731	2026-07-01 17:06:55.900872	\N	\N	\N
+1055	1154	PICKERING HOUSE	PICKERING HOUSE LLC 3525 TURTLE CREEK #10C DALLAS, TX 75219	info@pickeringhouseinteriors.com	\N	409-658-3476	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1056	1155	PILOT POINT FLORIST	Pilot Point Florist 740 E Liberty Pilot Point, TX 76258	lray740@aol.com	\N	940-686-2238	Pilot Point Florist 740 E Liberty Pilot Point, TX 76258	2026-07-01 17:06:55.900872	\N	\N	\N
+1057	1156	PINA TAYLOTTA PETALS	PINA TAYLOTTA PETALS 868 CHURCH ST BLUFF DALE, TX 76433	pinataylottapetals@gmail.com	\N	254-977-4688	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1058	1157	PINE HOUSE FLORIST	PINE HOUSE FLORIST 1722 DRISKELL ST. DALLAS, TX 75215	\N	\N	214-421-7020	ALPHA  AFRICAN VIOLET SOCIETY	2026-07-01 17:06:55.900872	\N	\N	\N
+1059	1158	PINE VALLEY LANDSCAPES	PINE VALLEY LANDSCAPES 235 EAST NASH GRAPEVINE, TX 76051	casey@pinevalleylandscapes.com	\N	972-393-5160	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1060	1159	PITA'S PLANTERS	PITA'S PLANTERS 10551 DUNAWAY DR. DALLAS, TX 75228	pitasplanters@gmail.com	\N	469-263-3627	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1061	1160	PIVOT PLANTS	PIVOT PLANTS 530 S. TRAVIS ST. SHERMAN, TX 75090	lesleybrooks@gmail.com	\N	972-567-9693	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1062	1161	PLANCE	PLANCE LANCE ROBERSON 50109 LONG KNIFE CIRCLE GEORGETOWN, TX 78626	lance@plance.org	\N	512-672-9250	PLANCE AUSTIN CONVENTION CENTER DOCK ON RED RIVER @ 500 E. CESAR CHAVEZ AUSTIN TX  78701	2026-07-01 17:06:55.900872	\N	\N	\N
+1063	1162	PLANO FLORIST <MARY>	PLANO FLORIST <MARY> 2143 W.PARK @ CUSTER PLANO, TX 75075	\N	MARY	972-578-7666	PLANO FLORIST <MARY> 2143 W.PARK @ CUSTER PLANO, TX 75075	2026-07-01 17:06:55.900872	\N	\N	\N
+1064	1163	PLANT CULTURE	PLANT CULTURE, LLC 972 W SAN ANTONIO STREET NEW BRAUNFELS, TX 78130	plantculturenb@gmail.com	\N	210-638-8901	PLANT CULTURE, LLC 972 W SAN ANTONIO STREET NEW BRAUNFELS, TX 78130	2026-07-01 17:06:55.900872	\N	\N	\N
+1065	1164	PLANT DADDY	PLANT DADDY 2906 JADEWOOD CT. APT B AUSTIN, TX 78748	PLANTDADDYATX@GMAIL.COM	\N	512-808-0978	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1066	1165	PLANT DADDY DALLAS	PLANT DADDY DALLAS 5900 BALCONES DR. #342 AUSTIN, TX 78731	info@plantdaddydallas.com	\N	214-693-6667	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1067	1166	PLANT DECOR	PLANT DECOR PO BOX 8 PONDER, TX. 76259	info@plantdecorinc.com	\N	940-783-1218	PLANT DECOR PO BOX 8 PONDER, TX. 76259	2026-07-01 17:06:55.900872	\N	\N	\N
+1068	1167	PLANT DESIGN - LINDA	PLANT DESIGN PO BOX 832 COLLEYVILLE, TX. 76034	plantdesign@sbcglobal.net	\N	817-798-6109	PLANT DESIGN PO BOX 832 COLLEYVILLE, TX. 76034	2026-07-01 17:06:55.900872	\N	\N	\N
+1069	1168	PLANT INTERSCAPES INC<DALLAS>	PLANT INTERSCAPES INC<DALLAS> 10744 N STEMMONS DALLAS, TX 75220	cpena@foliagedirect.com	\N	210-696-4003	PLANT INTERSCAPES 10744 N STEMMONS DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+1070	1169	PLANT IT EARTH INTERIORS	PLANT IT EARTH INTERIORS 20881 FM 2728 TERRELL, TX. 75160	\N	\N	972-524-5639	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1071	1170	PLANT LOVIN JUNKIE	PLANT LOVIN JUNKIE 1706 EVERGREEN ST PAMPA, TX 79065	plantlovinjunkie@gmail.com	\N	806-663-1203	PLANT LOVIN JUNKIE 1706 EVERGREEN ST PAMPA, TX 79065	2026-07-01 17:06:55.900872	\N	\N	\N
+1072	1171	PLANT MANAGEMENT ASSOCIATES	AMBIUS C/O PLANT MANAGEMENT ASSOCIATES PO BOX 202544 AUSTIN, TX. 78759	melissa@plantmanagement.com	\N	512-443-2322	PMA 7802 NORTHWEST DR AUSTIN, TX 78757	2026-07-01 17:06:55.900872	\N	\N	\N
+1073	1172	PLANT MATTERS	PLANT MATTERS 4809 FINLEY DR. AUSTIN, TX. 78731	txamason1@yahoo.com	\N	512-797-9771	PLANT MATTERS 2608 DOMINION HILL AUSTIN, TX 78733	2026-07-01 17:06:55.900872	\N	\N	\N
+1074	1173	PLANT PARADISE	PLANT PARADISE 2425 GOLDEN ROD DR. MIDLOTHIAN, TX 76065	sales@thegardenescapedallas.com	\N	708-657-5727	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1075	1174	PLANT PARTY	PLANT PARTY 979 SPRINGDALE ROAD AUSTIN, TX 78702	info@plantparty.co	\N	888-272-6499	PLANT PARTY 979 SPRINGDALE RD AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+1076	1175	PLANT PEOPLE- AUSTIN	PLANT PEOPLE - AUSTIN 8801 THUNDERBIRD COVE AUSTIN, TX. 78736	ctaylor73@austin.rr.com	\N	512-751-3345	PLANT PEOPLE - AUSTIN 8801 THUNDERBIRD COVE AUSTIN, TX. 78736	2026-07-01 17:06:55.900872	\N	\N	\N
+1077	1176	PLANT PLANTATION	PLANT PLANTATION P.O. BOX 1639 GIDDINGS, TX  78942	\N	\N	512-417-0971 - DAN	PLANT PLANTATION P.O. BOX 1639 GIDDINGS, TX  78942	2026-07-01 17:06:55.900872	\N	\N	\N
+1078	1177	PLANT RANCH TROPICALS	PLANT RANCH TROPICALS 2153 GREEN HILL CIRCLE FT. WORTH, TX 76112-3848	plantranchtropicals@gmail.com	\N	214-208-4917	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1079	1178	PLANT SHOPPE	PLANT SHOPPE 3020 N ST. MARY'S ST SAN ANTONIO, TX 78212	tp.toripride@gmail.com	\N	210-776-5716	PLANT SHOPPE 3020 N ST. MARY'S ST SAN ANTONIO, TX 78212	2026-07-01 17:06:55.900872	\N	\N	\N
+1080	1179	PLANT SOCIETY	THE PLANT SOCIETY 1912 EAST 12TH STREET AUSTIN, TX 78702	casey@theplantsociety.com	\N	512-228-8683	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1081	1180	PLANT SPAN, INC	PLANT SPAN, INC PO BOX 610302 DFW AIRPORT, TX 75261	paula@plantspan.com	\N	817-431-5454	HOUSE 2520 GLENCLIFF DR. PLANO TC 75075 CALL W/ETA 469-268-1801	2026-07-01 17:06:55.900872	\N	\N	\N
+1082	1181	PLANT STANDARDS	PLANT STANDARDS BRUCE BLEVINS 699 V Z COUNTY RD 3111 EDGEWOOD, TX 75117	be1blev@msn.com	\N	718-427-1840	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1083	1182	PLANT STYLE, LLC	PLANT STYLE, LLC 9941 EDGECLIFF DR. DALLAS, TX 75238	freshlybecky@gmail.com	\N	512-787-1898	10216 E. NORTHWEST HWY. DALLAS TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+1084	1183	PLANTA LANDSCAPING	PLANTA LANDSCAPING 2102 CASA GRANDE DR. AUSTIN, TX 78733	\N	\N	512-789-8686	PLANTA LANDSCAPING 2102 CASA GRANDE DR. AUSTIN, TX 78733	2026-07-01 17:06:55.900872	\N	\N	\N
+1085	1184	PLANTAS	PLANTAS DEBBIE ROMERO 401 LITTLE TEXAS LANE APT 2211 AUSTIN, TX  78745	plantasatx@gmail.com	\N	678-877-5007	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+1086	1185	PLANTAS REPUBLIC	PLANTAS REPUBLIC 8106 FORSEN DRIVE SAN ANTONIO, TX 78224	plantasrepublic@gmail.com	\N	210-988-7558	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1087	1186	PLANTASIA	PLANTASIA 416 S. GUADALUPE ST. LOCKHART, TX 78644	PLANTASIATX@GMAIL.COM	\N	512-665-2369	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1088	1187	PLANTASY GARDEN	PLANTASY GARDEN 11439 ASHFORD HAVEN DR. SUGARLAND, TX 77478	plantasygarden@yahoo.com	\N	713-416-6974	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1089	1188	PLANTATION INTERIORS	PLANTATION INTERIORS 653 BROOKVISTA COURT E. WAXAHACHIE, TX 75165	devin@plantedinteriorsdfw.com	\N	972-938-0085	855 montgomery st fort worth tx 76	2026-07-01 17:06:55.900872	\N	\N	\N
+1090	1189	PLANTED IN THE HOUSE	PLANTED IN THE HOUSE 2546 INADALE AVE. DALLAS, TX 75228	plantedinthehousedallas@gmail.com	\N	940-600-7491	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1091	1190	PLANTED WAXAHACHIE	PLANTED WAXAHACHIE, LLC 401 N. HWY 77 SUITE 19 WAXAHACHIE, TX 75165	jamie@bmstexas.com	\N	972-923-9900	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1092	1191	PLANTENDER OF AUSTIN	PLANTENDER OF AUSTIN 11604 SWEARINGEN DR. AUSTIN, TX. 78758	rbhiller@att.net	\N	512-913-8685	PLANTENDER OF AUSTIN 11604 SWEARINGEN DR. AUSTIN, TX 78758	2026-07-01 17:06:55.900872	\N	\N	\N
+1093	1192	PLANTHROPI	PLANTHROPI, LLC 6110 AZALEA CT ROWLETT, TX 75089	mike@planthropi.com	\N	844-410-5600	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1094	1193	PLANTKEEPER, INC	PLANTKEEPER, INC 2211 N. BECKLEY AVE DALLAS, TX. 75208	leehitt@plantkeeperinc.com	\N	214-752-5750	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1096	1195	PLANTS ALIVE	PLANTS ALIVE 3505 WHIFFLE TREE DR. PLANO, TX 75023	\N	\N	214-532-3453	PLANTS ALIVE 3505 WHIFFLE TREE DR. PLANO, TX 75023	2026-07-01 17:06:55.900872	\N	\N	\N
+1097	1196	PLANTS BY A.OFARRILL	PLANTS BY A.OFARRILL ANGELIS M OFARRILL 804 MOOSE HOLLOW LN EULESS, TX 76039	plantsbya.ofarrill@gmail.com	\N	210-544-4929	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1098	1197	PLANTS ETC.	PLANTS ETC. 3310 GRAYSON DR. DALLAS, TX. 75224-310	\N	\N	214-450-8200	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1099	1198	PLANTS IN DESIGN	PLANTS IN DESIGN 17790 COUNTY RD 345 TERRELL, TX 75161	brian@plantsindesigntx.com	BRIAN BAILEY	214-499-1960	PLANT DESIGN 17790 COUNTY RD 345 TERRELL, TX 75161	2026-07-01 17:06:55.900872	\N	\N	\N
+1100	1199	PLANTS OF TEXAS	PLANTS OF TEXAS 4301 WATSON ST. TYLER, TX 75701	gaby@plantsoftexas.com	\N	903-316-3292	PLANTS OF TEXAS 17470 FM 2493 FLINT, TX 75762	2026-07-01 17:06:55.900872	\N	\N	\N
+1101	1200	PLANTSCAPE SOLUTIONS	PLANTSCAPE SOLUTIONS 404 MILLINGTON LANE BUDA, TX 78610	david@plantscapesolutions.net	\N	512-626-8400	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1102	1201	PLATINUM PETALS	PLATINUM PETALS 9815 ASH CREEK DR DALLAS, TX. 75228-3661	\N	\N	605-310-4887	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1103	1202	PLUMERIAS OF DALLAS	PLUMERIAS OF DALLAS LEONARD VEDLITZ 2326 DENMARK DR GARLAND, TX 75040	vedlitz@hotmail.com	\N	214-440-9288	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1104	1203	POLLEN FLORAL ART	POLLEN FLORAL ART 1115 COLONY NORTH DR. AUSTIN, TX  78758	jennifer@pollenfloralart.com	BROOKE HOWLSEY	512-606-3636 (JENNIFE	POLLEN FLORAL ART 1115 COLONY NORTH DR. AUSTIN, TX  78758	2026-07-01 17:06:55.900872	\N	\N	\N
+1105	1204	POMEGRANATE INC./CITY MARKET	POMEGRANATE INC./CITY MARKET 7214 WESTLAKE AVE DALLAS, TX 75214	\N	KATHY	214-979-2690	POMEGRANATE INC./CITY MARKET 7214 WESTLAKE AVE DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1106	1205	POP CULTURE	POP CULTURE 728 PASEO DEL PLATA TEMPLE, TX 76502	PURPOSEOFPLANTSCULTURE@GMAIL.COM	\N	254-721-9458	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1107	1206	POPPY'S PETALS	POPPY'S PETALS 2010 LAKELAND DR. DALLAS, TX 75218	jenniewooten@me.com	\N	214-686-5446	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1108	1207	POPPYMALLOW	POPPYMALLOW FRANCES FORTANELY 4505 WICKLOW MOUNTAIN TRAIL CEDAR PARK, TX 78613	poppymallowatx@gmail.com	\N	512-468-2367	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1109	1208	PORTILLA HOME & GARDEN	PORTILLA HOME & GARDEN 823 3rd ST. ROSENBERG, TX  77471	chelsea@portillahg.com	\N	832-586-6166	WE DO NOT DELIVER TO ROSENBERG, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+1110	1209	PORTOBELLO	PORTOBELLO 1504 COURT MEADOW PLANO, TX. 75093	\N	\N	214-284-8487	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1111	1210	POSEY FLORAL & EVENTS	Posey Floral & Events 27 Hunters Point Dr New Braunfels, TX 78132	anne@poseyfloral.com	BONNI BLUE TAYLOR	214-663-9786	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1112	1211	POSSIBILITIES UNLIMITED	POSSIBILITIES UNLIMITED 12620 GREENBRIAR LAKE RD TYLER, TX 75709	\N	SHARON CLARK	903-509-8181	POSSIBILITIES UNLIMITED 12620 GREENBRIAR LAKE RD TYLER, TX 75709	2026-07-01 17:06:55.900872	\N	\N	\N
+1113	1212	POT HEADS PLANT SHOP	POT HEADS PLANT SHOP BREE FRASIER 603 S. SIMS AVE. #112 BRYAN, TX  77803	potheadsplantshop@gmail.com	\N	512-573-8145	we do not ship	2026-07-01 17:06:55.900872	\N	\N	\N
+1114	1213	POTS & PLANTS-AUSTIN	POTS & PLANTS-AUSTIN 1518 BARTON SPRINGS RD. #37 AUSTIN, TX 78704	jps@plasticpinkflamingos.com	\N	512-423-8540	POTS & PLANTS-AUSTIN 1518 BARTON SPRINGS RD. #37 AUSTIN, TX 78704	2026-07-01 17:06:55.900872	\N	\N	\N
+1115	1214	POTS AND PLANTS <<DALLAS>>	POTS AND PLANTS <<DALLAS>> 4217 SHENANDOAH DALLAS, TX 75205	\N	\N	214-522-6302	POTS AND PLANTS <<DALLAS>> 4217 SHENANDOAH DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1116	1215	PRASHE	PRASHE 4831 LAKAWANA ST. DALLAS, TX 75247	pete.prashe@gmail.com	\N	972-584-0283	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1117	1216	PRECIOUS MEMORIES FLORIST & GIFT SHOP	PRECIOUS MEMORIES SELEESE THOMPSON 17 N 2nd STREET TEMPLE, TX 76504	preciousmemoriesfloristtemple@gmail.com	\N	254-778-2242	PRECIOUS MEMORIES 17 N 2nd STREET TEMPLE, TX 76504	2026-07-01 17:06:55.900872	\N	\N	\N
+1118	1217	PRESCH PETALS	PRESCH PETALS 1212 OAK LAWN #111 DALLAS, TX 75207	TAMMY@PRESCHPETALS.COM	\N	210-970-8322	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1119	1218	PRESERVATION TREE & LANDSCAPE	PRESERVATION TREE & LANDSCAPE 2222 EMPIRE CENTRAL DALLAS, TX 75235	\N	HAROLD SPIEGEL	214-956-9779	PRESERVATION TREE & LANDSCAPE 2222 EMPIRE CENTRAL DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+1120	1219	PRESTON RD. CHURCH OF CHRIST	PRESTON RD. CHURCH OF CHRIST 6409 PRESTON RD. DALLAS, TX. 75205	julie@prestonroad.org	\N	214-526-7221	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1121	1220	PRESTONWOOD BAPTIST CHURCH	PRESTONWOOD BAPTIST CHURCH 6801 W. PARK PLANO, TX. 75093 call with 30 min.  972-948-1085	CHERYLMURFF@GMAIL.COM	\N	972-820-5000	PRESTONWOOD BAPTIST CHURCH 6801 W. PARK Food Service Dock Next to Sports Fitness Center PLANO, TX 75093	2026-07-01 17:06:55.900872	\N	\N	\N
+1122	1221	PRESTONWOOD LANDSCAPE SERVICES	PRESTONWOOD LANDSCAPE SERVICES, LLC 1366 ROUND TABLE DR DALLAS, TX 75247-3506	\N	\N	214-357-4668	PRESTONWOOD LANDSCAPE SERVICES, LLC 1366 ROUND TABLE DR DALLAS, TX 75247-3506	2026-07-01 17:06:55.900872	\N	\N	\N
+1123	1222	PRIMROSE PATH	PRIMROSE PATH, LLC 416 HWY 110 N WHITEHOUSE, TX 75791	flowersbyprimrose@gmail.com	\N	903-509-3839	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1124	1223	PRIVATE JUNGLE	PRIVATE JUNGLE 8328 CR 1015 WOLFE CITY, TX 75496	fletchergraves@gmail.com	\N	214-205-2946	PRIVATE JUNGLE 8328 CR 1015 WOLFE CITY, TX 75496	2026-07-01 17:06:55.900872	\N	\N	\N
+1125	1224	PROSPER BLOOMS	PROSPER BLOOMS, LLC 112 WEST BROADWAY PROSPER, TX 75078	kambra.bacon@prosperblooms.biz	\N	469-481-9294	PROSPER BLOOM 210 WEST BROADWAY PROSPER, TX 75078	2026-07-01 17:06:55.900872	\N	\N	\N
+1126	1225	PROSPER PLANTSCAPES	PROSPER PLANTSCAPES 5505 JIM HOGG AVE. AUSTIN, TX  78756	audrea@prosperplantscapes.com	\N	512-731-6797 - Audrea	7600 BURNET RD AUSTIN, TX 78757	2026-07-01 17:06:55.900872	\N	\N	\N
+1127	1226	PUCKETTS LAWN & GARDEN	PUCKETTS LAWN & GARDEN 811 E MAIN ST ALLEN, TX 75002	diannemathis1@msn.com	\N	972-727-1145	PUCKETTS LAWN & GARDEN 811 E MAIN ST ALLEN, TX 75002	2026-07-01 17:06:55.900872	\N	\N	\N
+1128	1227	PURE FUSION	PURE FUSION 6435 CRESTWAY RD LOT 66 SAN ANTONIO, TX 78239	sherigongora@yahoo.com	\N	785-221-9230	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1129	1228	QUALITY LANDSCAPE COMPANY	QUALITY LANDSCAPE COMPANY, LLC 3198 ROYAL LANE #107 DALLAS, TX 75229	kristen@qualitylandscapecompany.com	\N	214-616-5584	QUALITY LANDSCAPE COMPANY, LLC 3198 ROYAL LANE #107 DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+1130	1229	QUINCE IMAGING	QUINCE IMAGING 9319 CHISWELL RD. DALLAS, TX 75238	\N	\N	214-929-0509	QUINCE IMAGING 9319 CHISWELL RD. DALLAS, TX 75238 214-929-0509 CALL W/ETA	2026-07-01 17:06:55.900872	\N	\N	\N
+1131	1230	R & A PLANTS	R & A PLANTS ROMELIA AVELAR 115 MARTHA LN FORT WORTH, TX 76126	plantsra@gmail.com	\N	817-879-3341	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1132	1231	R & D NURSERY	R & D NURSERY 4337 FM 847 STEPHENVILLE, TX 76401	renate.snyder@gmail.com	\N	254-965-5965	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1133	1232	R BRANT DESIGN	R BRANT DESIGN 3723 GREENVILLE AVE DALLAS, TX 75206	brant@rbrantdesign.com	BRANT MCFARLAIN	214-435-0698	5732 CARUTH BLVD DALLAS TX 75209 CALL W/ETA 214-435-0698	2026-07-01 17:06:55.900872	\N	\N	\N
+1134	1233	RA ROOTS	RA ROOTS RACHELLE DIXON 3502 IVANHOE ABILENE, TX 79605	rachelledixongrows@gmail.com	\N	325-280-5817	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1135	1234	RADIANT GARDENS DALLAS	RADIANT GARDENS DALLAS P.O. BOX 600704 DALLAS, TX 75360	krista@radiantgardensdallas.com	\N	817-966-2127	RADIANT GARDENS DALLAS P.O. BOX 600704 DALLAS, TX 75360	2026-07-01 17:06:55.900872	\N	\N	\N
+1136	1235	RAINBOW PLANT COMPANY	RAINBOW PLANT COMPANY 4100 AVE C 3107 AUSTIN, TX 78751	ADMIN@RAINBOWPLANTCOMPANY.COM	\N	512-786-5894	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1137	1236	RAM BOOTH	RAM BOOTH 1130 WATERFORD WAY ALLEN, TX 75013	russellyap14@yahoo.com	\N	480-298-2866	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1138	1237	RAMOS GARDEN	RAMOS GARDEN 14528 CIMARRON DR. BALCH SPRINGS, TX 75180	adelahernandez269@yahoo.com	\N	214-429-7041	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1139	1238	RANCHVIEW HIGH SCHOOL	RANCHVIEW HIGH SCHOOL 8401 E. VALLEY RANCH PKWY. IRVING, TX 75063	nashw@cfbisd.edu	\N	972-968-5000	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1140	1239	RCB GARDENS	RCB GARDENS 4238 E.MARSHALL AVE. LONGVIEW, TX 75605	cathy@rcbgardens.com	\N	903-757-6394	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1141	1240	RD LANDSCAPING	RD LANDSCAPING INC RANDY DALE 10023 CLEARMEADOW DR DALLAS, TX 75231	\N	\N	214-882-4251	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1142	1241	RE CREATIONS, INC.	RE CREATIONS, INC. 7111 MOHAWK DR. DALLAS, TX 75235	billing@recreationsinc.com	\N	214-351-0074	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1143	1242	READY PLAY STEPH	READY PLAY STEPH 3451 CEDARHURST DR. DALLAS, TX 75233	events@thesocialgreenhouse.com	\N	440-465-7380	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1144	1243	REBECCA A EGELSTON ANTIQUES	REBECCA A EGELSTON ANTIQUES 10246 MIDWAY RD SUITE 202 DALLAS, TX 75229	\N	\N	214-351-4121	REBECCA A EGELSTON ANTIQUES 10246 MIDWAY RD SUITE 202 DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+1145	1244	RED BUTTERFLY DESIGN	RED BUTTERFLY DESIGN 7214 KAYWOOD DR DALLAS, TX 75209	INFO@JOSEPHTROSKIEDESIGN.COM	\N	214-534-0240	RED BUTTERFLY DESIGN 7214 KAYWOOD DR DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+1146	1245	REDEEMER BIBLE CHURCH	REDEEMER BIBLE CHURCH 721 EASTON RD. DALLAS, TX 75218	admin@redeemerbiblechurch.org	\N	214-340-3633	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1147	1246	REDENTA'S GARDEN	REDENTA'S GARDEN P.O. BOX 13560 ARLINGTON, TX 76094	dawna@redentas.com	JOSH ADDISON	214-823-9421	REDENTA'S GARDEN REDENTA'S - DALLAS 2001 SKILLMAN ST. DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+1148	1247	REDID	REDID MEGAN STEELE 209 MAIN ST MARBLE FALLS, TX 78654	redidtx@gmail.com	\N	512-644-4040	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1149	1248	REDMAN COMPANY	REDMAN COMPANY VANESSA REDMAN 5423 CARUTH BLVD DALLAS, TX 75209	vannr93@gmail.com	\N	214-912-9334	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1150	1249	REGENCY  BOTANICALS & BONSAI	REGENCY BOTANICALS 6008 HIGHCOURT PLACE DALLAS, TX 75254	support@regencybotanicals.com	\N	214-499-8875	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1151	1250	REINVINTAGE	REINVINTAGE 14249 BLACKFORK DR. HEAVENER, OK 74937	missmoss54@yahoo.com	\N	918-653-4561	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1152	1251	RELICS HOME	RELICS HOME 15401 RR 12, SUITE 101 WIMBERLEY, TX. 78676	friends@relicshome.com	\N	512-841-2150	RELICS HOME 15401 RR 12, SUITE 101 WIMBERLEY, TX  78676	2026-07-01 17:06:55.900872	\N	\N	\N
+1153	1252	REMBRANDT FLORIST OF RESTLAND	REMBRANDT FLORIST OF RESTLAND 13005 GREENVILLE AVE. DALLAS, TX 75243	apinvoices@nsmg.com	KEN SIMMS	972-761-8989	REMBRANDT FLORIST OF RESTLAND 13005 GREENVILLE AVE. 214-799-4506 DALLAS, TX 75243 PURCHASER: TALINA REED	2026-07-01 17:06:55.900872	\N	\N	\N
+1154	1253	REMI AND GOLD	REMI AND GOLD 2307 THORNTON RD #104 AUSTIN, TX 78704	kayla@remiandgold.com	\N	409-273-4641	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1155	1254	RENDER COLLECTIVE	RENDER COLLECTIVE 5035 SHARP ST. DALLAS, TX 75247	\N	\N	972-839-6059	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1156	1255	RENEE SOTO FLOWERS	RENEE SOTO FLOWERS 5238 VICKERY DALLAS, TX 75206	\N	RENEE SOTO	214-282-0863	RENEE SOTO FLOWERS 5238 VICKERY DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+1157	1256	RENKO FLORAL	RENKO FLORAL 1617 RENDALL PLACE LOS ANGELES, CA 90026	ren@renkofloral.com	\N	323-603-6163	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1158	1257	RENO GROSSI DESIGN	RENO GROSSI DESIGN 1245 BAR HARBOR DR. DALLAS, TX 75232	renogrossi@gmail.com	\N	318-272-6423	6804 dupont dr plano tx reno 318 272 6423	2026-07-01 17:06:55.900872	\N	\N	\N
+1159	1258	RENOVATIONS	RENOVATIONS 3540 HANOVER DALLAS, TX 75225	\N	\N	214-369-7805	RENOVATIONS 3540 HANOVER DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+1160	1259	RESA'S BOUTIQUE	RESA'S BOUTIQUE 2408 MONTGOMERY ST. SUITE 100 FT. WORTH, TX 76107	resas-pieces@yahoo.com	\N	682-233-2381	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1161	1260	RICK'S INTERIOR HORTICULTURE	RICK'S INTERIOR HORTICULTURE 10114 MORGAN MEADOW LN. DALLAS, TX. 75243	\N	\N	972-669-1884	3029 lovers lane dallas tx 214 926 3639	2026-07-01 17:06:55.900872	\N	\N	\N
+1162	1261	RIDGEVIEW FLORIST	RIDGEVIEW FLORIST P.O. BOX 1007 MCKINNEY, TX 75070	ridgeviewflorist@tjmfuneral.com	\N	972-424-7834	RIDGEVIEW FLORIST 2525 CENTRAL EXPY NORTH ALLEN, TX 75013	2026-07-01 17:06:55.900872	\N	\N	\N
+1163	1262	RJ CREATIONS <RHONDA>	RJ CREATIONS <RHONDA> 1012 SHERE LN IRVING, TX 75060	rhondacreations@aol.com	RHONDA JAYE OLIVER	972-513-9682	RJ CREATIONS <RHONDA> 1012 SHERE LN IRVING, TX 75060	2026-07-01 17:06:55.900872	\N	\N	\N
+1164	1263	ROBERT BELLAMY DESIGN	ROBERT BELLAMY DESIGN 1918 NORTH PRAIRIE DALLAS, TX 75204	bellamydesign@gmail.com	ROBERT BELLAMY	214-826-4612	ROBERT BELLAMY DESIGN 1918 NORTH PRAIRIE DALLAS, TX 75204	2026-07-01 17:06:55.900872	\N	\N	\N
+1165	1264	ROBERTS LANDSCAPE	ROBERTS LANDSCAPE 10711 SHADY TRAIL DALLAS, TX 75220	david@robertslandscape.com	\N	214-351-9555	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1166	1265	ROBSON RANCH LIONS CLUB	ROBSON RANCH LIONS CLUB 9621 ROSEWOOD DR. DENTON, TX 76207	lionsrobsonranch@gmail.com	\N	469-516-9839	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1167	1266	ROCKWALL CHAMBER OF COMMERCE	ROCKWALL AREA CHAMBER OF COMMERCE 697 EAST I-30 ste#200 ROCKWALL, TX 75087	\N	\N	972-771-5733	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1168	1267	ROCKWALL COUNTY MASTER GARDENER	ROCKWALL COUNTY MASTER GARDENER 915 E. WHITMORE DR. SUITE B ROCKWALL, TX 75087	\N	\N	972-204-7660	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1169	1268	ROD SIMPSON	ROD SIMPSON 6911 COUNTY RD.1200 MT. PLEASANT, TX 75455	\N	\N	903-572-9139	ROD SIMPSON 6911 COUNTY RD.1200 MT. PLEASANT, TX 75455	2026-07-01 17:06:55.900872	\N	\N	\N
+1170	1269	ROLAND'S NURSERY	ROLAND'S NURSERY 2240 N. HWY. 77 WAXAHACHIE, TX 75165	rollin58@yahoo.com	\N	972-923-3432	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1171	1270	ROLKE GREENHOUSES	ROLKE GREENHOUSES 19085 HAMPTON RD. GLENN HEIGHTS, TX 75154	accounting@rolkegreenhouses.com	\N	469-884-1128	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1172	1271	ROMANTIC FLORALS LLC	ROMANTIC FLORALS LLC TRICIA WON 1202 OWL CT. ROUND ROCK, TX 78681	TRICIA@ROMANTICFLORALS.COM	\N	512-203-6030	1202 OWL CT. ROUND ROCK, TEXAS 78681 USA	2026-07-01 17:06:55.900872	\N	\N	\N
+1173	1272	ROMEAUX LANDSCAPE CO. LLC	ROMEAUX LANDSCAPE CO. LLC 381 CASA LINDA PLAZA # 372 DALLAS, TX 75218	romeaux@sbcglobal.net	PETE ROMO	\N	890 ROCKWALL PARKWAY 110 ROCKWALL TX 75032 CALL W/ETA 469-261-0886 ANOLINA	2026-07-01 17:06:55.900872	\N	\N	\N
+1174	1273	RON'S ORGANICS	RON'S ORGANICS 1820 S. BELTLINE RD. MESQUITE, TX 75181	info@organicdynamics.com	RON HALL	972-216-5296	RON'S ORGANICS 1820 S. BELTLINE RD. MESQUITE, TX 75181	2026-07-01 17:06:55.900872	\N	\N	\N
+1175	1274	RONCHETTI DESIGNS	RONCHETTI DESIGNS 4114 SAN CARLOS DALLAS, TX 75205	antiques@ronchettidesigns.com	CAROL RONCHETTI	214-528-4143	RONCHETTI DESIGNS 4114 SAN CARLOS DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1176	1275	ROOSTER HOME & HARDWARE	ROOSTER HOME & HARDWARE 10233 E. NORTHWEST HWY. DALLAS, TX 75238	info@roosterhomeandhardware.com	\N	214-343-1971	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1177	1276	ROOT TO RISE PLANT CO.	ROOT TO RISE PLANT CO. MEGAN NANCE 801 S. HWY 183 STE 1261 LEANDER, TX 78641	megan@roottoriseplants.com	\N	512-763-6903	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1178	1277	ROOTED BY BLANCA CHARLES	ROOTED BY BLANCA CHARLES 4085 RS COUNTY RD 1490 POINT, TX 75472	rootedbyblancacharles@gmail.com	\N	903-269-7498	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1179	1278	ROOTED BY CAIT	ROOTED BY CAIT 9301 FM 2011 LONGVIEW, TX 75603	icaitlinxx@gmail.com	\N	903-720-8031	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1180	1279	ROOTED CROFT	ROOTED CROFT 1834 GREEN RIDGE CT. CARROLLTON, TX 75007	rootedcroft@gmail.com	\N	507-358-3207 REBECCA	ROOTED CROFT 1834 GREEN RIDGE CT. CARROLLTON, TX 75007	2026-07-01 17:06:55.900872	\N	\N	\N
+1181	1280	ROOTED DALLAS SUCCULENTS	ROOTED DALLAS SUCCULENTS 6723 BLESSING DR. DALLAS, TX 75214 214-207-8196	zela@rooteddallas.com	\N	214-454-7667	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1182	1281	ROOTED GARDEN CENTER	ROOTED GARDEN CENTER 201 INTERSTATE 30 W MT. VERNON, TX 75457	tstuart.rooted@gmail.com	\N	903-588-3206	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1183	1282	ROOTED IN	ROOTED IN, LLC 12804 PELZEL RD PILOT POINT, TX 76528	clintwolfe@rootedin.com	\N	979-777-4522	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1184	1283	ROOTED IN KAUFMAN	ROOTED IN KAUFMAN 6075 BLUEBIRD LN. KAUFMAN, TX 75142 KYLE BUSSEY 469-345-4156	rootedinkaufman@gmail.com	\N	469-345-4156	1896 FM 987 KAUFMAN, TX.	2026-07-01 17:06:55.900872	\N	\N	\N
+1185	1284	ROOTED SPACES PLANTS LLC	ROOTED SPACES PLANTS LLC PEGOH OSKOUI 407 WILLIAMS WAY CEDAR PARK, TX 78613	SALES@ROOTEDSPACESPLANTS.COM	\N	512-426-8712	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1186	1285	ROOTS PLANT CRAFT	ROOTS PLANT CRAFT 8000 LEGACY PKWY. AMARILLO, TX 79119	rootsplantcraft@gmail.com	\N	806-340-3244	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1187	1286	ROOTS ROCKS AND RITUALS	ROOTS ROCK AND RITUALS PATSY RAMOS 120 STRATTON LN JARRELL, TX 76537	HELLO@ROOTSROCKSANDRITUALS.COM	\N	254-319-1105	ROOTS ROCK AND RITUALS PATSY RAMOS 120 STRATTON LN JARRELL, TX 76537	2026-07-01 17:06:55.900872	\N	\N	\N
+1188	1287	ROOTVICE	ROOTVICE 4801 LANSING DRIVE AUSTIN, TX 78745	rootviceaustin@gmail.com	\N	512-964-0011	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1189	1288	RORY SMITH LANDSCAPE DESIGN	RORY SMITH LANDCAPE DESIGN PO BOX 131863 TYLER, TX. 75713-1863	\N	\N	903-258-0544	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1190	1289	ROSE'S SECRET GARDEN,LLC	ROSE'S SECRET GARDEN,LLC 3802 HIGHGROVE DALLAS, TX 75220	rsgardencompany@gmail.com	\N	214-938-9908	ROSE'S SECRET GARDEN, LLC 3802 HIGHGROVE DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+1191	1290	ROSE GARDEN	ROSE GARDEN 212 S ZANG BLVD. DALLAS, TX 75208	\N	\N	214-943-8100	ROSE GARDEN 212 S ZANG BLVD. DALLAS, TX 75208	2026-07-01 17:06:55.900872	\N	\N	\N
+1192	1291	ROSEHIP FLORA	ROSEHIP FLORA 2509 E THIRD ST AUSTIN, TX 78702	\N	ERIN KNIPP	512-917-6513	ROSEHIP FLORA 2509 E THIRD ST AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+1193	1292	ROSES & MORE	ROSES & MORE 4724 GREENVILLE #C DALLAS, TX 75206	info@rosesandmoreflorist.com	\N	214-361-6991	ROSES & MORE 4724 GREENVILLE #C DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+1194	1293	ROUND ROCK GARDEN CENTER	ROUND ROCK GARDEN CENTER 901 SAM BASS ROAD ROUND ROCK, TX  78681	karinm@roundrockgardens.com;maryb@roundrockgardens.com	\N	512-255-3353	ROUND ROCK GARDEN CENTER 901 SAM BASS ROAD ROUND ROCK, TX 78681	2026-07-01 17:06:55.900872	\N	\N	\N
+1195	1294	ROUNDTREE LANDSCAPE	ROUNDTREE LANDSCAPE 4325 BELMONT DALLAS, TX 75204	\N	JOHNETTE TAYLOR	214-824-7036	4819 VICKSBURG ST DALLAS TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+1196	1295	ROWLETT FLORIST & BOUTIQUE	ROWLETT FLORIST & BOUTIQUE 513 STATE ST. GARLAND, TX 75040	\N	SHIRLEY TULLOS	972-475-2098	ROWLETT FLORIST & BOUTIQUE 513 STATE ST. GARLAND, TX 75040	2026-07-01 17:06:55.900872	\N	\N	\N
+1197	1296	ROXAN COFFMAN PROPERTIES	ROXAN COFFMAN PROPERTIES 2612 WEST 12TH ST. AUSTIN, TX. 78703	roxan@roxancoffman.com	\N	512-477-6666	WE DO NOT DELIVER	2026-07-01 17:06:55.900872	\N	\N	\N
+1198	1297	RUIBALS	RUIBALS 601 S. PEARL DALLAS, TX 75201	linda@ruibals.com	MIKE RUIBAL	214-744-9100	RUIBALS 601 S. PEARL DALLAS, TX 75201	2026-07-01 17:06:55.900872	\N	\N	\N
+1199	1298	RUSSELL BRIGHTWELL	RUSSELL BRIGHTWELL, LLC 3809 PARRY AVE #207 DALLAS, TX 75226	\N	\N	713-828-5217	RUSSELL BRIGHTWELL 3809 PARRY AVE#207 DALLAS TX 75226	2026-07-01 17:06:55.900872	\N	\N	\N
+1200	1299	RUSTIC ROSE FLORIST	RUSTIC ROSE FLORIST 1426 FM 121 WHITEWRIGHT, TX 75491	rusticroseflorist@aol.com	\N	\N	RUSTIC ROSE FLORIST 1426 FM 121 WHITEWRIGHT, TX 75491	2026-07-01 17:06:55.900872	\N	\N	\N
+1201	1300	RUSTIC ROSE LANDSCAPE	RUSTIC ROSE LANDSCAPE 9602 CHUKAR CIR AUSTIN, TX  78758	\N	\N	214-356-2500	RUSTIC ROSE LANDSCAPE 9602 CHUKAR CIR AUSTIN, TX  78758	2026-07-01 17:06:55.900872	\N	\N	\N
+1202	1301	RUSTY FLAME	THE RUSTY FLAME KELLY LOPACHIN 1212 FIORELLA STREET CASTROVILLE, TX 78009	kiki@therustyflameco.com	\N	830-931-6159	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1203	1302	RUTH ADAMS	RUTH ADAMS 2239 52ND ST DALLAS, TX 75216	ruth031435@gmail.com	RUTH ADAMS	214-3679-9655	RUTH ADAMS 2239 52ND ST DALLAS, TX 75216	2026-07-01 17:06:55.900872	\N	\N	\N
+1204	1303	RYE'S FLOWERS AND GIFTS	Rye's Flowers and Gifts 11239 US HWY 87 W La Vernia, TX 78121	ryesflowersandgifts@gmail.com	\N	830-779-2159	Rye's Flowers and Gifts 11239 US HWY 87 W La Vernia, TX 78121	2026-07-01 17:06:55.900872	\N	\N	\N
+1205	1304	S & C LANDSCAPING	S & C LANDSCAPING PO BOX 822914 DALLAS, TX 75382	\N	SANTEAGO JIMENEZ	469-867-5507	S & C LANDSCAPING PO BOX 822914 DALLAS, TX 75382	2026-07-01 17:06:55.900872	\N	\N	\N
+1206	1305	S & D OYSTER CO.	S & D OYSTER CO. 2701 MCKINNEY AVE. DALLAS, TX 75204	herb@sdoyster.com	HERB	214-880-0111	S & D OYSTER CO. 2701 MCKINNEY AVE. DALLAS, TX 75204	2026-07-01 17:06:55.900872	\N	\N	\N
+1207	1306	S B LONG INTERIORS	S.B. LONG INTERIORS 3612 BEVERLY DR. DALLAS, TX. 75205	admin@sblonginteriors.com	\N	972-803-6304	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1208	1307	S.L.BEE	S.L.BEE 730 MISTY GLEN DALLAS, TX 75232	scott@pettigrew-usa.com	\N	214-770-7474	S.L.BEE 730 MISTY GLEN DALLAS, TX 75232	2026-07-01 17:06:55.900872	\N	\N	\N
+1209	1308	S.L.M. INTERIORS	S.L.M. INTERIORS 6719 VELASCO DALLAS, TX 75214	\N	SUZANNE	214-826-8237	S.L.M. INTERIORS 6719 VELASCO DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1210	1309	SABRINA'S FLOWERS	SABRINA'S FLOWERS 1903 S.  GOLIAD ST ROCKWALL, TX 75087	weddings@sabrinasflowers.com	\N	972-771-1896	SABRINA'S FLOWERS 1903 S.  GOLIAD ST ROCKWALL, TX 75087	2026-07-01 17:06:55.900872	\N	\N	\N
+1211	1310	SACRED FUNERAL HOME LLC	SACRED FUNERAL HOME 1395 N. HWY. 67 CEDAR HILL, TX 75104	sacredfh@live.com	\N	214-376-7273	SACRED FUNERAL HOME 1395 N HWY 67 CEDAR HILL, TX 75104	2026-07-01 17:06:55.900872	\N	\N	\N
+1212	1311	SAGE EVENTS CO.	SAGE EVENTS CO. 3422 MACKAY OAKS TRAIL ARLINGTON, TX 76017	tisa@sagefineflowers.com	\N	972-768-9673	3819 RUFE SNOW DR #205 NORTH RICHLAND HILLS, TX 76180	2026-07-01 17:06:55.900872	\N	\N	\N
+1213	1312	SALADO BLOOM SOCIETY	SALADO BLOOM SOCIETY MOLLY STRATTON 602 OLD TOWN RD. #9 SALADO, TX 76571	SALADOBLOOMSOCIETY@GMAIL.COM	\N	254-444-0277	SALADO BLOOM SOCIETY MOLLY STRATTON 602 OLD TOWN RD. #9 SALADO, TX 76571	2026-07-01 17:06:55.900872	\N	\N	\N
+1214	1313	SALLY WHOLESALE	SALLY WHOLEALE 11029 HARRY HINES BLVD. DALLAS, TX 75229	\N	\N	817-716-6470	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1215	1314	SAMPLE HOUSE	SAMPLE HOUSE 4722 BENGAL DALLAS, TX 75235	sheree@samplehouse.com	\N	214-688-0751	SAMPLE HOUSE 4722 BENGAL DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+1216	1315	SAN LUIS NOVELTIES	SAN LUIS NOVELTIES 1235 S JOSEY LN #538 CARROLLTON, TX 75063	sanluisnovelties@gmail.com	\N	972-416-0000	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1217	1316	SAND AND LAVENDER FLORAL	SAND AND LAVENDER FLORAL & EVENT DESIGN 1900 PRESTON RD STE 267-294 PLANO, TX 75093	orders@slfloral.com	\N	214-542-5571	2431 shorecrest 214 542 5571 CALL ETA	2026-07-01 17:06:55.900872	\N	\N	\N
+1218	1317	SANDY SMITH INC.	SANDY SMITH INC. 11714 PINE FOREST DR. DALLAS, TX 75230	\N	SANDY	214-770-1888	SANDY SMITH 11714 PINE FOREST DR DALLAS, TX 75230	2026-07-01 17:06:55.900872	\N	\N	\N
+1219	1318	SARAH GRAHAM INTERIORS	SARAH GRAHAM INTERIORS 9426 OVERWOOD RD. DALLAS, TX 75238	business@sarahgrahaminteriors.com	\N	214-763-2964	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1260	1359	SISU INTERIORS	SISU INTERIORS 5304 PALADIUM DR. DALLAS, TX 75254	peggy@sisuinteriors.com	\N	214-642-4259	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1220	1319	SARAHPHIM'S FLORAL & DESIGN	SARAHPHIM'S FLORAL & DESIGN 25691 SMOTHERMAN RD #170 FRISCO, TX 75238	sarahleannmoore@yahoo.com	\N	972-217-5122	SARAHPHIM'S FLORAL 25691 SMOTHERMAN RD #170 FRISCO, TX 75033	2026-07-01 17:06:55.900872	\N	\N	\N
+1221	1320	SAVERS COST PLUS-FW	SAVERS COST PLUS-FW 2551 EPHRIHAM AVE. FT. WORTH, TX 76164	\N	\N	817-439-9160	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1222	1321	SAVERS COST PLUS-GP	SAVERS COST PLUS-GP 1713 S. BELT LINE RD. GRAND PRAIRIE, TX 75051	yesicagallego69@gmail.com	\N	972-642-3681	SAVERS COST PLUS-GP 1713 S. BELT LINE RD. GRAND PRAIRIE, TX 75051	2026-07-01 17:06:55.900872	\N	\N	\N
+1223	1322	SAVERS COST PLUS-IRVING	SAVERS COST PLUS IRVING 504 N. O'CONNOR IRVING, TX 75061	saverscpo@gmail.com	\N	972-259-2440	SAVERS COST PLUS IRVING 504 N. O'CONNOR IRVING, TX 75061	2026-07-01 17:06:55.900872	\N	\N	\N
+1224	1323	SAVERS COST PLUS-WESTMORELAND	SAVERS COST PLUS-WESTMO RELAND 1610 S. WESTMORELAND DALLAS, TX 75211	\N	\N	214-337-0808	SAVERS COST PLUS-WESTMO RELAND 1610 S. WESTMORELAND DELIVER BY 2PM DALLAS, TX 75211	2026-07-01 17:06:55.900872	\N	\N	\N
+1225	1324	SAVVIE DESIGN CO.	SAVVIE DESIGN CO. 121 HANN STREET DENTON, TX 76201	\N	\N	903-316-2143	SAVVIE DESIGN CO. 121 HANN STREET DENTON, TEXAS 76201	2026-07-01 17:06:55.900872	\N	\N	\N
+1226	1325	SCAR TISSUE BOTANICAL	Scar Tissue Botanical 222 Llano Street Lockhart, TX 78644	caution@scartissuebotanicals.com	\N	512-995-9797	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1227	1326	SCARLETT REIGN FLORAL DESIGN	SCARLETT REIGN FLORAL DESIGN 4600 CLETO ST AUSTIN, TX 78725	HENRY.ALLISON88@GMAIL.COM	\N	512-785-2121	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1228	1327	SCENTS AND SUCCULENTS	SCENTS AND SUCCULENTS MADELYN RYBCZYK 1507 TRANQUILLA DALLAS, TX 75218	scentsandsucculentsboutique.com	\N	817-789-5435	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1229	1328	SCOOPS & ROOTS	SCOOPS & ROOTS 1867 FM 2673 CANYON LAKE, TX 78133	kit@scoopsandroots.com	\N	817-304-3504	SCOOPS & ROOTS 1867 FM 2673 CANYON LAKE, TX 78133	2026-07-01 17:06:55.900872	\N	\N	\N
+1230	1329	SDC	SDC 6715 DESCO DR DALLAS, TX. 75225	sdctexas@yahoo.com	\N	214-361-8434	3821 MARQUETTE DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+1231	1330	SEA AND SUN PLANTS	SEA AND SUN PLANTS MARISOL SOZA 9113 GOLDEN LEAF DR AUSTIN, TX 78748	mari.soza@yahoo.com	\N	432-638-7087	1921 Lohman's Crossing Austin, TX 78734	2026-07-01 17:06:55.900872	\N	\N	\N
+1232	1331	SEABORN STERLING ANTIQUES	SEABORN STERLING ANTIQUES 1605 DRAGON STREET DALLAS, TX 75207	kseaborn.ssa@gmail.com	\N	972-768-9272	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1233	1332	SEASON AND STEM	SEASON AND STEM 5419 MERCEDES AVE. DALLAS, TX 75206	hello@seasonandstemdesign.com	\N	469-387-6796	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1234	1333	SEASONAL COLOUR	SEASONAL COLOUR 4831 W. LAWTHER DR. #313 DALLAS, TX 75214	john.morelock@sbcglobal.net	CAROLYN	214-343-0935	SEASONAL COLOUR 4831 W. LAWTHER DR. #313 DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1235	1334	SECRET DESIGN	SECRET DESIGN 208 SANTA FE TRAIL IRVING, TX 75063	\N	\N	903-352-6385	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1236	1335	SECRET GARDEN - GIDDINGS	SECRET GARDEN - GIDDINGS 239 N. MAIN ST. GIDDINGS, TX 78942	secretgardenflwrs@verizon.net	\N	979-542-0141	SECRET GARDEN - GIDDINGS 239 N. MAIN ST. GIDDINGS, TX 78942	2026-07-01 17:06:55.900872	\N	\N	\N
+1237	1336	SEND-A-SUCCULENT	SEND-A-SUCCULENT 1705 DAMIAN WAY RICHARDSON, TX 75081	qt88pie@gmail.com	\N	469-386-3734	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1238	1337	SERRACINNA STUDIO	SERRACINNA STUDIO 968 CR 380 BARKSDALE, TX 78828	serracinnastudio@gmail.com	\N	504-232-8237	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1239	1338	SET TO SELL	SET TO SELL 5600 W LOVERS LN SUITE 116-385 DALLAS, TX 75209	\N	SAMANTHA THOMSON	214-728-0006	SET TO SELL 5600 W LOVERS LN SUITE 116-385 DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+1240	1339	SHABBOS BLOOMS	SHABBOS BLOOMS 1901 VASSAR DR. RICHARDSON, TX 75081	shabbosblooms@gmail.com	\N	214-380-0288	SHABBOS BLOOMS 1901 VASSAR DR. RICHARDSON, TX 75081	2026-07-01 17:06:55.900872	\N	\N	\N
+1241	1340	SHADES OF GREEN	SHADES OF GREEN 7401 COIT RD FRISCO, TX 75035	info@shadesfogreen.com	\N	972-335-9095	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1242	1341	SHARM'S GREEN THUMB	SHARM'S GREEN THUMB 1216 WEST HARRISON RD. LONGVIEW, TX 75604	sharmsgreenthumb@gmail.com	\N	903-704-8445	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1243	1342	SHARON MCCULLOUGH	SHARON MCCULLOUGH DESIGN 3552 CENTENARY DALLAS, TX. 75225	\N	\N	214-368-3135	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1244	1343	SHELBY WAGNER DESIGNS	SHELBY WAGNER DESIGNS 3303 LEE PARKWAY SUITE 410 DALLAS, TX 75219	shelby@shelbywagner.com	\N	214-431-4477	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1245	1344	SHERRILL'S	SHERRILL'S 1000 CARNEY DRIVE GARLAND, TX 75041	\N	SHERRILL & LINDA BROWN	972-278-3609	SHERRILL'S 1000 CARNEY DRIVE GARLAND, TX 75041	2026-07-01 17:06:55.900872	\N	\N	\N
+1246	1345	SHOAL CREEK NURSERY	SHOAL CREEK NURSERY ATTN: MARGIE P.O. BOX 675 FOREST HILL, LA  71430	shoalcreeknursery@yahoo.com	ED VOIGHT	512-910-3693	SHOAL CREEK NURSERY 2710 HANCOCK DR. AUSTIN, TX 78731	2026-07-01 17:06:55.900872	\N	\N	\N
+1247	1346	SHOLAS SALES	SHOLAS SALES DARIN SHOLAS 4431 GREYSTONE DR SAN ANTONIO, TX 78233	docsholas@gmail.com	\N	210-577-9055	SHOLAS SALES DARIN SHOLAS 4431 GREYSTONE DR SAN ANTONIO, TX 78233	2026-07-01 17:06:55.900872	\N	\N	\N
+1248	1347	SIDEBOARD COLLECTION	SIDEBOARD COLLECTION\\ 108 FLEUR DE LIS WEST MONROE, LA 71291	\N	PAM	214-704-8203	SIDEBOARD COLLECTION\\ 108 FLEUR DE LIS WEST MONROE, LA 71291	2026-07-01 17:06:55.900872	\N	\N	\N
+1249	1348	SIGNATURE GARDENS BY ROD RUSSELL-IDES	SIGNATURE GARDENS BY ROD RUSSELL-IDES 726 LOWELL ST DALLAS, TX 75214	\N	ROD RUSSELL-IDES	214-454-8615	SIGNATURE GARDENS BY ROD RUSSELL-IDES 726 LOWELL ST DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1250	1349	SILVER MOON CURIOS	Badass Beauty LLC DBA Silver Moon Curios Joanne Mitchell 2304 Warwick Ct Temple, TX 78626	silvermooncurios@gmail.com	\N	480-650-8796	Silver Moon Curios 120 W 2nd Street Unit A Taylor, TX 76574	2026-07-01 17:06:55.900872	\N	\N	\N
+1251	1350	SILVER RABBIT	SILVER RABBIT 4505 BEVERLY DR DALLAS, TX 75205	\N	\N	214-521-8989	SILVER RABBIT 4505 BEVERLY DR DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1252	1351	SIMCHA CATERING	SIMCHA CATERING 6041 LINDEN LANE DALLAS, TX 75230	lowell@lowellarthur.com	\N	972-620-7293	7452 malabar lane dallas tx 75230 call w/eta 214-629-5320	2026-07-01 17:06:55.900872	\N	\N	\N
+1253	1352	SIMPLY BLESSED FLOWERS AND GIFTS	SIMPLY BLESSED FLOWERS AND GIFTS 9200 LEBANON RD FRISCO, TX 75035	SUZANNE@SIMPLYBLESSEDFLOWER.COM	\N	214-618-4994	SIMPLY BLESSED FLOWERS AND GIFTS 9200 LEBANON RD FRISCO, TX 75035	2026-07-01 17:06:55.900872	\N	\N	\N
+1254	1353	SIMPLY FLOWERS	SIMPLY FLOWERS 101 W. MOORE AVE. TERRELL, TX 75160	simplyflowers@gmail.com	\N	945-396-0759	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1255	1354	SIMPLY FLOWERS-TERRELL	SIMPLY FLOWERS 101 W. MOORE TERRELL, TX 75160	simplyflowersunlimited@gmail.com	\N	945-396-0759	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1256	1355	SIMPLY TREES	SIMPLY TREES 760 E. MAIN ST. STE. 102 LEWISVILLE, TX 75057	accountspayable@simplytrees.com	\N	310-490-5412	SIMPLY TREES 18001 TX HWY 11 WINNSBORO TX 75494 949-562-8523 KATE	2026-07-01 17:06:55.900872	\N	\N	\N
+1257	1356	SINGLETREE FARMS	SINGLETREE FARMS 3792 CR 3408 LONE OAK, TX 75453 214-549-5604	heddagioiadowd@me.com	\N	214-549-5604	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1258	1357	SINISTER G MENAGERIE	SINISTER G MENAGERIE SARAI GONZALEZ 3005 BAYPORT CIRCLE ROWLETT, TX 75188	saraigonzalez30@gmail.com	\N	9729401043	SINISTER G MENAGERIE SARAI GONZALEZ 3005 BAYPORT CIRCLE ROWLETT, TX 75188	2026-07-01 17:06:55.900872	\N	\N	\N
+1259	1358	SISTERS GARDEN WHITNEY	SISTERS GARDEN WHITNEY, LLC 1019 E JEFFERSON AVE WHITNEY, TX 76692	sistersgardenwhitney@gmail.com	\N	254-694-9994	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1261	1360	SIXPENCE FLORAL DESIGN	SIXPENCE FLORAL DESIGN 5811 MOJAVE DR AUSTIN, TX 78745	stella@sixpencefloral.com	STELLA EMBLETON	512-810-3244	SIXPENCE FLORAL DESIGN 5811 MOJAVE DR AUSTIN, TX 78745	2026-07-01 17:06:55.900872	\N	\N	\N
+1262	1361	SKO GREENGOODS	SKO GREENGOODS 2128 CIRCLE DR. IRVING, TX 75060	skogreengoods@gmail.com	\N	972-849-4717	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1263	1362	SLIPCOVER CC,INC.	SLIPCOVER CC,INC. PO BOX 73 CHATFIELD, TX 75107	\N	CAROLYN WESTBROOK	903-641-0888	SLIPCOVER CC, INC. PO BOX 73 CHATFIELD, TX 75107	2026-07-01 17:06:55.900872	\N	\N	\N
+1264	1363	SLK DESIGNS	SLK DESIGNS 9516 BELLA TERRA DR FT WORTH, TX 76126	\N	\N	214-522-3020	SLK DESIGNS 9516 BELLA TERRA DR FT WORTH, TX 76126	2026-07-01 17:06:55.900872	\N	\N	\N
+1265	1364	SMART SPA	SMART SPA 1717 ANNEX AVE. UNIT 203 DALLAS, TX 75204	smartspaswitch@gmail.com	\N	214-929-8594	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1266	1365	SMITHVILLE FLORIST	SMITHVILLE FLORIST 203 NW LOOP 230 SMITHVILLE, TX 78957	hayleyosaunders@yahoo.com	ROY WOOD	512-237-3940	SMITHVILLE FLORIST 203 NW LOOP 230 SMITHVILLE, TX 78957	2026-07-01 17:06:55.900872	\N	\N	\N
+1267	1366	SOLAR PREP FOR BOYS	SOLAR PREP FOR BOYS 1802 MOSER AVE. DALLAS, TX 75206	\N	\N	214-886-1706	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1268	1367	SOMMER RAY FLOWERS	SOMMER RAY FLOWERS 7826 FM 1565 UNION VALLEY, TX 75189	sommerrayflowers@gmail.com	\N	4695409331	SOMMER RAY FLOWERS 7826 FM 1565 UNION VALLEY, TX 75189	2026-07-01 17:06:55.900872	\N	\N	\N
+1269	1368	SOMOS	SOMOS OUTDOORS 2401 E 6th STREET AUSTIN, TX 78702	rachael@somoslandscapes.com	\N	512-732-2995	SOMOS OUTDOORS 2401 E 6th STREET AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+1270	1369	SONFLOWER FLORIST - TAYLOR	SONFLOWER FLORIST - TAYLOR 803B CARLOS PARKER BLVD NW TAYLOR, TX  76574	\N	\N	512-584-3135	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1271	1370	SONNY & FERN	SONNY & FERN HANNAH STRANGE 7370 FM 145 KRESS, TX 79052	sonnyandfern@gmail.com	\N	806-773-6115	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1272	1371	SONRISE DESIGN	SONRISE DESIGN PO BOX 7013 TYLER, TX 75711	\N	SCOTT DAVIS	903-593-2076	SONRISE DESIGN PO BOX 7013 TYLER, TX 75711	2026-07-01 17:06:55.900872	\N	\N	\N
+1273	1372	SONSHINE DESIGN FLORIST	SONSHINE DESIGN FLORIST 704 PEGGS ST DESOTO, TX 75115	dannyprier@hotmail.com	DANNY PRIER	469-585-1959	SONSHINE DESIGN FLORIST 704 PEGGS ST DESOTO, TX 75115	2026-07-01 17:06:55.900872	\N	\N	\N
+1274	1373	SOPHY'S FLOWER DESIGNS	SOPHY'S FLOWER DESIGN 2425 S COCKRELL HILL RD SUITE C DALLAS, TX 75211	sophy'sflowerdesigns@gmail.com	\N	469-450-4972	SOPHY'S FLOWER DESIGN 2425 S COCKRELL HILL RD SUITE C DALLAS, TX 75211	2026-07-01 17:06:55.900872	\N	\N	\N
+1275	1374	SORELLE FARMS	SORELLE FARMS 975 COUNTY ROAD 2220 MINEOLA, TX 75773	rachelle.donnelly@sorellefarms.com	\N	430-2054757	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1276	1375	SOUTH CENTRAL IRISH WOLFHOUND CLUB	SOUTH CENTRAL IRISH WOLFHOUND CLUB P.O. BOX 832553 RICHARDSON, TX 75083	\N	\N	214-536-9050	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1277	1376	SOUTHERN BOTANICAL INC.	SOUTHERN BOTANICAL INC. 3151 HALIFAX ST SUITE 100 DALLAS, TX 75247	accounting@southernbotanical.com	\N	214-366-2103	2101 COUNTRY CLUB DR CARROLLTON TX 75006	2026-07-01 17:06:55.900872	\N	\N	\N
+1278	1377	SOUTHERN ECLECTIC DESIGNS	SOUTHERN ECLECTIC DESIGNS 8980 PRESTON RD FRISCO, TX 75034	courtney@southerneclecticdesign.com	\N	972-658-2388	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1279	1378	SOUTHERN GREENERY	SOUTHERN GREENERY 2710 SELMA LN. DALLAS, TX. 75234	sgh86@yahoo.com	\N	972-869-1678	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1280	1379	SOUTHERN LANDSCAPE AND IRRIGATION	SOUTHERN LANDSCAPE AND IRRIGATION 7070 ARMADILLO RIDGE MCKINNEY, TX 75071	bryson@southern-landscape.com	\N	469-236-0062	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1281	1380	SOUTHERN LANDSCAPES	SOUTHERN LANDSCAPES 11834 CHAMIZAL CORPUS CHRISTI, TX 78410	hector@southernlandconstruction.com	\N	361-774-5216	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1282	1381	SOUTHERN METHODIST UNIVERSITY	SOUTHERN METHODIST UNIVERSITY HUGHES TRIGG STUDENT CENTER DALLAS, TX 75275	benyacoub@smu.edu	\N	214-768-4400	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1283	1382	SOUTHWEST LANDSCAPE NURSERY	SOUTHWEST LANDSCAPE NURSERY 2220 SANDY LAKE RD. CARROLLTON, TX 75006	gkilpin@southwestnursery.com	EVELYN JONES	972-245-4557	SOUTHWEST LANDSCAPE NURSERY 2220 SANDY LAKE RD. CARROLLTON, TX 75006	2026-07-01 17:06:55.900872	\N	\N	\N
+1284	1383	SOUTHWEST SELECTIONS	SOUTHWEST SELECTIONS 4436 WINDSOR PKWY DALLAS, TX 75205	\N	MELISSA	214-207-4590	4436 WINDSOR PARKWAY DALLAS TX 75205 214-207-4590	2026-07-01 17:06:55.900872	\N	\N	\N
+1285	1384	SOUTHWESTERN EXPOSITION & LIVESTOCK SHOW	SOUTHWESTERN EXPOSITION & LIVESTOCK SHOW P.O. BOX 150 FORT WORTH, TX 76101	dbrezik@fwssr.com	\N	817-877-2400	3400 BURNETT-TANDY DR. FORT WORTH, TX 76107	2026-07-01 17:06:55.900872	\N	\N	\N
+1286	1385	SOWN WITH SEED	SOWN WITH SEED 128 N LIVE OAK FAYETTEVILLE, TX 78940	MORGANZATORSTUDIO@GMAIL.COM	\N	512-586-1849	SOWN WITH SEED 128 N LIVE OAK FAYETTEVILLE, TX 78940	2026-07-01 17:06:55.900872	\N	\N	\N
+1287	1386	SPACEBABE	SPACEBABE 4505 VILLAGE OAK DR. WACO, TX 76710	spacebabeco@gmail.com	\N	303-591-6220	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1288	1387	SPARKLING EVENTS & DESIGN	SPARKLING EVENTS & DESIGN, LLC 1403 MARIPOSA DR SUITE E MESQUITE, TX 75150	\N	\N	469-412-6449	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1289	1388	SPECIAL COLLECTIONS	SPECIAL COLLECTIONS 17903 LOST VIEW DALLAS, TX 75252	sandy.krueger@sbcglobal.net	SANDY KRUGER	972-248-3248	4831 GRETNA ST SUITE 100 DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+1290	1389	SPECIAL OCCASIONS BY ANGELINA	SPECIAL OCCASIONS BY ANGELINA 200 S. MAIN ST. DUNCANVILLE, TX 75116	specialoccasionsbyangie@gmail.com	ANGELINA RIOS	972-296-5587	SPECIAL OCCASIONS BY ANGELINA 200 S. MAIN ST. DUNCANVILLE, TX 75116	2026-07-01 17:06:55.900872	\N	\N	\N
+1291	1390	SPOTTED POPPY	Spotted Poppy 13708 Knights Branch Drive Elgin, TX 78621	thespottedpoppyfloral@gmail.com	\N	480-840-5005	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1292	1391	SPRING CREEK FLOWERS & NURSERY	SPRING CREEK FLOWERS & NURSERY 10140 S. COLLINSVILLE FWY. COLLINSVILLE, TX 76233	laura@scgardens.com;merritt@scgardens.com	\N	903-429-0320	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1293	1392	SPRING CREEK GARDENS	SPRING CREEK GARDENS 11355 HWY. 281 SPRING BRANCH, TX 78070	hana@scgardens.com	\N	830-885-6321	SPRING CREEK GARDENS 11355 HWY. 281 SPRING BRANCH, TX 78070 830-885-6321	2026-07-01 17:06:55.900872	\N	\N	\N
+1294	1393	SPRINGTOWN GARDEN CENTER	SPRINGTOWN GARDEN CENTER 236 W. HWY 199 SPRINGTOWN, TX 76082	springtowngardencenter@gmail.com	\N	817-523-4700	SPRINGTOWN GARDEN CENTER 236 W. HWY 199 SPRINGTOWN, TX 76082	2026-07-01 17:06:55.900872	\N	\N	\N
+1295	1394	ST. ALBERT THE GREAT CATHOLIC CHURCH	ST. ALBERT THE GREAT CATHOLIC CHURCH 12041 BITTERN HOLLOW AUSTIN, TX. 78758	deevillarreal@gmail.com	\N	512-837-7825	ST. ALBERT THE GREAT CATHOLIC CHURCH 12041 BITTERN HOLLOW AUSTIN, TX 78758	2026-07-01 17:06:55.900872	\N	\N	\N
+1296	1395	ST. ANTHONY CATHOLIC CHURCH	ST. ANTHONY CATHOLIC CHURCH 404 N. BALLARD AVE WYLIE, TX. 75098	daniel@saint-anthony.com	\N	972-442-2765	ST. ANTHONY CATHOLIC CHURCH 404 N. BALLARD AVE WYLIE, TX 75098 call 214-454-5970 15 min.	2026-07-01 17:06:55.900872	\N	\N	\N
+1297	1396	ST. AUGUSTINE CATHOLIC CHURCH	ST. AUGUSTINE CATHOLIC CHURCH 1054 N. ST. AUGUSTINE DALLAS, TX. 75217	mramirez@stadallas.com	\N	214-398-1583	1054 N. ST. AUGUSTINE DALLAS, TX 75217 214-398-1583	2026-07-01 17:06:55.900872	\N	\N	\N
+1298	1397	ST. BARNABAS PRESBYTERIAN CHURCH	ST. BARNABAS PRESBYTERIAN CHURCH 1220 W. BELT LINE RD. RICHARDSON, TX 75080-5801	cahiscock@yahoo.com	\N	972-235-2076	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1299	1398	ST. CATHERINE OF SIENNA	ST. CATHERINE OF SIENNA CATHOLIC CHURCH 1705 PETERS COLONY RD CARROLLTON, TX. 75007	Idaughenbaugh@yahoo.com	\N	972-492-3237	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1300	1399	ST. DAVID OF WALES EPISCOPAL CHRUCH	ST. DAVID OF WALES EPISCOPAL CHRUCH 623 ECTOR STREET DENTON, TX 76201	office@stdavidsdenton.org	\N	940-387-2622	ST. DAVID OF WALES EPISCOPAL CHRUCH 623 ECTOR STREET DENTON, TX 76201	2026-07-01 17:06:55.900872	\N	\N	\N
+1301	1400	ST. FRANCIS CATHOLIC-WACO	ST. FRANCIS CATHOLIC-WACO ORLANDO 315 JEFFERSON AVENUE WACO, TX  76701	pba@stfrancistorwaco.org	\N	254-752-8434	ST. FRANCIS CATHOLIC-WACO 315 JEFFERSON AVENUE WACO, TX 76701	2026-07-01 17:06:55.900872	\N	\N	\N
+1302	1401	ST. FRANCIS OF ASSISI	ST. FRANCIS OF ASSISI CATHOLIC CHURCH 861 WILDWOOD LN. GRAPEVINE, TX. 76051	CAROLANNE@ACHANGINGSEASON.COM	\N	817-481-2685	ST. FRANCIS OF ASSISI CATHOLIC CHURCH 861 WILDWOOD LN. GRAPEVINE, TX 76051 ETA: 940-597-6029	2026-07-01 17:06:55.900872	\N	\N	\N
+1303	1402	ST. HELEN CATHOLIC CHURCH	ST. HELEN CATHOLIC CHURCH 2700 E. UNIVERSITY AVE. GEORGETOWN, TX 78628	jaavent@gmail.com	\N	512-863-3041	ST. HELEN CATHOLIC CHURCH 2700 E. UNIVERSITY AVE. GEORGETOWN, TX 78628	2026-07-01 17:06:55.900872	\N	\N	\N
+1304	1403	ST. JOHN NEUMANN CATHOLIC CHURCH	ST. JOHN NEUMANN CATHOLIC CHURCH 5355 BEE CAVE RD WEST LAKE HILLS, TX 78746	lmcadams@sjnaustin.org	\N	512-328-3220	ST. JOHN NEUMANN CATHOLIC CHURCH 5355 BEE CAVE RD WEST LAKE HILLS, TX 78746	2026-07-01 17:06:55.900872	\N	\N	\N
+1305	1404	ST. LUKE CATHOLIC CHURCH-IRVING	ST. LUKE CATHOLIC CHURCH 1015 SCHULZE DR. IRVING, TX. 75060	dolores.stark@yahoo.com	\N	972-259-3222	ask for maya 469 964 7638 by noon	2026-07-01 17:06:55.900872	\N	\N	\N
+1306	1405	ST. LUKE COMMUNITY UMC	ST. LUKE COMMUNITY UMC 5710 E RL THORNTON DALLAS, TX. 75223	mlogan@slcumc.org	\N	214-821-2970	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1307	1406	ST. MARK PRESBYTERIAN CHURCH	ST. MARK PRESBYTERIAN CHURCH 9999 FERGUSON DALLAS, TX. 75228	annoneal16@gmail.com	\N	214-321-6437	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1308	1407	ST. MARTIN'S CATHOLIC CHURCH	ST. MARTIN'S CATHOLIC CHURCH 9470 FM 213 FORNEY, TX. 75126	veronicawilson@farmingfaith.com	\N	972-564-9114	ST.MARTINS CATHOLIC 9470 FM 213 FORNEY TX CALL 30MIN'S  W/ETA 214-912-8096	2026-07-01 17:06:55.900872	\N	\N	\N
+1309	1408	ST. MARTIN'S LUTHERAN CHURCH	ST. MARTIN'S LUTHERAN CHURCH 606 W. 15TH ST. AUSTIN, TX. 78701	\N	\N	512-925-2827	ST. MARTIN'S LUTHERAN CHURCH 606 W. 15TH ST. - @ corner of Nueces and 15th by garage doors AUSTIN, TX 78701	2026-07-01 17:06:55.900872	\N	\N	\N
+1310	1409	ST. MICHAEL'S PREP	ST. MICHAEL'S CATHOLIC PREPARATORY SCHOOL 3000 BARTON CREEK BLVD AUSTIN, TX 78735	jmessina@smcprep.org	\N	512-328-2323	ST. MICHAEL'S CATHOLIC PREPARATORY SCHOOL 3000 BARTON CREEK BLVD AUSTIN, TX 78735	2026-07-01 17:06:55.900872	\N	\N	\N
+1311	1410	ST. MONICA CATHOLIC PARISH	ST. MONICA CATHOLIC PARISH 9933 MIDWAY RD DALLAS, TX 75220	ddiaz@stmonicachurch.org	\N	214-358-1453	ST. MONICA CATHOLIC PARISH 9933 MIDWAY RD DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+1312	1411	ST. PATRICK CATHOLIC - DENISON	ST. PATRICK CATHOLIC CHURCH - DENISON 314 N. RUSK DENISON, TX. 75020	parishoffice@saintpats.net	\N	903-463-3275	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1313	1412	ST. PHILIP'S SCHOOL & COMMUNITY CENTER	ST. PHILIP'S SCHOOL & COMMUNITY CENTER 1600 PENNSYLVANIA AVE DALLAS, TX 75230	jsaqueton@stphilips.com	\N	214-421-5221	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1314	1413	ST. PHILIP THE APOSTLE	ST. PHILIP THE APOSTLE CHURCH 8131 MILITARY PKWY. DALLAS, TX. 75227	ynino@stphilipcatholicchurch.org	\N	214-388-5464	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1315	1414	ST. RITA CATHOLIC CHURCH	ST. RITA CATHOLIC CHURCH 12521 INWOOD RD DALLAS, TX. 75244	swagner@stritaparish.net	\N	972-239-1220	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1316	1415	ST. SERAPHIM ORHTODOX	ST. SERAPHIM ORTHODOX PO BOX 191109 DALLAS, TX. 75219	mary@stseraphimdallas.org	\N	214-528-3741	ST.SERAPHIN ORTHODOX 4208 WYCLIFF DALLAS TX 75219 CALL W/ETA 972-467-0020	2026-07-01 17:06:55.900872	\N	\N	\N
+1317	1416	ST. THOMAS AQUINAS	ST. THOMAS AQUINAS CATHOLIC CHURCH 6306 KENWOOD DALLAS, TX. 75214	rails2@hotmail.com	Rick	214-821-3360	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1318	1417	ST. WILLIAM CATHOLIC CHURCH	ST. WILLIAM CATHOLIC CHURCH 4300 STUART GREENVILLE, TX. 75401	office@stwilliamconfessor.org	\N	903-450-1177	ST.WILLIAM CATHOLIC CHURCH 4300 STUART GREENVILLE, TX 75401	2026-07-01 17:06:55.900872	\N	\N	\N
+1319	1418	STACIE'S LAZY DAISY FLORAL DESIGN	STACIE'S LAZY DAISY FLORAL DESIGN 3220 GUS THOMASSON #103 MESQUITE, TX 75150	stacieslazydaisy@yahoo.com	\N	972-681-6416	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1320	1419	STACIE BRILLIANT DESIGN	STACIE BRILLIANT DESIGN 2425 WESTLAKE DRIVE AUSTIN, TX 78746	staciebrilliantdesign@gmail.com	\N	512-417-3730	STACIE BRILLIANT DESIGN 2425 WESTLAKE DRIVE AUSTIN, TX 78746	2026-07-01 17:06:55.900872	\N	\N	\N
+1321	1420	STACY HYDE DESIGN	STACY HYDE DESIGN 5533 NAKOMA DR DALLAS, TX 75209	stacyhyde@mac.com	\N	214-213-9907	5845 LUPTON DR. DALLAS TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+1322	1421	STANDING SQUIRREL GARDENS	STANDING SQUIRREL GARDENS 3707 ELM GROVE RD. ROWLETT, TX 75089	gpac_4@msn.com	\N	214-923-1604	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1323	1422	STAR LANDSCAPE CO. INC.	STAR LANDSCAPE CO. INC. P.O. BOX 595568 DALLAS, TX 75359	\N	ROBERT SPOLEC	214-827-3966	STAR LANDSCAPE CO. INC. P.O. BOX 595568 DALLAS, TX 75359	2026-07-01 17:06:55.900872	\N	\N	\N
+1324	1423	STATE FAIR OF TEXAS	STATE FAIR OF TEXAS PO BOX 150009 DALLAS, TX 75215	\N	\N	214-421-8701	BIG TEX CIRCLE STATE FAIR GROUNDS	2026-07-01 17:06:55.900872	\N	\N	\N
+1325	1424	STATICE FLOWERS  EVENTS	STATICE FLOWERS  EVENTS 3317 FINLEY RD. SUITE 178 IRVING, TX 75062	staticeflowersevents@gmail.com	\N	469-912-9778	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1326	1425	STAYIN ALIVE SUCCULENTS	STAYIN' ALIVE SUCCULENTS JAYME WALDT 3604 WHARTON DR. FT. WORTH, TX 76133	peterson.jaymetres@gmail.com	\N	682-552-1749	STAYIN' ALIVE SUCCULENTS JAYME WALDT 3604 WHARTON DR. FT. WORTH, TX 76133	2026-07-01 17:06:55.900872	\N	\N	\N
+1327	1426	STELLA FINE FLOWERS	STELLA FINE FLOWERS 4931 C CEDAR SPRINGS DALLAS, TX 75235 214-606-9909	stellaflowers@gmail.com	STEPHEN FRELS	214-606-9909	ST.MARKS SCHOOL OF TEXAS 10600 PRESTON RD. DALLAS TX 75230 CALL W/ETA	2026-07-01 17:06:55.900872	\N	\N	\N
+1328	1427	STELLAR & CO.	STELLAR & CO. 1131 CR 3405 CLIFTON, TX 76634	thestellarplace@gmail.com	\N	254-326-8300	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1329	1428	STEMME FLORAL STUDIO	STEMME FLORAL STUDIO 4230 FAIRWAY DR. APT. 3210 CARROLLTON, TX 75010	quinshada@gmail.com	\N	469-816-4834	DO NOT SEND INVOICE	2026-07-01 17:06:55.900872	\N	\N	\N
+1330	1429	STEMS	STEMS SANDRA ROGERS 111 TEAKWOOD DR ROCKWALL, TX 75087	sandrad131@yahoo.com	\N	972-955-7462	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1331	1430	STEPHENS WHOLESALE	STEPHENS WHOLESALE LLC 1204 W MAIN ARDMORE, OK 73401	bestplants@yahoo.com	\N	580-221-1643	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1332	1431	STEVE'S NURSERY	STEVE'S NURSERY 4386 HWY. 34 SOUTH GREENVILLE, TX 75402	stenur@verizon.net	\N	903-883-2911	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1333	1432	STORMIE'S STEMS	Stormie's Stems 560 S Connector Rd Kenefic, OK 74748	stormiesstems@gmail.com	\N	5808982401	Stormie's Stems 560 S Connector Rd Kenefic, OK 74748	2026-07-01 17:06:55.900872	\N	\N	\N
+1334	1433	STUDIO OUTSIDE	STUDIO OUTSIDE 824 EXPOSITION SUITE #5 DALLAS, TX 75226	\N	TARY ARTERBURN	214-954-7160	STUDIO OUTSIDE 824 EXPOSITION SUITE #5 DALLAS, TX 75226	2026-07-01 17:06:55.900872	\N	\N	\N
+1335	1434	STUDIO THOMAS JAMES, INC.	STUDIO THOMAS JAMES, INC. 11910 SHILOH RD. SUITE 190 DALLAS, TX 75228	info@studiothomasjames.com	JASON JONES	214-502-3009	LEAVE ON PORCH 4506 ARCADY AVE. DALLAS TX CALL W/ETA 214-538-2662 ELIZABETH	2026-07-01 17:06:55.900872	\N	\N	\N
+1336	1435	SUBURBAN LANDSCAPE CO. INC.	SUBURBAN LANDSCAPE CO. INC. 1810 LA PRADA DR. MESQUITE, TX 75150	\N	KATHY SPEECE	214-321-4838 KATH	SUBURBAN LANDSCAPE CO. INC. 10477 SILVEROCK DR. DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+1337	1436	SUCCULENT NATIVE	SUCCULENT NATIVE SHANNON DONALDSON 5501 N. LAMAR BLVD. STE A101 AUSTIN, TX 78751	succulentnative@gmail.com	\N	512-831-8807	SUCCULENT NATIVE SHANNON DONALDSON 5501 N. LAMAR BLVD. STE A101 AUSTIN, TX 78751	2026-07-01 17:06:55.900872	\N	\N	\N
+1338	1437	SUGAR BABY PLANT CO.	SUGAR BABY PLANT CO. DANIELLE BOEHM 1812 HICKORY RIDGE CV. ROUNDROCK, TX 78665	sugarbabyplantco@gmail.com	\N	512-619-2127	SUGAR BABY PLANT CO. DANIELLE BOEHM 1812 HICKORY RIDGE CV. ROUNDROCK, TX 78665	2026-07-01 17:06:55.900872	\N	\N	\N
+1339	1438	SUGAR CITY CELBRATIONS	1911 CLEBURN DR ARLINGTON, TX 76012	carron@sugar-city.com	\N	214-298-2308	1911 CLEBURN DR ARLINGTON, TX 76012	2026-07-01 17:06:55.900872	\N	\N	\N
+1340	1439	SUN FLOWER	SUN FLOWER MAI NGUYEN 19411 PINE TREE LN WALLER, TX 77484	vipduy2013@gmail.com	\N	214-994-6057	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1341	1440	SUNDANCE GARDENS	Sundance Brand dba Sundance Gardens 1041 Elm Creek Road Waelder, TX 78959	d.brewer@sundancetx.com	\N	512-522-7273	Sundance Brand dba Sundance Gardens 1041 Elm Creek Road Waelder, TX 78959	2026-07-01 17:06:55.900872	\N	\N	\N
+1342	1441	SUNSHINE EMPORIUM	SUNSHINE EMPORIUM 7118 GREENVILLE AVE. DALLAS, TX 75231	manager@sunshine-midtown.com	\N	214-691-0127	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1343	1442	SUNSHINE FARMS	SUNSHINE FARMS 30020 FM 47 CANTON, TX 75103	sunshinefarms@netscape.com	\N	903-848-8682	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1344	1443	SUNSHINE FLOWERS	SUNSHINE FLOWERS 3017 MONTICELLO DALLAS, TX 75205	dnichols384@gmail.com	\N	214-526-6637	SUNSHINE FLOWERS 3017 MONTICELLO DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1345	1444	SUPERIOR LANDSCAPES	SUPERIOR LANDSCAPES 2000 LONESTAR DALLAS, TX 75212	carolmharvey1@gmail.com	RAY HARVEY	469-446-6858	SUPERIOR LANDSCAPES 2000 LONESTAR DALLAS, TX 75212	2026-07-01 17:06:55.900872	\N	\N	\N
+1346	1445	SUSSIES EQUALS HAPPIES	SUSSIES EQUALS HAPPIES 3532 MOCKINGBIRD LN DALLAS, TX 75205	sussies.happies@gmail.com	\N	214-566-3060	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1347	1446	SYBIL, LTD	SYBIL, LTD 3900 GREENBRIER DR DALLAS, TX 75225	\N	SYBIL EDWARDS	214-738-1416	SYBIL, LTD 3900 GREENBRIER DR DALLAS, TX 75225	2026-07-01 17:06:55.900872	\N	\N	\N
+1348	1447	TABLETOP ELEGANCE	TABLETOP ELEGANCE 304 E. LOCUST TYLER, TX 75702	susancothern@sbcglobal.net	\N	903-571-8403	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1349	1448	TAMI WINN EVENTS	TAMI WINN EVENTS 2572 GRAVEL DR FT. WORTH, TX 76118	\N	TAMI WINN	817-589-2393	TAMI WINN EVENTS 2572 GRAVEL DR FT. WORTH, TX 76118	2026-07-01 17:06:55.900872	\N	\N	\N
+1350	1449	TAMMY L. PICARD	TAMMY L. PICARD 2806 STANFORD DR IRVING, TX 75062	cocopelly@verizon.net	TAMMY L PICARD	214-893-4144	TAMMY L. PICARD 7700 EASTERN AVE DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+1351	1450	TARRANT COUNTY COLLEGE	TARANT COUNTY COLLEGE 1500 HOUSTON STREET FT. WORTH, TX 76102	\N	\N	817-515-1500	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1352	1451	TATUM LTD	TATUM LTD 2736 DANIEL DALLAS, TX 75205	\N	FAYE BALLARD	214-526-0225	TATUM LTD 2736 DANIEL DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1353	1452	TAYLOR CONSULTING	TAYLOR CONSULTING 1216 LEXINGTON SQ. CORSICANA, TX 75110	rhondadixontaylor@sbcglobal.net	\N	903-654-0725	TAYLOR CONSULTING 1216 LEXINGTON SQ. CORSICANA, TX 75110	2026-07-01 17:06:55.900872	\N	\N	\N
+1354	1453	TCB QUALITY LANDSCAPING, INC.	TCB QUALITY LANDSCAPING, INC. PO BOX 5004 GEORGETOWN, TX 78633	tcblandscaping@cs.com	\N	512-864-2722	TCB QUALITY LANDSCAPING, INC. 545 PR 914 GEORGETOWN, TX 78633	2026-07-01 17:06:55.900872	\N	\N	\N
+1355	1454	TEA GARDEN NURSERY	TEA GARDEN NURSERY 1211 E. ARKANSAS LN. ARLINGTON, TX 76010	\N	\N	817-966-8878	TEA GARDEN NURSERY 1211 E. ARKANSAS LN. ARLINGTON, TX 76010	2026-07-01 17:06:55.900872	\N	\N	\N
+1356	1455	TECHMAR GROUP	THE TECHMAR GROUP 212 S. BOIS D ARC ST. FORNEY, TX 75126	\N	\N	214-541-9665	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1357	1456	TECHSCAPE INC.	TECHSCAPE INC. 9800 BROCKBANK DALLAS, TX 75220	laura@techscapelandscape.com	WAYNE WINNER	972-680-0025	TECHSCAPE INC. 9800 BROCKBANK DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+1358	1457	TEDDY TAYLOR INC.	TEDDY TAYLOR INC. 3636 ARMSTRONG AVE DALLAS, TX 75205	\N	\N	214-521-8142	TEDDY TAYLOR INC. 3636 ARMSTRONG AVE DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1359	1458	TEJAS BULBS, INC.	TEJAS BULB, INC. STEVE LOWE 125 SHARON DR. BOERNE, TX 78006	tejasbulbs@gmail.com	\N	830-446-9950	WE DO NOT DELIVER TO BOERNE	2026-07-01 17:06:55.900872	\N	\N	\N
+1360	1459	TEJAS NURSERY	TEJAS NURSERY 930 WEST DEER TRAIL KINGSVILLE, TX 78363	tejasnursery@gmail.com	\N	361-960-6731	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1361	1460	TEJAS PLANTS AND GIFTS	TEJAS PLANTS AND GIFTS MICHAEL HOULE 3014 BLUE RIDGE DR CEDAR PARK, TX 78613	MICHAEL@TEJASPLANTSANDGIFTS.COM	\N	512-557-4094	TEJAS PLANTS AND GIFTS MICHAEL HOULE 3014 BLUE RIDGE DR CEDAR PARK, TX 78613	2026-07-01 17:06:55.900872	\N	\N	\N
+1362	1461	TERRA GAL	TERRA GAL 1913  SMOKEY MOUNTAIN TR MESQUITE, TX 75149	josepi1030@gmail.com	\N	214-228-3938	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1363	1462	TERRA VERTE	TERRA VERTE 9222 LEASIDE DR. DALLAS, TX 75238	\N	JOEL HARRIS	214-532-2221	TERRA VERTE 9222 LEASIDE DR. DALLAS, TX 75238	2026-07-01 17:06:55.900872	\N	\N	\N
+1364	1463	TERRAIN WORKSHOP	TERRAIN WORKSHOP 5495 BELTLINE RD #300 DALLAS, TX 75254	office@terrainworkshop.com	\N	214-380-4358	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1365	1464	TERRAMANIA	TERRAMANIA 7808 TRIXIE TRAIL DR. MCKINNEY, TX 75070	stylewhizforterramania@gmail.com	\N	972-757-9804	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1366	1465	TERRAPOTTA	TERRAPOTTA 506 ALLEN STREET UNIT B AUSTIN, TX 78702	TERRAPOTTA.ATX@GMAIL.COM	\N	978-807-1729	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1367	1466	TEXAS A & M UNIVERSITY	TEXAS A & M UNIVERSITY 2133 TAMU COLLEGE STATION, TX 77843-2133	c-hall@tamu.edu	BILL MCKINLEY	979-845-3841	TEXAS A & M UNIVERSITY 495 HORTICULTURE RD. COLLEGE STATION, TX 77843-2133	2026-07-01 17:06:55.900872	\N	\N	\N
+1368	1467	TEXAS BLOOMS - AUSTIN	TEXAS BLOOMS - AUSTIN 4616 TRIANGLE AVE SUITE 402 AUSTIN, TX 78751	texasblooms@gmail.com	MICHELLE (NEW OWNER AS OF 11/13)	512-474-7719	TEXAS BLOOMS - AUSTIN 4616 TRIANGLE AVE SUITE 402 AUSTIN, TX 78751	2026-07-01 17:06:55.900872	\N	\N	\N
+1369	1468	TEXAS DISCOVERY GARDENS	TEXAS DISCOVERY GARDENS P O BOX 152537 DALLAS, TX 75315	jwatts@txdg.org	\N	214-428-7476	TEXAS DISCOVERY GARDENS P O BOX 152537 DALLAS, TX 75315	2026-07-01 17:06:55.900872	\N	\N	\N
+1370	1469	TEXAS EQUAL ACCESS FUND	TEXAS EQUAL ACCESS FUND PO BOX 227336 DALLAS, TX 75227	casie@teafund.org	\N	469-347-9975	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1371	1470	TEXAS GARDEN ALCHEMY	TEXAS GARDEN ALCHEMY 3327 KIESTWOOD DR. DALLAS, TX 75233 KRISTEN NELSON	kristen@texasgardenalchemy.com	\N	972-849-8448	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1372	1471	TEXAS GARDEN SERVICES	TEXAS GARDEN SERVICES 7750 N. MACARTHUR BLVD. #120 - 155 IRVING, TX 75063	mstevens@texasgardenservices.com	TODD	972-243-2828	TEXAS GARDEN SERVICES 7750 N. MACARTHUR BLVD. #120 - 155 IRVING, TX 75063	2026-07-01 17:06:55.900872	\N	\N	\N
+1373	1472	TEXAS GOVERNOR'S MANSION	Texas Governor's Mansion 1010 Colorado Street Austin, TX 78701	lisaglucero@gmail.com	\N	\N	Texas Governor's Mansion 1010 Colorado Street Austin, TX 78701	2026-07-01 17:06:55.900872	\N	\N	\N
+1374	1473	TEXAS LAND CARE	TEXAS LAND CARE 6115 OWENS ST. SUITE 104 DALLAS, TX 75235	pmessel@texaslandcare.com	PHILIP & AMY LANG	214-350-7799	TEXAS LAND CARE 7600 JOHN CARPENTER FWY. DALLAS, TX 75247	2026-07-01 17:06:55.900872	\N	\N	\N
+1375	1474	TEXAS OASIS LANDSCAPE	TEXAS OASIS LANDSCAPE 2922 STOREY LANE DALLAS, TX 75220	texasoasis@sbcglobal.net	\N	214-350-0881	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1376	1475	TEXAS PALM TREES AND PLANTS	TEXAS PALM TREES AND PLANTS 7807 E RL THORNTON FRWY DALLAS, TX 75228	\N	\N	214-327-9995	TEXAS PALM TREES AND PLANTS 7807 E RL THORNTON FRWY DALLAS, TX 75228	2026-07-01 17:06:55.900872	\N	\N	\N
+1377	1476	TEXAS SCHOOL FOR THE DEAF	TEXAS SCHOOL FOR THE DEAF SUSIE KORNKVEN 1102 S. CONGRESS AVE. AUSTIN, TX 78704	susie.kornkven@tsd.state.tx.us	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1378	1477	TEXAS STATE FLORISTS' ASSOCIATION	TEXAS STATE FLORISTS' ASSOCIATION P.O. BOX 140255 AUSTIN, TX 78714	kpacanins@vickerygreenhouse.com	TSFA	\N	TEXAS STATE FLORISTS' ASSOCIATION P.O. BOX 140255 AUSTIN, TX 78714	2026-07-01 17:06:55.900872	\N	\N	\N
+1379	1478	TEXAS TROPICAL PLANT SERVICE	TEXAS TROPICAL PLANT SERVICE 6440 OILFIELD RD SUGARLAND, TX. 77479	\N	\N	713-298-2140	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1380	1479	TEXAS TROPICAL PLANTS- AUSTIN	TEXAS TROPICAL PLANTS- HOUSTON 2417 HURFUS HOUSTON, TX 77092	celisa@texastropical.com	\N	512-627-9312	TEXAS TROPICAL PLANTS- HOUSTON 2417 HURFUS HOUSTON, TX 77092	2026-07-01 17:06:55.900872	\N	\N	\N
+1381	1480	TEXAS WOMAN'S UNIVERSITY	TEXAS WOMAN'S UNIVERSITY PO BOX  425439 DENTON, TX 76204-5439	rchisenhall@twu.edu	BECKY	940-465-4995	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1382	1481	TEXAS YARD & GARDEN	TEXAS YARD & GARDEN, LLC 4330 TRAVIS ST DALLAS, TX 75205	jay@texasyardandgarden.com	\N	214-253-9082	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1383	1482	THARP LANDSCAPING	THARP LANDSCAPING 2400 WILDROSE CT. ARLINGTON, TX 76006	\N	\N	817-649-0775	THARP LANDSCAPING 2400 WILDROSE CT. ARLINGTON, TX 76006	2026-07-01 17:06:55.900872	\N	\N	\N
+1384	1483	THE BLOOM BAR	THE BLOOM BAR KAYLI HEAD 123 S. LBJ DR. SAN MARCOS, TX 78666	hello@thebloombar.com	\N	512-738-5593	THE BLOOM BAR KAYLI HEAD 123 S. LBJ DR. SAN MARCOS, TX 78666	2026-07-01 17:06:55.900872	\N	\N	\N
+1385	1484	THE BOTANICAL MIX	THE BOTANICAL MIX 2000 N. STEMMONS FWY. SUITE 1D110 DALLAS, TX 75207	shane@thebotanicalmix.com	\N	214-546-3162	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1386	1485	THE BROWN THUMB	THE BROWN THUMB 215 N CEDAR ST. DENTON, TX 76201	thebrownthumbllc@gmail.com	\N	940-435-1810	THE BROWN THUMB 215 N CEDAR ST. DENTON, TX 76201 CALL W/ETA 940-435-1810	2026-07-01 17:06:55.900872	\N	\N	\N
+1387	1486	THE BYRD'S EYE	THE BYRD'S EYE 6950 TOKALON DALLAS, TX 75214	\N	\N	214-328-7878	THE BYRD'S EYE 6950 TOKALON DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1388	1487	THE CALDWELL COMPANY	THE CALDWELL COMPANY 3432 MOCKINGBIRD DALLAS, TX 75205	foxrun4pc@earthlink.net	PAM	\N	6815 baltimore dallas tx 214 537 4141 call eta leave by driveway	2026-07-01 17:06:55.900872	\N	\N	\N
+1389	1488	THE CASA CO.	THE CASA CO. 3883 TURTLE CREEK #1614 DALLAS, TX 75219	\N	\N	214-521-3883	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1390	1489	THE CLIMBING VINES	THE CLIMBING VINES 1309 McENTIRE RD. TRINIDAD, TX	theclimbingvines20@gmail.com	\N	817-812-7541	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1391	1490	THE COMPANY LIMITED	THE COMPANY LIMITED 9426 HIGHEDGE DALLAS, TX 75238	\N	\N	214-341-8333	THE COMPANY LIMITED 9426 HIGHEDGE DALLAS, TX 75238	2026-07-01 17:06:55.900872	\N	\N	\N
+1392	1491	THE CONSERVATORY	THE CONSERVATORY 4141 LOMO ALTO DALLAS, TX 75206	accounting@theconservatorynyc.com	\N	972-863-8590	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1393	1492	THE CORNER MARKET	THE CORNER MARKET 3426 GREENVILLE AVE. DALLAS, TX 75206	thecornermarket@sbcglobal.net	\N	214-826-8283	THE CORNER MARKET 3426 GREENVILLE AVE. DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+1394	1493	THE COUTURE CLOSET	THE COUTURE CLOSET 10031 ROCK HILL LN. DALLAS, TX 75229	jacobson.k@sbcglobal.net	\N	214-534-3276	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1395	1494	THE COVENANT SCHOOL	THE COVENANT SCHOOL 7300 VALLEY VIEW LANE DALLAS, TX 75240	kdixon@covenantdallas.com	\N	214-358-5818	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1396	1495	THE DAISY	THE DAISY 1028 HAWK TRAIL COPPERAS COVE, TX 76522	beckyatthedaisy@gmail.com	BECKY	254-547-6321	THE DAISY 1028 HAWK TRAIL COPPERAS COVE, TX 76522	2026-07-01 17:06:55.900872	\N	\N	\N
+1397	1496	THE DIRT DOCTOR	THE NATURAL WAY PO BOX 140650 DALLAS, TX 75214	howard@dirtdoctor.com	HOWARD GARRETT	214-365-0606	THE NATURAL WAY PO BOX 140650 DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1398	1497	THE DOVE'S NEST	THE DOVE'S NEST 105 W. JEFFERSON WAXAHACHIE, TX 75165	\N	\N	972-938-3683	THE DOVE'S NEST 105 W.JEFFERSON WAXAHACHIE, TX 75165	2026-07-01 17:06:55.900872	\N	\N	\N
+1399	1498	THE ENCHANTED FLORIST<FT WORTH>	THE ENCHANTED FLORIST<FT WORTH> 3901 WEST FREEWAY SUIT 125 FT. WORTH, TX 76107	flowerchick67@hotmail.com	TERRI MCKINNEY	817-738-0648	ENCHANTED FLORIST 1640 MALL CIRCLE FT WORTH TX 76116 817-564-4492	2026-07-01 17:06:55.900872	\N	\N	\N
+1400	1499	THE FLORAL ECLECTIC	THE FLORAL ECLECTIC 201 LARK LANE EULESS, TX 76039	thefloraleclectic@gmail.com	\N	817-676-4325	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1401	1500	THE FLORIST LTD	THE FLORIST LTD 1425 MALONE ST DENTON, TX 76201	thefloristltd@hotmail.com	\N	940-483-1800	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1402	1501	THE FLOWER BOX <ROCKWALL>	THE FLOWER BOX <ROCKWALL> 2500 HWY 66 AT FM 549 ROCKWALL, TX 75087	accounting@resthavenfuneral.com	\N	972-772-3269	THE FLOWER BOX <ROCKWALL> 2500 HWY 66 AT FM 549 ROCKWALL, TX 75087	2026-07-01 17:06:55.900872	\N	\N	\N
+1403	1502	THE FLOWER BOX <WOLFE CITY>	THE FLOWER BOX-WOLFE CITY BEV WILLIAMS 121 EAST MAIN ST. WOLFE CITY, TX. 75496	flowerboxwc@yahoo.com	\N	903-496-7337	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1404	1503	THE FLOWER COTTAGE <<ALLEN>>	THE FLOWER COTTAGE <<ALLEN>> 102 W. BELMONT ALLEN, TX 75013	sprest01@live.com	\N	972-727-4591	THE FLOWER COTTAGE <<ALLEN>> 102 W. BELMONT ALLEN, TX 75013	2026-07-01 17:06:55.900872	\N	\N	\N
+1405	1504	THE FLOWER GIRL-DRIPPING SPRINGS	THE FLOWER GIRL 1039 SUNSET CANYON DRIVE DRIPPING SPRINGS, TX 78620	kari@theflowergirltx.com	\N	512-680-7946	THE FLOWER GIRL 1039 SUNSET CANYON DRIVE DRIPPING SPRINGS, TX 78620	2026-07-01 17:06:55.900872	\N	\N	\N
+1406	1505	THE FLOWER HYNA	THE FLOWER HYNA 2050 FM 423 #1507 LITTEL ELM, TX 75068	thefloriststrongAF@gmail.com	\N	214-308-0918	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1407	1506	THE FLOWER SHOP - PALESTINE	THE FLOWER SHOP - PALESTINE 1734 CROCKETT RD. PALESTINE, TX 75801	the.flowershop@aol.com	\N	903-727-0510	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1408	1507	THE FLOWER SHOPPE-MIDLOTHIAN	THE FLOWER SHOPPE-MIDLOTHIAN 118 N. 8TH STREET MIDLOTHIAN, TX 76065	\N	\N	972-775-1090	THE FLOWER SHOPPE-MIDLOTHIAN 118 N. 8TH STREET MIDLOTHIAN, TX 76065	2026-07-01 17:06:55.900872	\N	\N	\N
+1409	1508	THE FOLIAGE STUDIO	THE FOLIAGE STUDIO 110 WAGES ST. BROKEN BOW, OK 74728	grvfoliagesudio@gmail.com	\N	580-263-0970	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1410	1509	THE GIFTED GARDENER	THE GIFTED GARDENER 6602 CONNIE LN. COLLEYVILLE, TX 76247	\N	\N	817-715-8655	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1411	1510	THE GOLF CLUB OF DALLAS	THE GOLF CLUB OF DALLAS 2200 W. RED LN. DALLAS, TX. 75232	\N	\N	214-331-4336	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1412	1511	THE GREEN THUMB	THE GREEN THUMB 716 WEST MAIN ST WAXAHACHIE, TX. 75165	chaskabb@sbcglobal.net	\N	972-937-3390	7440 aviaton gulf stream aerospace CALL W/ETA 214-929-6466	2026-07-01 17:06:55.900872	\N	\N	\N
+1413	1512	THE GREENERY	THE GREENERY 10887 CR 1141 TYLER, TX 75709	davidcollings4@aol.com	\N	903-521-6206	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1414	1513	THE HAPPY  PLANT CO.	THE HAPPY PLANT CO. 1502 ROMAN RD. GRAND PRAIRIE, TX 75050	hello@thehappyplantco.com	\N	972-800-0021	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1415	1514	THE HOCKADAY SCHOOL	THE HOCKADAY SCHOOL 11600 WELCH RD. DALLAS, TX 75229	trubi@hockaday.org	\N	214-363-0108	THE HOCKADAY SCHOOL 11600 WELCH RD. DALLAS, TX 75229 214-360-6545	2026-07-01 17:06:55.900872	\N	\N	\N
+1416	1515	THE IMAN PROJECT LLC	THE IMAN PROJECT LLC 2310 ROUTH STREET DALLAS, TX 75201	info@theimanproject.com	\N	469-670-8536	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1417	1516	THE KATE APOTHECARY	THE KATE APOTHECARY LEROY THIBODEAUX 400 EAST KLEBERG KINGSVILLE, TX 78363	thekateapothecary@gmail.com	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1499	1598	UNEARTHED LLC	Unearthed 100 E Main St Ste 102 Round Rock, TX 78664	unearthedatx@gmail.com	\N	512-809-4773	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1418	1517	THE KERRY COMPANY	THE KERRY COMPANY 5704 RICHWATER DR. DALLAS, TX 75252	\N	\N	972-380-6852	THE KERRY COMPANY 5704 RICHWATER DR. DALLAS, TX 75252	2026-07-01 17:06:55.900872	\N	\N	\N
+1419	1518	THE KREATIVE CONSULTANT	THE KREATIVE CONSULTANT 2021 SANDRA LN GRAND PRAIRIE, TX 75052	kp@thekreativeconsultant.com	\N	214-682-3856	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1420	1519	THE OLD FARMHOUSE, LLC	THE OLD FARMHOUSE 45309 MICKLER ST CALLAHAN, FL 32011	callahenfarmhouse@gmail.com	\N	9043341619	THE OLD FARMHOUSE 45309 MICKLER ST CALLAHAN, FL 32011	2026-07-01 17:06:55.900872	\N	\N	\N
+1421	1520	THE PLANT CONCIERGE	THE PLANT CONCIERGE 2222 EMPIRE CENTRAL DALLAS, TX  75235	tpc@theplantconcierge.com	\N	972-243-1455	THE PLANT CONCIERGE 2222 EMPIRE CENTRAL DALLAS, TX  75235	2026-07-01 17:06:55.900872	\N	\N	\N
+1422	1521	THE PLANT LADY- PLANO	THE PLANT LADY-PLANO 1329 MARKEN CT. CARROLLTON, TX 75007	jeremy@theplantladytx.com	\N	214-836-1271	3820 walden way DALLAS TX  75287 214-952-2362 CALL W/ETA	2026-07-01 17:06:55.900872	\N	\N	\N
+1423	1522	THE PLANT NICHE LLC	THE PLANT NICHE 222 TOMLINSON ST. SULPHUR SPRINGS, TX 75482	Theplantniche20@gmail.com	\N	469-744-8375	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1424	1523	THE PLANT PAPI	THE PLANT PAPI 5515 GASTON AVE. #203 DALLAS, TX 75214	thepondon@outlook.com	\N	214-459-7757	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1425	1524	THE PLANT PEOPLE/TYLER	THE PLANT PEOPLE/TYLER P.O. BOX 6901 TYLER, TX 75711	mrplantguy@gmail.com	ROBERT/PATTY HAYNES	903-825-0819	THE PLANT PEOPLE 11702 CR 492 TYLER, TX 75706 9035303537	2026-07-01 17:06:55.900872	\N	\N	\N
+1426	1525	THE PLANT PLACE	THE PLANT PLACE 10704 GOODNIGHT DALLAS, TX 75220 972-869-3808	accounting@theplantplaceinc.com	JERRY SHIPE	972-869-3808	THE PLANT PLACE 10704 GOODNIGHT DALLAS, TX 75220	2026-07-01 17:06:55.900872	\N	\N	\N
+1427	1526	THE PLANT STANDARD	THE PLANT STANDARD 1301 HIGHLAND DR. MANSFIELD, TX 76063	mmtw3inc@gmail.com	\N	816-588-9685	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1428	1527	THE PLANTING HAND	THE PLANTING HAND 2010 GREENVILLE AVE. DALLAS, TX 75206	info@theplantinghand.com	\N	214-715-5084	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1429	1528	THE PORTICO COLLECTION	THE PORTICO COLLECTION 2050 N. STEMMONS #164 DALLAS, TX. 75207-3212	emilie@porticocolliection.com	\N	214-757-9055	WORLD TRADE CENTER DOCK 1 2050 n stemmons fwy	2026-07-01 17:06:55.900872	\N	\N	\N
+1430	1529	THE PUNCHY PETAL	THE PUNCHY PETAL 303 N USA HWY 69 SUITE A LEONARD, TX 75452	thepunchypetal@gmail.com	\N	903-815-9634	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1431	1530	THE QUIRINO GROUP LLC	THE QUIRINO GROUP LLC PATRICIA QUIRINO 5331 E. MOCKINGBIRD LN #334 DALLAS, TX 75206	romiqu@me.com	\N	8172058270	THE QUIRINO GROUP LLC 5331 E. MOCKINGBIRD LN #334 DALLAS, TX 75206	2026-07-01 17:06:55.900872	\N	\N	\N
+1432	1531	THE ROOT PLANT CO.	THE ROOT PLANT CO. TRINITY BUTLER 4101 COMMERCE ST. #3 DALLAS, TX 75226	therootplants@gmail.com	\N	469-799-6818	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1433	1532	THE ROOTED PETALS	THE ROOTED PETALS 2807 MILLBROOK DR. DALLAS, TX 75237	info@therootedpetals.com	\N	945-313-7668	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1434	1533	THE RUSTIC WAREHOUSE	THE RUSTIC WAREHOUSE 1411 SOUTH GOLIAD ROCKWALL, TX 75087	matilynvivo@therusticwarehouse.com	\N	469-338-9983	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1435	1534	THE SABRE GROUP	THE SABRE GROUP 3150 SABRE DR. SOUTHLAKE, TX 76092	\N	MARK SORRELLS	682-605-2391	THE SABRE GROUP 3150 SABRE DR. SOUTHLAKE, TX 76092	2026-07-01 17:06:55.900872	\N	\N	\N
+1436	1535	THE SACRED FIG	THE SACRED FIG 10221 PINECREST DR. DALLAS, TX 75228	erinptton@gmail.com	\N	936-645-1831	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1437	1536	THE SECRET CHEF	THE SECRET CHEF 1209 N. EDGEFIELD DALLAS, TX 75208	\N	\N	214-941-3595	THE SECRET CHEF 1209 N. EDGEFIELD DALLAS, TX 75208	2026-07-01 17:06:55.900872	\N	\N	\N
+1438	1537	THE SERPENTARIUM	THE SERPENTARIUM 630 S. CENTRAL EXPY. #102 RICHARDSON, TX 75201	\N	\N	972-803-4004	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1439	1538	THE STATION	The Station 1017 Austin Ave Brownwood, TX 76801	thestationonaustin@gmail.com	\N	325-647-5882	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1440	1539	THE STERLING SERVICE	THE STERLING SERVICE 3419 WESTMINSTER #30 DALLAS, TX 75205	\N	\N	214-696-3311	THE STERLING SERVICE 3419 WESTMINSTER #30 DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1441	1540	THE T SHOP	THE T SHOP 6342 LA VISTA  STE. B DALLAS, TX 75214	shop@thetrentshop.com	LORI TRENT	214-821-8314	THE T SHOP 6342 LA VISTA  STE. B DALLAS, TX 75214	2026-07-01 17:06:55.900872	\N	\N	\N
+1442	1541	THE TEXAS ROSE	THE TEXAS ROSE PO BOX 2928 WAXAHACHIE, TX 75168	hachiehaven@gmail.com	\N	214-802-1163	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1443	1542	THE TREEHOUSE NO. 2	THE TREEHOUSE NO. 2 5007 SENECA DRIVE DALLAS, TX 75209	\N	JANIE MOLINA	214-352-4724	THE TREEHOUSE NO. 2 5007 SENECA DRIVE DALLAS, TX 75209	2026-07-01 17:06:55.900872	\N	\N	\N
+1444	1543	THE VELVET LEAF	THE VELVET LEAF 6506 W. 20TH ST. ELK CITY, OK 73644 580-243-2200	scprice001@gmail.com	\N	580-821-0925	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1445	1544	THE WILDFLOWER-DALLAS	THE WILDFLOWER 10643 ST. LAZARE DR. DALLAS, TX 75229	thewildflowerdallas@gmail.com	\N	682-365-6807	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1446	1545	THEE DESIGN WEDDING EVENT CONSULTANT	THEE DESIGN WEDDING EVENT CONSULTANT 277 CREEK BEND RD MC GREGOR, TX 76657	denise@weddingeventconsultant.com	DENISE HARLAN	254-744-5067	THEE DESIGN WEDDING EVENT CONSULTANT 277 CREEK BEND RD MC GREGOR, TX 76657	2026-07-01 17:06:55.900872	\N	\N	\N
+1447	1546	THISTLE	THISTLE 128 SUNRIDGE RD. ENNIS, TX 75119	kaciewalker1@gmail.com	\N	972-921-1145	110 WEST KNOX ENNIS, TX 75119 972-291-1145	2026-07-01 17:06:55.900872	\N	\N	\N
+1448	1547	THISTLE AND LORE	THISTLE AND LORE, LLC ARIEL GONZALEZ 1805 NANTUCKET DR RICHARDSON, TX 75080	thistlelorestore@gmail.com	\N	469-990-9019	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1449	1548	THISTLES AND TUMBLEWEEDS	THISTLES AND TUMBLEWEEDS 3833 WILKIE WAY FT. WORTH, TX. 76133-2929	thistlestumbleweed@att.net	\N	817-307-5471-RICK	THISTLES AND TUMBLEWEEDS 3833 WILKIE WAY FT. WORTH, TX 76133-2929	2026-07-01 17:06:55.900872	\N	\N	\N
+1450	1549	THORESON DESIGN	THORESON DESIGN 2612 FLAMELEAF DR GRAPEVINE, TX 76051	\N	\N	817-329-2167	THORESON DESIGN 505 PECAN ST. FT WORTH	2026-07-01 17:06:55.900872	\N	\N	\N
+1451	1550	THREE BRANCHES FLORAL	THREE BRANCHES FLORAL 6445 CEDAR SPRINGS RD. SUITE #102 DALLAS, TX 75235	olivia@threebranchesfd.com	\N	214-542-6846	THREE BRANCHES FLORAL 6445 CEDAR SPRINGS RD. SUITE #102 DALLAS, TX 75235	2026-07-01 17:06:55.900872	\N	\N	\N
+1452	1551	THRIVING BOTANICALS	THRIVING BOTANICALS LLC JOANNE RUSH 4307 SUGAR BARS DR FRIENDSWOOD, TX 77546	thrivingbotanicals@gmail.com	\N	281-889-0731	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1453	1552	THURSDAY MORNING LANDSCAPE	THURSDAY MORNING LANDSCAPE 9100 LAFAUNA VIEW AUSTIN, TX 78737	\N	\N	512-913-2189	THURSDAY MORNING LANDSCAPE 9100 LAFAUNA VIEW AUSTIN, TX 78737	2026-07-01 17:06:55.900872	\N	\N	\N
+1454	1553	TIERRA VERDE	TIERRA VERDE 3308 ARNOLDELL DALLAS, TX 75211	catherineindallas@gmail.com	CATHY GARRISON	214-707-3373	TIERRA VERDE 3308 ARNOLDELL DALLAS, TX 75211	2026-07-01 17:06:55.900872	\N	\N	\N
+1455	1554	TIFF'S PLANT SHOP	TIFF'S PLANT SHOP 120 SWANCY LANE WEATHFORD, TX 76088	tiffplants@gmail.com	\N	817-597-6203	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1456	1555	TIFFANY LARSON DESIGN, LLC	TIFFANY LARSON DESIGN, LLC TIFFANY LARSON 8513 HATHAWAY DR. UNIT A AUSTIN, TX  78757	tiffanylarsondesign@gmail.com	\N	512-667-0779	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1457	1556	TILLAGE	TILLAGE KARA JOHNSON 511 SLUMBER PASS SAN ANTONIO, TX 78260	tillageplants@gmail.com	\N	913-608-2277	511 SLUMBER PASS SAN ANTONIO, TX 78260	2026-07-01 17:06:55.900872	\N	\N	\N
+1500	1599	UNIQUE FLORIST<<JANE>>	UNIQUE FLORIST<<JANE>> PO BOX 97 ALMA, AR 72921	\N	\N	479-632-4449	UNIQUE FLORIST<<JANE>> PO BOX 97 ALMA, AR 72921	2026-07-01 17:06:55.900872	\N	\N	\N
+1458	1557	TILLERY STREET PLANT COMPANY	TILLERY STREET PLANT COMPANY 701 TILLERY ST., BOX 18 AUSTIN, TX 78702	tillerystreetplantcompany@gmail.com	JOHN HUTSON	737-212-0457	TILLERY STREET PLANT COMPANY 701 TILLERY ST., BOX 18 AUSTIN, TX 78702	2026-07-01 17:06:55.900872	\N	\N	\N
+1459	1558	TIMES TEN CELLARS	TIMES TEN CELLARS 6324 PROSPECT AVE. DALLAS, TX 75214	\N	\N	214-824-9463	1617 HI LINE DR. SUITE100 DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+1460	1559	TIN BLOSSOM	TIN BLOSSOM 212 N. HWY. 237 CARMINE, TX 78932	thetinblossom@yahoo.com	\N	214-649-4498	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1461	1560	TITIAN DESIGN COMPANY	TITIAN DESIGN COMPANY 25 HIGHLAND PARK VILLAGE #314 DALLAS, TX 75205	\N	SCARLETTE	214-521-6800	TITIAN DESIGN COMPANY 25 HIGHLAND PARK VILLAGE #314 DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1462	1561	TOMMY'S FLOWERS	TOMMY'S FLOWERS 533 SAINT LOUIS ST. NEW ORLEANS, LA 70130	\N	NANCY SEGERS	504-522-6563	3831 windsor lane dallas tx 75205 214 557 1945 call eta pleas	2026-07-01 17:06:55.900872	\N	\N	\N
+1463	1562	TONEY HOSPITALITY	Toney Hospitality LLC 5411 Vanderbilt Ave Dallas, TX 75206	katherinethrelkeld@gmail.com	\N	512-788-4419	2506 ROXMOOR DR AUSTIN, TX 78723	2026-07-01 17:06:55.900872	\N	\N	\N
+1464	1563	TONY VILLARREAL LANDSCAPE DESIGN, LLC	TONY VILLARREAL LANDSCAPE DESIGN, LLC 2075 CHINABERRY LANE NEW BRAUNFELS, TX 78130-7508	mrtony@satx.rr.com	\N	210-865-6447	TONY VILLARREAL LANDSCAPE DESIGN, LLC 2075 CHINABERRY LANE NEW BRAUNFELS, TX 78130-7508	2026-07-01 17:06:55.900872	\N	\N	\N
+1465	1564	TOP DRAWER INTERIORS	TOP DRAWER INTERIORS 2336 FARRINGTON ST. DALLAS, TX 75207	\N	JOE DONAHUE	214-631-2353	TOP DRAWER INTERIORS 2336 FARRINGTON ST. DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+1466	1565	TORTOISE CLUB GARDENS	TORTOISE CLUB GARDENS MACK KEARNS 5407 SUMMER CIRCLE AUSTIN, TX  78741	mack@tortoiseclubgardens.com	\N	512-619-6610	TORTOISE CLUB GARDENS MACK KEARNS 5407 SUMMER CIRCLE AUSTIN, TX 78741	2026-07-01 17:06:55.900872	\N	\N	\N
+1467	1566	TPH COFFEE AND FLOWERS	TPH & 531 FLORIST 531 ED SCHMIDT BLVD UNIT 110 HUTTO, TX 78634	tphcoffeenflowers@gmail.com	\N	737-203-4557	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1468	1567	TR FLORAL	TR FLORAL 3306 SPRINGWELL PARKWAY WYLIE, TX 75098	info@trfloral.com	\N	281-865-4465	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1469	1568	TRADITION SENIOR LIVING	TRADITION SENIOR LIVING 5850 E. LOVERS LANE SUITE 100 DALLAS, TX 75206	dperlman@traditionseniorliving.com	\N	214-221-8200	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1470	1569	TRAY FLEUR	TRAY FLEUR MOLLY JONES 2506 JARRATT AVE AUSTIN, TX 78703	molly@trayfleur.com	\N	512-517-1570	TRAY FLEUR MOLLY JONES 2506 JARRATT AVE AUSTIN, TX 78703	2026-07-01 17:06:55.900872	\N	\N	\N
+1471	1570	TREASURED MARKET	TREASURED MARKET 3811 MAIN ST ROWLETT, TX 75088	vendors@treasuredmarket.com	\N	972-412-5356	TREASURED MARKET 3811 MAIN ST ROWLETT, TX 75088	2026-07-01 17:06:55.900872	\N	\N	\N
+1472	1571	TREASURES OF JOY	TREASURES OF JOY 1771 FM 365 CADDO MILLS, TX 75135	\N	\N	903-450-5811	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1473	1572	TREE BARK	TREE BARK 1930 OLD ORCHARD DALLAS, TX 75208	bcbark@gmail.com	\N	214-577-6491	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1474	1573	TREE LAND	TREE LAND 3737 RIDGEWOOD GRAND PRAIRIE, TX 75052	\N	\N	972-237-2370	TREE LAND 3737 RIDGEWOOD GRAND PRAIRIE, TX 75052	2026-07-01 17:06:55.900872	\N	\N	\N
+1475	1574	TREJO LANDSCAPE	TREJO LANDSCAPE, LLC CARLOS TREJO 7832 MARFA  AVE FT WORTH, TX  76116	\N	\N	817-913-2905	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1476	1575	TRES EVENTS	TRES EVENTS WENDEE SAWRAN 510 BERING DR. STE. 260 HOUSTON, TX  77057	\N	\N	512-771-6767	TRES EVENTS WENDEE SAWRAN 12707 NUTTY BROWN BLDG G, #37 AUSTIN, TX 78737	2026-07-01 17:06:55.900872	\N	\N	\N
+1477	1576	TRIBE DESIGN GROUP	TRIBE DESIGN GROUP BROOKE WILBRATTE 8001 N LAMAR BLVD AUSTIN, TX 78705	BROOKE@TRIBEDESIGNGROUP.COM	\N	512-527-4773	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1478	1577	TRICIA QUAID	TRICIA QUAID LANDSCAPE DESIGN, INC. PO BOX 59514 DALLAS, TX. 75229	tricia@triciaquaid.com	\N	214-522-2800	TRICIA QUAID LANDSCAPE DESIGN, INC. PO BOX 59514 DALLAS, TX. 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+1479	1578	TRIED AND TRUE	TRIED AND TRUE 1306 LORRAIN ST. AUSTIN, TX 78703	\N	SUSAN & JERRY JEFF WALKER	512-422-0600	TRIED AND TRUE 1306 LORRAIN ST. AUSTIN, TX 78703	2026-07-01 17:06:55.900872	\N	\N	\N
+1480	1579	TRINITY CHRISTIAN ACADEMY	TRINITY CHRISTIAN ACADEMY 17001 ADDISON RD. ADDISON, TX 75001	amanda.elms@fourelms.com	MARY ELLEN GLOSSAR	972-931-8325	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1481	1580	TRINITY LANDSCAPING	TRINITY LANDSCAPING 2072 BELVEDERE DR. LEWISVILLE, TX 75067	trinitylandscapeconstruction@gmail.com	\N	214-455-6785	TRINITY LANDSCAPING 2072 BELVEDERE DR. LEWISVILLE, TX 75067	2026-07-01 17:06:55.900872	\N	\N	\N
+1482	1581	TRINITY PRESBYTERIAN-MCKINNEY	TRINITY PRESBYTERIAN-MCKINNEY 5871 VIRGINIA PKWY MCKINNEY, TX 75071	slrodgers2@gmailc.om	\N	972-542-4629	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1483	1582	TROPIC OF CAPRICORN	TROPIC OF CAPRICORN CANDICE BERTALAN 1905 E 12TH STREET AUSTIN, TX 78702	cmarcelyn@gmail.com	\N	512-534-8824	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1484	1583	TROPICAL ACCENTS	TROPICAL ACCENTS 1251 LAKE SHORE SPICEWOOD, TX. 78669	lindsey@tropicalaccentsinc.com	\N	512-947-7558	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1485	1584	TROPICAL ESSENCE	TROPICAL ESSENCE 5350 SPRINGMEADOW DALLAS TX 75229	\N	\N	214-566-3024	TROPICAL ESSENCE 5350 SPRINGMEADOW\\ DALLAS TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+1486	1585	TROPICAL FOLIAGE RENTALS	TROPICAL FOLIAGE RENTALS PO BOX 541504 DALLAS, TX 75354	\N	\N	214-243-9290	3880 w ledbetter #106 dallas	2026-07-01 17:06:55.900872	\N	\N	\N
+1487	1586	TROPICAL GREENERY	TROPICAL GREENERY 7908 N.E. LOOP 820 FT. WORTH, TX. 76180	gavin@tropicalgreenery.com	\N	817-589-2040	TROPICAL GREENERY 7421 HWY 26 NORTH RICHLANDHILL'S, TX 76180 USA	2026-07-01 17:06:55.900872	\N	\N	\N
+1488	1587	TROPICAL PLANT MAINTENANCE-FT. WORTH	TROPICAL PLANT MAINTENANCE-FT. WORTH 6817 WAYFARER TRAIL FT. WORTH, TX. 76137	\N	\N	817-498-9134	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1489	1588	TROPICAL RAINBOW FARMS	TROPICAL RAINBOW FARMS 305 S.W DIAN ST. BURLESON, TX 76028 817-919-3272	admin@tropicalrainbowfarms.com	\N	817-919-3272	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1490	1589	TROPICAL WISHES	TROPICAL WISHES 412 INDIAN TRAIL RD. ROANOKE, TX 76262	tropicalwishesllc@gmail.com	\N	682-380-2563	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1491	1590	TROPSEN	TROPSEN, LLC PO BOX 1257 CANYON LAKE, TX 78133	jim@tropsen.com	\N	830-214-3494	TROPSEN, LLC PO BOX 1257 CANYON LAKE, TX 78133	2026-07-01 17:06:55.900872	\N	\N	\N
+1492	1591	TRUE LEAF STUDIO	TRUE LEAF STUDIO 301 S. LOCUST DENTON, TX 76701	trueleafstudio@gmail.com	\N	214-683-8290	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1493	1592	TURK LANDSCAPES	TURK LANDSCAPE 4054 HWY. 276 POINT, TX 75472	turkplantsandproduce@gmail.com	\N	972-989-4853	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1494	1593	TWELVE THIRTY FOUR	TWELVE THIRTY FOUR 4034 SWISS AVE. DALLAS, TX 75204	\N	\N	469-531-6723	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1495	1594	TWIN OAKS NURSERY	TWIN OAKS NURSERY 2107 HWY 691 DENISON, TX 75020	kayla@twinoaksnursery.com	ROBERT GRAHAM	903-463-2205	HOME DEPOT PARKING LOT 1515 N CENTRAL EXPY MCKINNEY TX 75070 CALL 1 HOUR W/ETA 940-2845631	2026-07-01 17:06:55.900872	\N	\N	\N
+1496	1595	TWIN SISTERS CATERING	TWIN SISTERS CATERING 4525 SAN CARLOS DALLAS, TX 75205	\N	\N	214-533-5261	TWIN SISTERS CATERING 4525 SAN CARLOS DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1497	1596	TWO SISTERS CATERING	TWO SISTERS CATERING 2633 GASTON AVE. DALLAS, TX 75226	\N	\N	214-823-3075	TWO SISTERS CATERING 2633 GASTON AVE. DALLAS, TX 75226	2026-07-01 17:06:55.900872	\N	\N	\N
+1498	1597	TYLER COBB INTERIORS	TYLER COBB INTERIORS 3825 TULSA WAY FT. WORTH, TX 76107	tylercobbinteriors@gmail.com	\N	817-235-0863	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1501	1600	UNIQUE WEDDING DESIGN	UNIQUE WEDDING DESIGN 6007 BRANDYWOOD TRAIL ARLINGTON, TX 76018	\N	ELIZABETH	817-683-8746	UNIQUE WEDDING DESIGN 6007 BRANDYWOOD TRAIL ARLINGTON, TX 76018	2026-07-01 17:06:55.900872	\N	\N	\N
+1502	1601	UNITED METHODIST CHURCH OF THE DISCIPLE	UNITED METHODIST CHURCH OF THE DISCIPLE 220 S. COCKRELL HILL RD. DESOTO, TX. 75515	carla05@sbcglobal.net	\N	972-230-5538	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1503	1602	UNIVERSITY CHRISTIAN CHURCH	UNIVERSITY CHRISTIAN CHURCH 2007 UNIVERSITY AVE. AUSTIN, TX 78705	admin@ucc-austin.org	\N	512-477-6104	UNIVERSITY CHRISTISAN CHURCH 2007 UNIVERSITY AVE. AUSTIN, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+1504	1603	UNIVERSITY FLOWERS	UNIVERSITY FLOWERS 1049 TEXAS AVE. S. COLLEGE STATION, TX 77840	universityflowers@gmail.com	\N	979-696-8546	UNIVERSITY FLOWERS 1049 TEXAS AVE. S. COLLEGE STATION, TX 77840	2026-07-01 17:06:55.900872	\N	\N	\N
+1505	1604	UNIVERSITY OF NORTH TEXAS-DENTON	UNIVERSITY OF NORTH TEXAS-DENTON P.O. BOX 311040 DENTON, TX 76203-1040	margaret.denton@unt.edu	DANIEL BUTLER	940-369-7726	2204 WEST PRAIRIE ST DENTON, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+1506	1605	UNIVERSITY OF TEXAS S.W.MED CTR	UNIVERSITY OF TEXAS S.W.MED CTR 5323 HARRY HINES DALLAS, TX 75390	cynthia.chisum@UTSouthwestern.edu	CINDY CHISUM	214-645-0922	UNIVERSITY OF TEXAS S.W.MED CTR GREENHOUSE 5511 GREGG ST. DALLAS, TX 75390	2026-07-01 17:06:55.900872	\N	\N	\N
+1507	1606	UNIVERSITY PARK UNITED METHODIST	UNIVERSITY PARK UNITED METHODIST 4024 CARUTH BLVD. DALLAS, TX. 75225	jillbfleming@gmail.com	\N	214-368-1435	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1508	1607	UPLIFT WHITE ROCK HILLS PREPARATORY	UPLIFT WHITE ROCK HILLS PREPARATORY 7370 VALLEY GLEN DR. DALLAS, TX 75228	\N	\N	469-914-7500	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1509	1608	UPROOTED	UPROOTED 106 HWY. 31 WEST CHANDLER, TX 75758	uprootedfloralcompany@gmail.com	\N	903-279-7742	UPROOTED 106 HWY. 31 WEST CHANDLER, TX 75758	2026-07-01 17:06:55.900872	\N	\N	\N
+1510	1609	URBAN-SCAPES	URBAN-SCAPES 2630 BRENNER DR DALLAS, TX 75220	todd@urban-scapes.com	\N	214-450-3088	7232 HILLWOOD LN DALLAS, TX dont show invoice dont show invoice	2026-07-01 17:06:55.900872	\N	\N	\N
+1511	1610	URBAN FLOWER <<TRAVIS>>	URBAN FLOWER <<TRAVIS>> 4445 TRAVIS #101 DALLAS, TX 75205	info@urbanflowergrangehall.com	\N	214-443-0600	URBAN FLOWER <<TRAVIS>> 4445 TRAVIS #101 DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1512	1611	URBAN GARDENS	URBAN GARDENS 4512 WEMBLEY MCKINNEY, TX 75070	donna.urbangardens@gmail.com	DONNA SIMMONS	972-839-2843	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1513	1612	URBAN JUNGLE	URBAN JUNGLE 6652 YOSEMITE LN DALLAS, TX 75214	lyoung@urbanjungles.net	\N	214-826-1222	URBAN JUNGLE 4216 MAIN STREET DALLAS, TX 75226	2026-07-01 17:06:55.900872	\N	\N	\N
+1514	1613	URBAN ROOTS	URBAN ROOTS STEPHANIE YOUNG 306 N. BROADWAY, STE B BROWNWOOD, TX  76801	urbanroots.btx@gmail.com	\N	325-726-9835	we do not deliver	2026-07-01 17:06:55.900872	\N	\N	\N
+1515	1614	URBAN ROOTZ	URBAN ROOTZ, LLC 578 REED DR ROCKWALL, TX 75087	melody@urbanrootz.com	\N	972-489-0810	2020 w fm 550 rockwall 75032 972 489 0810	2026-07-01 17:06:55.900872	\N	\N	\N
+1516	1615	URBAN SPIKES	URBAN SPIKES 7711 MASON DELLS DR. DALLAS, TX 75230	admin@urbanspikes.com	\N	469-987-4235	4885 alpha rd suit 115 dallas tx 75244	2026-07-01 17:06:55.900872	\N	\N	\N
+1517	1616	URBAN STREET CONNECTIONS	URBAN STREET CONNECTIONS SHANNA DOBBINS 921 N. HASKELL DALLAS, TX 75214	signaturescents921@gmail.com	\N	214-772-8515	URBAN STEET CONNECTIONS 921 N.HASKELL DALLAS, TEXAS 75223	2026-07-01 17:06:55.900872	\N	\N	\N
+1518	1617	URBANSPACE INTERIORS	URBANSPACE INTERIORS 301 WEST AVE, STE 100 AUSTIN, TX 78723	merrill@urbanspaceinteriors.com	\N	512-457-8884	610 DAVIS ST  AUSTIN, TX 78701	2026-07-01 17:06:55.900872	\N	\N	\N
+1519	1618	UT AUSTIN - HUMAN RESOURCES	UT AUSTIN - HUMAN RESOURCES 1616 GUADALUPE ST. AUSTIN, TX  78701	nosse@austin.utexas.edu	\N	512-232-1422	Gregory Gymnasium 2101 Speedway Austin, TX 78712	2026-07-01 17:06:55.900872	\N	\N	\N
+1520	1619	VALERIE BELL	VALERIE BELL & ASSOCIATES 4637 NO. VERSAILLES DALLAS, TX. 75209	\N	\N	214-526-1371	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1521	1620	VASARI DESIGN	VASARI DESIGN, LLC 629 W COLLEGE ST GRAPEVINE, TX 76051	\N	\N	\N	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1522	1621	VAST AMERICA CORP	VAST AMERICA CORP 10476 BROOKWOOD DR DALLAS, TX 75238	\N	\N	214-350-5213	VAST AMERICA CORP 10476 BROCKWOOD DR DALLAS, TX 75238	2026-07-01 17:06:55.900872	\N	\N	\N
+1523	1622	VCH III, LP	VCH III, LP 17814 DAVENPORT RD. SUITE 113 DALLAS, TX. 75252	\N	\N	972-335-5233	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1524	1623	VERANDA FLORIST	VERANDA FLORIST 11500 N. STEMMONS FWY. SUITE 145 DALLAS, TX 75229	\N	\N	512-797-0450	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1525	1624	VERBENA	VERBENA 1601 W. 38TH ST. 9 JEFFERSON SQUARE AUSTIN, TX 78731	email@verbenafloral.com	LUANN	512-420-0720	VERBENA 1601 W. 38TH ST. 9 JEFFERSON SQUARE AUSTIN, TX 78731	2026-07-01 17:06:55.900872	\N	\N	\N
+1526	1625	VERDE HAVEN	VERDE HAVEN 427B STATE HIGHWAY 27 COMFORT, TX 78013	verdehaven@gmail.com	\N	830-816-0713	HEB 1520 AUSTIN HWY SAN ANTONIO, TX 78218	2026-07-01 17:06:55.900872	\N	\N	\N
+1527	1626	VERL'S CREATION ((VERL ONLY))	VERL'S CREATION ((VERL ONLY)) 5010 MENEFEE DR. DALLAS, TX 75227	verlscreations@gmail.com	VERLENE (VERL MITCHELL	214-388-4500	VERL'S CREATION ((VERL ONLY)) 5010 MENEFEE DR. DALLAS, TX 75227	2026-07-01 17:06:55.900872	\N	\N	\N
+1528	1627	VIAGGIO DESIGN	VIAGGIO DESIGN P.O. BOX 192343 DALLAS, TX 75219	\N	\N	214-552-5600	VIAGGIO DESIGN P.O. BOX 192343 DALLAS, TX 75219	2026-07-01 17:06:55.900872	\N	\N	\N
+1529	1628	VICK AND VINES	VICK AND VINES VICTORIA NGUYEN 3035 HOUSLEY DR DALLAS, TX 75228	vick@vickandvines.com	\N	469-600-6013	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1530	1629	VICTORIAN GARDENS	VICTORIAN GARDENS CATHY WOODS PO BOX 700863 DALLAS, TX. 75370	gleasoncathy@gmail.com	\N	214-563-5611	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1531	1630	VICTORIAN SAMPLE > > > > >	VICTORIAN SAMPLE > > > > > 325 N. BEATON ST. CORSICANA, TX 75110	victoriansamples@att.net	TOM	903-874-3115	VICTORIAN SAMPLE > > > > > 325 N. BEATON ST. CORSICANA, TX 75110	2026-07-01 17:06:55.900872	\N	\N	\N
+1532	1631	VILLAGE CATERING CO.	VILLAGE CATERING CO. 25 HIGHLAND PARK VILLAGE#100-5 DALLAS, TX 75205	\N	\N	214-526-0007	VILLAGE CATERING CO. 25 HIGHLAND PARK VILLAGE#100-5 DALLAS, TX 75205	2026-07-01 17:06:55.900872	\N	\N	\N
+1533	1632	VILLAGE GARDEN & GALLERY	VILLAGE GARDEN & GALLERY 320 PELMAN DALLAS, TX 75224	villagegardengallery@hotmail.com	LUTHER MENKE	214-741-1470	VILLAGE GARDEN & GALLERY 320 PELMAN DALLAS, TX 75224	2026-07-01 17:06:55.900872	\N	\N	\N
+1534	1633	VINEYARD DESIGNS	VINEYARD DESIGNS 915 DRAGON ST DALLAS, TX 75207	\N	CHRIS SNODGRASS	214-747-1742	VINEYARD DESIGNS 915 DRAGON ST DALLAS, TX 75207	2026-07-01 17:06:55.900872	\N	\N	\N
+1535	1634	VINTAGE IVY FLORALS	VINTAGE IVY FLORALS 127 LOST MAPLES  WAY WAXAHACHIE, TX 75165	vintageivyflorals@gmail.com	\N	214-301-1539	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1536	1635	VIOLET'S TROPICALS	VIOLET'S TROPICALS DOUGLAS BYROM 1725 BRAZOS BEND AVE SMITHVILLE, TX 78957	douglasbyrom@gmail.com	\N	512-237-0390	VIOLET'S TROPICALS DOUGLAS BYROM 1725 BRAZOS BEND AVE SMITHVILLE, TX 78957	2026-07-01 17:06:55.900872	\N	\N	\N
+1537	1636	VIRIDIAN DESIGN STUDIO	VIRIDIAN DESIGN STUDIO 2500 MEMORIAL BLVD. STE A KERRVILLE, TX 78028	blair@viridiandesignstudio.com	TRICIAN HAMIL	830-257-2067	VIRIDIAN DESIGN STUDIO 2500 MEMORIAL BLVD. STE A KERRVILLE, TX 78028	2026-07-01 17:06:55.900872	\N	\N	\N
+1538	1637	VIRIDIAN PLANTSCAPES - ATX	VIRIDIAN PLANTSCAPES 3407 KAY STREET AUSTIN, TX 78702	viridianplantscapes@gmail.com	\N	512-669-0447	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1539	1638	VIVA BREW FACTORY	VIVA BREW FACTORY 518 W. DAVIS ST. DALLAS, TX 75208	evacreel@vivabrewfactory.com	\N	945-343-7475	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1540	1639	VORFREUDE PLANT SHOP	VORFREUDE PLANT SHOP ANDREA SCHWAUSCH 2203 GREENVILLE ST CADDO MILLS, TX 75135	andrea_schwausch@yahoo.com	\N	903-366-3934	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1541	1640	W ANDREW HOLITIK	W ANDREW HOLITIK 3310 FAIRMOUNT DALLAS, TX 75201 773-259-8299	wandrewholitik@gmail.com	\N	773-259-8299	1991 haggard lane athen tx call with eta 7732598299 DREW	2026-07-01 17:06:55.900872	\N	\N	\N
+1542	1641	WALNUT CREEK FARMS	WALNUT CREEK FARMS 6529 ASHER ALVARADO, TX 76009-8622	mark@wcftxfood.com	\N	817-907-6551	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1543	1642	WALTON'S FANCY & STAPLE	WALTON'S FANCY & STAPLE ATTN: CHRISTINE TAYLOR 500 W. 6TH ST., #401 AUSTIN, TX 78701	kristine@waltonsfancyandstaple.com	\N	512-542-3380	WALTON'S FANCY & STAPLE 609 W. 6TH ST. AUSTIN, TX 78701	2026-07-01 17:06:55.900872	\N	\N	\N
+1544	1643	WALTON'S LAWN & GARDEN	WALTON'S LAWN & GARDEN 8642 GARLAND RD. DALLAS, TX 75218	plants@waltonsgarden.com	\N	214-321-2387	WALTON'S LAWN & GARDEN 8642 GARLAND RD. DALLAS, TX 75218	2026-07-01 17:06:55.900872	\N	\N	\N
+1545	1644	WATERMARK COMMUNITY CHURCH	WATERMARK COMMUNITY CHURCH 7540 LBJ FREEWAY DALLAS, TX. 75251	ccotton@watermark.org	\N	214-361-2275	WATERMARK COMMUNITY CHURCH 7540 LBJ FREEWAY DALLAS, TX 75251 214-393-3037	2026-07-01 17:06:55.900872	\N	\N	\N
+1546	1645	WE BLOOM FLORAL BOUTIQUE	WE BLOOM FLORAL BOUTIQUE 320 S. DICK PRICE KENNEDALE, TX 76060	webloomsales@gmail.com	\N	817-516-5246	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1547	1646	WEAVER CREATIVE	WEAVER CREATIVE 10324 BEE CAVES RD. AUSTIN, TX 78733	evans_weaver@yahoo.com	EVANS WEAVER	512-327-9430	WEAVER CREATIVE 10324 BEE CAVES RD. AUSTIN, TX 78733	2026-07-01 17:06:55.900872	\N	\N	\N
+1548	1647	WEDDINGS BY DAVID	WEDDINGS BY DAVID 3955 BAHAMAS DR MESQUITE, TX 75150	irene.martinez@bswhealth.org	\N	972-613-5805	WEDDINGS BY DAVID 3955 BAHAMAS DR MESQUITE, TX 75150	2026-07-01 17:06:55.900872	\N	\N	\N
+1549	1648	WEDDINGS BY M & J	WEDDINGS BY M & J 543 HOKESMITH DALLAS, TX 75224	\N	MARIAN	214-948-9751	WEDDINGS BY M & J 543 HOKESMITH DALLAS, TX 75224	2026-07-01 17:06:55.900872	\N	\N	\N
+1550	1649	WEEKLY FLORAL	WEEKLY FLORAL 1438 ALASKA AVE. DALLAS, TX 75216	byron@weeklyfloral.com	\N	214-929-2323	HOTEL SWEXAN 2575 MCKINNON DR. DALLAS TX 75201 BACK DOCK CALL W/ETA 214-929-2323	2026-07-01 17:06:55.900872	\N	\N	\N
+1551	1650	WELLS ABBOTT SHOWROOM	WELLS ABBOTT SHOWROOM 1025 N. STEMMONS FWY. DALLAS, TX 75207	mbiggs@wellsabbott.com	\N	214-239-8722	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1552	1651	WENDY CIMORELLI DESIGN	WENDY CIMORELLI DESIGN 4601 N. VERSAILLES AVE. DALLAS, TX 75209	wendy@wendycimorellidesign.com	\N	214-226-6767	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1553	1652	WENDY KONRADI	WENDY KONRADI INTERIOR DESIGN 5567 WANETA  DR. DALLAS, TX 75209	wendykonradi@gmail.com	\N	214-336-9669	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1554	1653	WENZ FLORAL	WENZ FLORAL 2203 LA COSTA DR ROWLETT, TX 75088	\N	RANDY WENZ	469-438-7179	WENZ FLORAL 2203 LA COSTA DR ROWLETT, TX 75088	2026-07-01 17:06:55.900872	\N	\N	\N
+1555	1654	WESLEY DESIGNS	WESLEY DESIGNS 8604 BRIDGE ST. NORTH RICHLAND HILLS, TX 76180	wesley@wesleydesigns.com	\N	626-463-8761	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1556	1655	WEST ERWIN CHURCH OF CHRIST	WEST ERWIN CHURCH OF CHRIST 420 WEST ERWIN TYLER, TX 75702	offce@westerwincoc.org	\N	90-592-0809	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1557	1656	WEST IRVING CHURCH OF GOD IN CHRIST	WEST IRVING CHURCH OF GOD IN CHRIST 4011 CONFLANS IRVING, TX 75061	\N	\N	972-790-8036	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1558	1657	WESTBANK FLOWER MARKET	WESTBANK FLOWER MARKET 5320  BEE CAVES RD. AUSTIN, TX 78746	info@westbankflowers.com;keith@westbankflowers.com	\N	512-327-3374	WESTBANK FLOWER MARKET 5320  BEE CAVES RD. AUSTIN, TX 78746	2026-07-01 17:06:55.900872	\N	\N	\N
+1559	1658	WESTERN PRAIRIE	WESTERN PRAIRIE 622 PEACH DALHART, TX 79022	info@wprairie.com	\N	979-575-1818	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1560	1659	WESTLAND GARDENS	WESTLAND GARDENS 3416 LONGVUE AVE. FT. WORTH, TX 76116	westlandgardensfw@gmail.com	\N	214-546-5376	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1561	1660	WESTON GARDENS IN BLOOM	WESTON GARDENS IN BLOOM 8101 ANGLIN DR. FORT WORTH, TX 76140	wholesale@westongardens.com	\N	817-572-0549	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1562	1661	WHAT'S THE OCCASION FLORAL	WHAT'S THE OCCASION FLORAL 6021 WALKER BLVD. #121 NORTH RICHLAND HILLS, TX 76180	lisa@whatstheoccasion.com	\N	817-704-0770	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1563	1662	WHATLEY ENTERPRISES	WHATLEY ENTERPRISES 7802 NORTHWEST DR AUSTIN, TX 78757	MEL@SMWHATLEY.COM	\N	512-443-2322	WHATLEY ENTERPRISES 7802 NORTHWEST DR AUSTIN, TX 78757	2026-07-01 17:06:55.900872	\N	\N	\N
+1564	1663	WHEATSVILLE FOOD CO+OP	WHEATSVILLE FOOD CO+OP 3101 GUADALUPE AUSTIN, TX 78705	JSPRINGER@WHEATSVILLE.COM	\N	512-478-2667	WHEATSVILLE FOOD CO+OP 3101 GUADALUPE AUSTIN, TX 78705	2026-07-01 17:06:55.900872	\N	\N	\N
+1565	1664	WHIMSICAL MAGNOLIA	WHIMSICAL MAGNOLIA P.O. BO 9633 TYLER, TX 75711	whimsicalmagnoliaflowers@yahoo.com	\N	903-941-1916	7317 FLAT ROCK LN. TYLER, TX 75701 903-941-1976 903 941 1916	2026-07-01 17:06:55.900872	\N	\N	\N
+1566	1665	WHIMSY FLORAL	WHIMSY FLORAL 3925 GLADE RD SUITE 120 COLLEYVILLE, TX 76034	carol.scro@gmail.com	\N	972-269-1568	WHIMSY FLORAL 3925 GLADE RD SUITE 120 COLLEYVILLE, TX 76034	2026-07-01 17:06:55.900872	\N	\N	\N
+1567	1666	WHITE ORCHID FLORAL	WHITE ORCHID FLORAL 305 E Tomlinson St Florence, TX	whiteorchidfloral@yahoo.com	\N	254-350-9240	WHITE ORCHID FLORAL 304 E MAIN STREET FLORENCE, TX 76527	2026-07-01 17:06:55.900872	\N	\N	\N
+1568	1667	WHITE WING FLORAL LLC	WHITE WING FLORAL LLC 160 HEATHER GLEN COPPELL, TX 75019-5820	laura@whitewingfloral.com	\N	214-284-4126	WHITE WING FLORAL LLC 160 HEATHER GLEN COPPELL, TX 75019-5820	2026-07-01 17:06:55.900872	\N	\N	\N
+1569	1668	WILD ABOUT FLOWERS	WILD ABOUT FLOWERS 4200 GUS THOMASSON #115 MESQUITE, TX 75150\\	\N	DAN PIERCE	214-368-6697	WILD ABOUT FLOWERS 4200 GUS THOMASSON #115 MESQUITE, TX 75150	2026-07-01 17:06:55.900872	\N	\N	\N
+1570	1669	WILD BLOSSOMS COLLECTIVE	WILD BLOSSOMS COLLECTIVE 7913 WILSON CLIFF CT. FT. WORTH, TX 76108	wildblossomscollective@gmail.com	\N	817-965-3486	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1571	1670	WILD IRIS FLORIST	WILD IRIS FLORIST 119 S. MARSHALL HENDERSON, TX 75654	brookwildiris@we.com	\N	903-657-9600	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1572	1671	WILD ROSE EVENTS	WILD ROSE EVENTS 616 E. LAMAR ST. ROYSE CITY, TX 75189	\N	\N	469-600-3535	WILD ROSE EVENTS 720 E. LAMAR ROYSE CITY, TX 75189	2026-07-01 17:06:55.900872	\N	\N	\N
+1573	1672	WILD SOUL FLORALS	WILD SOUL FLORALS DEAZIA JOHNSON 203 N EAST ST STE C BELTON, TX 76513	deaziaj@wildsoulflorals.com	\N	254-613-4024	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1574	1673	WILDER AT PAYNE CREEK	WILDER AT PAYNE CREEK 928 WILLIAMS ST. ROCKWALL, TX 75087	lauratatedesigns@gmail.com	\N	214-616-5686	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1575	1674	WILDER FLOWERS & CO.	WILDER FLOWERS & CO. 7215 CORONADO AVE. DALLAS, TX 75214	elizabeth.m.hetrick@gmail.com	\N	214-632-2462	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1576	1675	WILDERLINE LANDSCAPE	WILDERLINE LANDSCAPE 9041 FLICKER LANE DALLAS, TX 75238	evo@wilderlinedesign.com	\N	214-850-0045	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1577	1676	WILDFLOWERS	WILDFLOWERS THERESA MOORE 2729 S. PADRE ISLAND DR. CORPUS CHRISTI, TX 78415	tmwildflowers@aol.com	\N	361-442-2224	WE DO NOT DELIVER TO CORPUS CHRISTI, TX	2026-07-01 17:06:55.900872	\N	\N	\N
+1578	1677	WILKINSON RHODES	WILKINSON RHODES MATTHEW GONZALES 116 PARKLANE DR. SAN ANTONIO, TX  78212	matthew@wilkinsonrhodes.com	\N	512-810-9571	WILKINSON RHODES WAREHOUSE 323 EARL ST. SAN ANTONIO, TX  78212	2026-07-01 17:06:55.900872	\N	\N	\N
+1579	1678	WILLIAM E. HORTON	WILLIAM E. HORTON 341 APPALOOSA DR. FERRIS, TX 75215	wehortondesigns@mac.com	BILLY THOMASON	214-207-0002	WILLIAM E. HORTON 3919 BUENA VISTA C DALLAS, TX 75204	2026-07-01 17:06:55.900872	\N	\N	\N
+1580	1679	WILLIAM PAUL FLORAL DESIGN	WILLIAM PAUL FLORAL DESIGN WILLIAM PAUL 1001 MARIPOSA ST SAN FRANCISCO, CA 94107	WILLIAMPAULDESIGN@GMAIL.COM	\N	737-400-4476	WILLIAM PAUL FLORAL DESIGN WILLIAM PAUL 1403 LAVACA ST AUSTIN, TX 78701	2026-07-01 17:06:55.900872	\N	\N	\N
+1581	1680	WILLOW AND MOSS	WILLOW AND MOSS 4777 CEDAR SP INGS APT. 6F DALLAS, TX 75219	julia@willowandmoss-studio.com	\N	214-918-9199	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1582	1681	WILLOW CREEK MART	WILLOW CREEK MART 3211 TOWNSEND DR. DALLAS, TX 75229	jay@willowcreekflorist.com	\N	214-369-3776	WILLOW CREEK MART 3211 TOWNSEND DR. DALLAS, TX 75229	2026-07-01 17:06:55.900872	\N	\N	\N
+1583	1682	WILLOW HOUSE GARDENS AND DESIGN	WILLOW HOUSE GARDENS AND DESIGN JACKIE MONICAL PO BOX 1188 MARFA, TX 79843	jackiejmonical@gmail.com	\N	720-201-0925	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1584	1683	WILLOWS AT HOME	WILLOWS AT HOME 1810 RHODEN RD. BROKEN BOW, OK 74728	johnrdabney43@yahoo.com	\N	214-762-4618	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1585	1684	WILSON OFFICE INTERIORS	WILSON OFFICE INTERIORS 1341 W, MOCKINGBIRD LN # 1100W DALLAS, TX 75247	bvaldez@wilsonoi.com	\N	972-488-4100	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1586	1685	WILSONS IN BLOOM	WILSONS IN BLOOM 2430 N. DAVIS DR. #108 ARLINGTON, TX 76012 TERESA DRISKILL	info@wilsonsinbloom.com	\N	817-357-4330	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1587	1686	WIMBERLEY FLOWER SHOP	WIMBERLEY FLOWER SHOP 13600 RANCH ROAD 12 SUITE B WIMBERLEY, TX 78676	wimberleyflowershop@yahoo.com	KRISTY CLANTON	512-847-7673	WIMBERLEY FLOWER SHOP 13600 RANCH ROAD 12 SUITE B WIMBERLEY, TX 78676	2026-07-01 17:06:55.900872	\N	\N	\N
+1588	1687	WIMBERLEY GARDENS	WIMBERLEY GARDENS Matt and Jennie Horvath 491 FM 2325 WIMBERLEY, TX  78676	jennie@wimberleygardens.com	\N	512-842-1220	WIMBERLEY GARDENS Matt and Jennie Horvath 419 FM 2325 WIMBERLEY, TX 78676	2026-07-01 17:06:55.900872	\N	\N	\N
+1589	1688	WINDSOR FLORIST<MESQUITE>	WINDSOR FLORIST<MESQUITE> 201 W. MAIN ST MESQUITE, TX 75149	\N	HELEN ETHRIDGE	972-289-7030	WINDSOR FLORIST<MESQUITE> 201 W. MAIN ST MESQUITE, TX 75149	2026-07-01 17:06:55.900872	\N	\N	\N
+1590	1689	WINDSOR GARDENS	WINDSOR GARDENS 2120 MONTCLAIR FT. WORTH, TX. 76103	windsorgardens06@gmail.com	\N	214-243-0488	9033 Gunnison Dr. Dallas Tx.75231	2026-07-01 17:06:55.900872	\N	\N	\N
+1591	1690	WINECUP & CEDAR	WINECUP & CEDAR 327 VILLAGE TRAIL TROPHY CLUB, TX 76262	winecup.cedar@gmail.com	\N	218-260-7856	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1592	1691	WINGS DESIGN STUDIO	WINGS DESIGN STUDIO ELIZABETH RONDEAU 5808 MONTERREY DR FT WORTH, TX 76112	elizabeth@wingsdesignstudio.com	\N	214-448-6282	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1593	1692	WINNSBORO CENTER FOR THE ARTS	WINNSBORO CENTER FOR THE ARTS 200 MARKET ST. WINNSBORO, TX 75494	wca.artscenter@gmail.com	\N	2145642411	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1594	1693	WOLFE WHOLESALE FLORIST, INC.	WOLFE WHOLESALE FLORIST, INC. 1500 PRIMROSE DR. WACO, TX  76706	wwf@wolfeflorist.com	\N	254-752-3351	WOLFE WHOLESALE FLORIST, INC. 1500 PRIMROSE DR. WACO, TX 76706	2026-07-01 17:06:55.900872	\N	\N	\N
+1595	1694	WOODHAVEN PRESBYTERIAN CHURCH	WOODHAVEN PRESBYTERIAN CHURCH 3650 N. O'CONNOR RD. IRVING, TX 75062	office@woodhavenpres.org	\N	972-541-0474	WOODHAVEN PRESBYTERIAN 3650 N O'CONNOR RD IRVING TC 75062 CALL W/ETA 972-541-0747 CYNTHIA	2026-07-01 17:06:55.900872	\N	\N	\N
+1596	1695	WOODS FLOWERS	WOODS FLOWERS 1415 WEST AVE. H TEMPLE, TX 76504 (254) 778-8506	WOODS.BLOOMINGFIELDS@YAHOO.COM	CAROL & FRANK HAJDA	254-778-8506	WOODS FLOWERS 1415 WEST AVE. H TEMPLE, TX 76504	2026-07-01 17:06:55.900872	\N	\N	\N
+1597	1696	WORD & CARR	WORD + CARR PO BOX 41718 AUSTIN, TX 78704	rosemary@wordandcarr.com	\N	512-440-0013	WORD & CARR PO BOX 41718 AUSTIN, TX 78704	2026-07-01 17:06:55.900872	\N	\N	\N
+1598	1697	WORKING PLANTS	WORKING PLANTS, LLC 13208 COPENHILL RD. DALLAS, TX 75240	t.simmonds@working-plants.com	\N	214-532-6793	WORKING PLANTS, LLC 13208 COPENHILL RD. DALLAS, TX 75240	2026-07-01 17:06:55.900872	\N	\N	\N
+1599	1698	WRIGHT BOTANICALS	WRIGHT BOTANICALS 3925 WHITEFISH LAKE DR. FRISCO, TX. 75035	lkwright1985@att.net	\N	214-693-8701	WRIGHT BOTANICALS 3925 WHITEFISH LAKE DR. FRISCO, TX. 75035 214-693-8701 LISA	2026-07-01 17:06:55.900872	\N	\N	\N
+1600	1699	WYLIE FLOWER & GIFT SHOP	WYLIE FLOWER & GIFT SHOP 129 N. BALLARD WYLIE, TX 75098	pamela@wylieflowershop.com	\N	972-442-5837	WYLIE FLOWER & GIFT SHOP 129 N. BALLARD WYLIE, TX 75098	2026-07-01 17:06:55.900872	\N	\N	\N
+1601	1700	XYLEM ORGANIC GARDENING, LLC	XYLEM ORGANIC GARDENING, LLC 1304 MADISON AVE. AUSTIN, TX 78757	\N	\N	512-461-7298	XYLEM ORGANIC GARDENING, LLC 1304 MADISON AVE. AUSTIN, TX 78757	2026-07-01 17:06:55.900872	\N	\N	\N
+1602	1701	YAYA'S GARDENLAND	YAYA'S GARDENLAND MELISSA  RIDEOUT 7904 FIREFLY DR. FORT WORTH, TX  76137	yayasgardenland@gmail.com	\N	817-350-1029	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1603	1702	YELLOW ROSE SOIREES	YELLOW ROSE SOIREES 8971 BRADLEY DR. NORTH RICHLAND HILLS, TX 76182	heathers@yellowrosesoirees.com	\N	817-521-3174	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1604	1703	YES ASSOCIATES	YES ASSOCIATES 3607 AMHERST AVE. DALLAS, TX 75225	erika@yes-associates.com	\N	212-920-6413	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1605	1704	YES MA'AM	YES MA'AM 6903 LYRE LN DALLAS, TX. 75214	\N	\N	214-821-4314	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1606	1705	YOU GROW GIRL	YOU GROW GIRL 5511 BELMONT AVE. DALLAS, TX 75206	hi@yougrowgirl.store	\N	972-898-1475	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1607	1706	YOUR PLANT SERVICE	YOUR PLANT SERVICE 1134 S. CEDAR RIDGE DR DUNCANVILLE, TX. 75137	charlotte@yps90.com	\N	972-291-9411	1134 S.CEDAR RIDGE DR DUNCANVILLE,TX 75137 214232-5878	2026-07-01 17:06:55.900872	\N	\N	\N
+1608	1707	YUMMY YUMMY CUISINE	YUMMY YUMMY CUISINE 500 W. MADISON ST. WAXAHACHIE, TX 75165	nydiagarcia1@live.com	\N	972-825-1827	\N	2026-07-01 17:06:55.900872	\N	\N	\N
+1609	1708	Z'S FLORIST II	Z'S FLORIST II 3909 W. PARKER RD.@COIT SUITE 100 PLANO, TX 75023	zsflorist@verizon.net	STEVEN ZIMMERMAN	972-392-3020	Z'S FLORIST II 3909 W. PARKER RD.@COIT SUITE 100 PLANO, TX 75023	2026-07-01 17:06:55.900872	\N	\N	\N
+1610	1709	ZOI MARKET	ZOI MARKET 200 N. MAIN ST. BUDA, TX  78610	heathervaneck@hotmail.com	\N	512-361-0033	ZOI MARKET 200 N. MAIN ST. BUDA, TX 78610	2026-07-01 17:06:55.900872	\N	\N	\N
+1611	1710	ZUZU'S PETALS - AUSTIN	ZUZU'S PETALS - AUSTIN ELAINE LINCOLN 2100 CR 176 GEORGETOWN, TX 78628	info@zuzuspetalsaustin.com	\N	512-986-7800	ZUZU'S PETALS - AUSTIN 2100 CR 176 GEORGETOWN, TX 78628	2026-07-01 17:06:55.900872	\N	\N	\N
+1	100	1-800 FLOWERS-ALLEN	1 800 FLOWER-ALLEN 710 E MAIN ST ALLEN, TX 75002	\N	\N	972-908-3933	1151 W. PARKER RD #20 PLANO, TX. 75023	2026-07-01 17:06:55.900872	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: inventory_items; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inventory_items (id, product_id, vendor_id, quantity_on_hand, updated_at) FROM stdin;
+3	192	7	1	2026-05-03 00:26:19.468201
+47	249	8	100	2026-06-26 00:46:27.522642
+116	330	11	2	2026-06-26 00:46:30.187437
+5	542	14	1	2026-06-20 13:18:19.322324
+6	543	14	1	2026-06-20 13:18:19.330371
+7	544	14	1	2026-06-20 13:18:19.336345
+8	568	14	1	2026-06-20 13:18:19.348114
+9	541	14	1	2026-06-20 13:18:19.355902
+11	221	8	1	2026-06-26 00:10:49.107751
+12	227	8	1	2026-06-26 00:16:59.218359
+13	172	6	300	2026-06-26 00:46:26.183467
+14	174	6	144	2026-06-26 00:46:26.194672
+17	195	7	12	2026-06-26 00:46:26.333129
+1	189	7	4	2026-06-26 00:46:26.465432
+2	191	7	2	2026-06-26 00:46:26.48225
+72	309	10	8	2026-06-26 00:46:28.775979
+60	270	10	4	2026-06-26 00:46:27.849728
+16	194	7	45	2026-06-26 00:46:26.518856
+61	276	10	4	2026-06-26 00:46:27.85965
+15	190	7	33	2026-06-26 00:46:26.547455
+62	280	10	5	2026-06-26 00:46:27.870528
+63	283	10	4	2026-06-26 00:46:27.880978
+64	284	10	7	2026-06-26 00:46:27.891351
+78	285	10	6	2026-06-26 00:46:27.900807
+65	286	10	10	2026-06-26 00:46:27.910566
+23	200	7	8	2026-06-26 00:46:26.630128
+22	202	7	75	2026-06-26 00:46:26.646015
+4	196	7	45	2026-06-26 00:46:26.653975
+80	294	10	20	2026-06-26 00:46:29.733289
+19	198	7	7	2026-06-26 00:46:26.673399
+20	199	7	31	2026-06-26 00:46:26.682194
+21	201	7	140	2026-06-26 00:46:26.689512
+18	197	7	36	2026-06-26 00:46:26.698689
+24	203	8	21	2026-06-26 00:46:26.714411
+32	212	8	2	2026-06-26 00:46:26.78353
+39	231	8	6	2026-06-26 00:46:26.966413
+68	296	10	24	2026-06-26 00:46:29.742895
+44	240	8	5	2026-06-26 00:46:27.018793
+27	204	8	6	2026-06-26 00:46:27.071967
+28	205	8	5	2026-06-26 00:46:27.080718
+29	206	8	5	2026-06-26 00:46:27.088883
+30	207	8	4	2026-06-26 00:46:27.097749
+31	211	8	7	2026-06-26 00:46:27.123026
+69	303	10	12	2026-06-26 00:46:28.010661
+35	217	8	6	2026-06-26 00:46:27.140273
+25	218	8	30	2026-06-26 00:46:27.150108
+36	225	8	18	2026-06-26 00:46:27.158425
+37	226	8	18	2026-06-26 00:46:27.166831
+89	300	10	17	2026-06-26 00:46:29.753278
+71	308	10	6	2026-06-26 00:46:28.029637
+41	234	8	24	2026-06-26 00:46:27.193696
+74	315	10	5	2026-06-26 00:46:28.049172
+93	311	10	9	2026-06-26 00:46:29.762758
+48	250	8	20	2026-06-26 00:46:27.231464
+95	321	10	2	2026-06-26 00:46:28.859552
+50	208	8	4	2026-06-26 00:46:27.254747
+51	213	8	2	2026-06-26 00:46:27.263427
+33	214	8	7	2026-06-26 00:46:27.271698
+34	216	8	10	2026-06-26 00:46:27.280896
+42	237	8	36	2026-06-26 00:46:27.290473
+73	312	10	12	2026-06-26 00:46:29.772401
+52	209	8	4	2026-06-26 00:46:27.311873
+45	246	8	66	2026-06-26 00:46:27.322906
+53	210	8	20	2026-06-26 00:46:27.351337
+92	305	10	8	2026-06-26 00:46:29.781444
+26	232	8	15	2026-06-26 00:46:27.380739
+43	239	8	16	2026-06-26 00:46:27.393774
+83	264	10	2	2026-06-26 00:46:28.104385
+46	248	8	65	2026-06-26 00:46:27.41415
+49	252	8	15	2026-06-26 00:46:27.424798
+54	220	8	225	2026-06-26 00:46:27.449156
+55	223	8	3	2026-06-26 00:46:27.460767
+56	224	8	3	2026-06-26 00:46:27.468169
+57	229	8	10	2026-06-26 00:46:27.476027
+40	233	8	34	2026-06-26 00:46:27.487205
+58	235	8	10	2026-06-26 00:46:27.495627
+38	228	8	36	2026-06-26 00:46:27.513685
+59	261	10	6	2026-06-26 00:46:28.129489
+70	307	10	10	2026-06-26 00:46:28.290985
+94	314	10	28	2026-06-26 00:46:29.793571
+86	262	10	18	2026-06-26 00:46:28.329355
+85	323	10	29	2026-06-26 00:46:29.803713
+99	320	10	7	2026-06-26 00:46:29.839601
+96	325	10	8	2026-06-26 00:46:29.854733
+77	326	10	64	2026-06-26 00:46:29.865321
+87	297	10	6	2026-06-26 00:46:28.514442
+88	299	10	3	2026-06-26 00:46:28.524158
+104	332	11	2	2026-06-26 00:46:29.907675
+106	336	11	19	2026-06-26 00:46:30.450892
+82	298	10	12	2026-06-26 00:46:28.646378
+84	269	10	31	2026-06-26 00:46:29.010018
+81	295	10	25	2026-06-26 00:46:28.708832
+91	302	10	9	2026-06-26 00:46:28.716873
+103	328	11	6	2026-06-26 00:46:30.014029
+122	352	12	12	2026-06-26 00:46:31.139757
+75	319	10	46	2026-06-26 00:46:29.044171
+98	275	10	2	2026-06-26 00:46:29.06088
+132	413	13	3	2026-06-26 00:46:32.110146
+119	351	12	683	2026-06-26 00:46:31.915172
+112	338	11	24	2026-06-26 00:46:30.506501
+109	343	11	14	2026-06-26 00:46:30.515837
+79	291	10	29	2026-06-26 00:46:29.121958
+100	310	10	22	2026-06-26 00:46:29.130958
+110	344	11	16	2026-06-26 00:46:30.525354
+101	316	10	2	2026-06-26 00:46:29.149385
+107	347	11	57	2026-06-26 00:46:30.534785
+111	331	11	9	2026-06-26 00:46:30.291983
+76	324	10	70	2026-06-26 00:46:29.176387
+108	348	11	83	2026-06-26 00:46:30.543748
+102	327	10	4	2026-06-26 00:46:29.195287
+117	346	11	25	2026-06-26 00:46:30.336047
+66	290	10	16	2026-06-26 00:46:29.244647
+67	293	10	17	2026-06-26 00:46:29.55733
+90	313	10	9	2026-06-26 00:46:29.708988
+97	317	10	10	2026-06-26 00:46:29.718597
+113	339	11	1	2026-06-26 00:46:30.146554
+114	340	11	1	2026-06-26 00:46:30.155775
+115	329	11	2	2026-06-26 00:46:30.177984
+105	333	11	14	2026-06-26 00:46:30.35585
+118	349	12	84	2026-06-26 00:46:31.790067
+123	350	12	10	2026-06-26 00:46:31.800212
+120	353	12	5425	2026-06-26 00:46:31.924382
+121	354	12	1810	2026-06-26 00:46:31.934114
+125	368	13	3	2026-06-26 00:46:32.038421
+133	414	13	3	2026-06-26 00:46:32.118691
+136	384	13	3	2026-06-26 00:46:32.170536
+135	373	13	8	2026-06-26 00:46:32.592637
+143	358	13	2	2026-06-26 00:46:32.290998
+127	382	13	12	2026-06-26 00:46:32.611539
+144	359	13	2	2026-06-26 00:46:32.300898
+145	371	13	2	2026-06-26 00:46:32.310369
+130	405	13	9	2026-06-26 00:46:33.920442
+138	389	13	15	2026-06-26 00:46:34.172987
+149	409	13	2	2026-06-26 00:46:32.374472
+131	410	13	7	2026-06-26 00:46:32.808705
+148	408	13	8	2026-06-26 00:46:34.404867
+142	419	13	21	2026-06-26 00:46:34.476026
+147	396	13	19	2026-06-26 00:46:33.248009
+134	422	13	359	2026-06-26 00:46:34.516013
+139	381	13	7	2026-06-26 00:46:33.200219
+140	386	13	13	2026-06-26 00:46:33.320876
+126	375	13	16	2026-06-26 00:46:34.108334
+128	392	13	7	2026-06-26 00:46:32.716531
+137	388	13	31	2026-06-26 00:46:34.221005
+124	355	13	102	2026-06-26 00:46:34.099616
+146	391	13	14	2026-06-26 00:46:34.044499
+10	866	16	31	2026-06-26 00:46:36.024086
+203	1041	17	29	2026-06-26 00:46:39.163947
+205	1087	17	20	2026-06-26 00:46:39.176739
+157	404	13	1	2026-06-26 00:46:32.790874
+259	950	17	2	2026-06-26 00:46:38.247952
+192	868	16	6	2026-06-26 00:46:35.490969
+214	1051	17	4	2026-06-26 00:46:36.843186
+129	393	13	10	2026-06-26 00:46:32.909474
+202	985	17	3	2026-06-26 00:46:38.256278
+154	412	13	5	2026-06-26 00:46:32.9527
+193	902	16	6	2026-06-26 00:46:35.535847
+155	362	13	3	2026-06-26 00:46:33.014145
+161	363	13	1	2026-06-26 00:46:33.022753
+163	394	13	3	2026-06-26 00:46:33.239434
+245	1368	17	3	2026-06-26 00:46:37.523956
+162	372	13	8	2026-06-26 00:46:33.311429
+164	415	13	2	2026-06-26 00:46:33.342422
+165	418	13	2	2026-06-26 00:46:33.36153
+206	1097	17	28	2026-06-26 00:46:37.88118
+166	378	13	2	2026-06-26 00:46:33.422162
+168	399	13	2	2026-06-26 00:46:33.449645
+257	1091	17	63	2026-06-26 00:46:39.185633
+152	385	13	13	2026-06-26 00:46:33.652965
+167	387	13	3	2026-06-26 00:46:33.662953
+256	1114	17	6	2026-06-26 00:46:37.89678
+189	882	16	12	2026-06-26 00:46:35.636979
+246	975	17	3	2026-06-26 00:46:37.552852
+247	1036	17	6	2026-06-26 00:46:37.563507
+201	958	17	36	2026-06-26 00:46:38.525397
+263	1026	17	5	2026-06-26 00:46:38.534183
+232	1148	17	18	2026-06-26 00:46:37.904836
+158	406	13	10	2026-06-26 00:46:33.850308
+260	1048	17	6	2026-06-26 00:46:38.27292
+160	356	13	3	2026-06-26 00:46:33.891753
+252	1023	17	7	2026-06-26 00:46:38.542744
+156	357	13	8	2026-06-26 00:46:33.969423
+223	1088	17	142	2026-06-26 00:46:39.195229
+226	1021	17	3	2026-06-26 00:46:37.091136
+159	398	13	6	2026-06-26 00:46:34.064448
+170	417	13	4	2026-06-26 00:46:34.073625
+171	383	13	3	2026-06-26 00:46:34.116725
+169	397	13	8	2026-06-26 00:46:34.134053
+172	401	13	2	2026-06-26 00:46:34.143368
+261	1183	17	3	2026-06-26 00:46:38.283182
+173	400	13	3	2026-06-26 00:46:34.181249
+208	1143	17	51	2026-06-26 00:46:39.352832
+151	369	13	37	2026-06-26 00:46:34.211576
+153	411	13	12	2026-06-26 00:46:34.414829
+141	416	13	26	2026-06-26 00:46:34.423723
+249	1292	17	8	2026-06-26 00:46:37.935071
+150	421	13	20	2026-06-26 00:46:34.48489
+174	420	13	4	2026-06-26 00:46:34.507136
+183	903	16	3	2026-06-26 00:46:34.919692
+265	1101	17	6	2026-06-26 00:46:39.204684
+211	918	17	7	2026-06-26 00:46:37.147212
+184	894	16	48	2026-06-26 00:46:35.891385
+196	859	16	6	2026-06-26 00:46:35.901494
+188	872	16	3	2026-06-26 00:46:35.031429
+213	1039	17	26	2026-06-26 00:46:38.551013
+187	888	16	30	2026-06-26 00:46:35.933094
+237	1271	17	4	2026-06-26 00:46:38.300904
+224	1342	17	65	2026-06-26 00:46:39.362868
+227	969	17	2	2026-06-26 00:46:37.182498
+228	983	17	2	2026-06-26 00:46:37.190872
+229	1033	17	6	2026-06-26 00:46:37.209397
+230	1054	17	4	2026-06-26 00:46:37.21767
+262	1314	17	2	2026-06-26 00:46:38.312147
+219	1306	17	6	2026-06-26 00:46:38.32022
+215	1103	17	24	2026-06-26 00:46:39.214751
+231	1119	17	2	2026-06-26 00:46:37.262792
+207	1111	17	14	2026-06-26 00:46:39.223319
+185	899	16	68	2026-06-26 00:46:36.071641
+186	869	16	46	2026-06-26 00:46:36.081635
+216	1108	17	80	2026-06-26 00:46:39.232822
+178	871	16	114	2026-06-26 00:46:36.129771
+266	1197	17	10	2026-06-26 00:46:39.241491
+175	887	16	5	2026-06-26 00:46:35.292434
+194	879	16	23	2026-06-26 00:46:36.138153
+195	889	16	22	2026-06-26 00:46:36.145888
+176	855	16	96	2026-06-26 00:46:36.15803
+235	1177	17	4	2026-06-26 00:46:37.322374
+236	1263	17	1	2026-06-26 00:46:37.337479
+225	1323	17	8	2026-06-26 00:46:39.372211
+179	880	16	26	2026-06-26 00:46:36.365954
+248	1159	17	42	2026-06-26 00:46:39.250572
+243	1089	17	22	2026-06-26 00:46:38.579627
+177	867	16	38	2026-06-26 00:46:36.395175
+180	900	16	276	2026-06-26 00:46:36.403987
+190	883	16	61	2026-06-26 00:46:36.413925
+181	901	16	61	2026-06-26 00:46:36.42281
+182	865	16	32	2026-06-26 00:46:36.435489
+191	884	16	7	2026-06-26 00:46:36.444774
+197	881	16	1	2026-06-26 00:46:36.457603
+210	1291	17	2	2026-06-26 00:46:36.762119
+239	1394	17	1	2026-06-26 00:46:37.405702
+221	1408	17	4	2026-06-26 00:46:37.414238
+217	1167	17	28	2026-06-26 00:46:39.259944
+240	945	17	2	2026-06-26 00:46:37.443364
+200	935	17	16	2026-06-26 00:46:38.168488
+234	1176	17	64	2026-06-26 00:46:39.26908
+253	1116	17	6	2026-06-26 00:46:37.748601
+233	1156	17	10	2026-06-26 00:46:38.616044
+272	1617	18	8	2026-06-26 00:46:39.466991
+209	1278	17	18	2026-06-26 00:46:39.289121
+254	1164	17	20	2026-06-26 00:46:38.426062
+255	1195	17	8	2026-06-26 00:46:37.798861
+199	922	17	12	2026-06-26 00:46:37.812789
+250	937	17	4	2026-06-26 00:46:37.829602
+244	1288	17	14	2026-06-26 00:46:39.297984
+251	980	17	5	2026-06-26 00:46:37.854034
+218	1175	17	60	2026-06-26 00:46:38.956224
+198	1311	17	25	2026-06-26 00:46:39.30767
+276	1591	18	6	2026-06-26 00:46:39.972511
+220	1308	17	12	2026-06-26 00:46:38.977803
+258	947	17	1	2026-06-26 00:46:38.237478
+264	1325	17	6	2026-06-26 00:46:38.474663
+212	959	17	10	2026-06-26 00:46:38.48662
+269	1545	18	217	2026-06-26 00:46:40.606144
+242	964	17	9	2026-06-26 00:46:38.51723
+238	1365	17	8	2026-06-26 00:46:38.996697
+241	966	17	8	2026-06-26 00:46:39.142831
+222	973	17	8	2026-06-26 00:46:39.151924
+267	1370	17	4	2026-06-26 00:46:39.3265
+204	1055	17	112	2026-06-26 00:46:39.343338
+281	1626	18	18	2026-06-26 00:46:40.016576
+275	1559	18	4	2026-06-26 00:46:39.950933
+274	1546	18	24	2026-06-26 00:46:39.875636
+268	1599	18	44	2026-06-26 00:46:40.459873
+278	1592	18	45	2026-06-26 00:46:40.639488
+270	1612	18	60	2026-06-26 00:46:40.616364
+280	1609	18	6	2026-06-26 00:46:40.134906
+282	1635	18	5	2026-06-26 00:46:40.550236
+277	1636	18	208	2026-06-26 00:46:40.654259
+283	1584	18	19	2026-06-26 00:46:40.571157
+273	1585	18	35	2026-06-26 00:46:40.356364
+279	1637	18	96	2026-06-26 00:46:40.590865
+271	1613	18	185	2026-06-26 00:46:40.664563
+285	3	1	11	2026-06-26 00:46:40.859178
+290	30	1	26	2026-06-26 00:46:41.778881
+291	29	1	22	2026-06-26 00:46:41.852858
+294	13	1	60	2026-06-26 00:46:41.939676
+289	27	1	27	2026-06-26 00:46:41.747719
+293	37	1	25	2026-06-26 00:46:42.114338
+284	1	1	35	2026-06-26 00:46:41.693303
+292	36	1	18	2026-06-26 00:46:42.103167
+286	16	1	26	2026-06-26 00:46:41.948549
+296	17	1	15	2026-06-26 00:46:42.035392
+288	24	1	115	2026-06-26 00:46:42.15017
+295	21	1	21	2026-06-26 00:46:41.958512
+297	22	1	6	2026-06-26 00:46:40.987463
+301	15	1	5	2026-06-26 00:46:41.084204
+305	14	1	19	2026-06-26 00:46:41.207789
+335	115	4	6	2026-06-26 00:46:42.983623
+307	678	1	6	2026-06-26 00:46:41.345644
+328	114	4	9	2026-06-26 00:46:43.050175
+304	4	1	4	2026-06-26 00:46:41.585637
+348	129	4	4	2026-06-26 00:46:43.103068
+347	130	4	6	2026-06-26 00:46:43.112124
+329	116	4	17	2026-06-26 00:46:43.125567
+311	6	1	6	2026-06-26 00:46:41.701819
+330	117	4	16	2026-06-26 00:46:43.134206
+331	118	4	14	2026-06-26 00:46:43.143308
+332	119	4	16	2026-06-26 00:46:43.151443
+299	7	1	44	2026-06-26 00:46:41.738725
+333	120	4	15	2026-06-26 00:46:43.160831
+313	5	1	3	2026-06-26 00:46:41.791231
+349	131	5	2	2026-06-26 00:46:43.176211
+314	20	1	5	2026-06-26 00:46:41.827251
+351	134	5	24	2026-06-26 00:46:43.198769
+310	39	1	28	2026-06-26 00:46:41.87185
+352	138	5	24	2026-06-26 00:46:43.207217
+316	10	1	6	2026-06-26 00:46:41.922865
+300	11	1	7	2026-06-26 00:46:41.931021
+317	26	1	5	2026-06-26 00:46:41.986729
+315	8	1	7	2026-06-26 00:46:42.009607
+306	9	1	23	2026-06-26 00:46:42.019144
+318	12	1	5	2026-06-26 00:46:42.027298
+319	25	1	4	2026-06-26 00:46:42.051984
+308	28	1	26	2026-06-26 00:46:42.060894
+302	32	1	21	2026-06-26 00:46:42.068889
+303	33	1	6	2026-06-26 00:46:42.077406
+312	34	1	5	2026-06-26 00:46:42.085822
+309	35	1	5	2026-06-26 00:46:42.09457
+320	38	1	4	2026-06-26 00:46:42.123387
+287	18	1	43	2026-06-26 00:46:42.142309
+298	23	1	32	2026-06-26 00:46:42.163146
+321	40	1	10	2026-06-26 00:46:42.177208
+322	45	3	6	2026-06-26 00:46:42.217203
+355	160	5	8	2026-06-26 00:46:43.243132
+324	46	3	7	2026-06-26 00:46:42.238562
+325	47	3	5	2026-06-26 00:46:42.247652
+356	167	5	6	2026-06-26 00:46:43.251135
+357	171	5	2	2026-06-26 00:46:43.260413
+358	136	5	2	2026-06-26 00:46:43.277015
+359	137	5	2	2026-06-26 00:46:43.285859
+360	141	5	6	2026-06-26 00:46:43.295022
+323	60	3	138	2026-06-26 00:46:42.332215
+326	85	4	6	2026-06-26 00:46:42.363857
+362	158	5	12	2026-06-26 00:46:43.320758
+363	159	5	20	2026-06-26 00:46:43.332133
+364	166	5	1	2026-06-26 00:46:43.344463
+336	90	4	1	2026-06-26 00:46:42.523984
+337	93	4	3	2026-06-26 00:46:42.53212
+338	103	4	1	2026-06-26 00:46:42.541671
+339	112	4	6	2026-06-26 00:46:42.55136
+353	139	5	18	2026-06-26 00:46:43.357826
+340	92	4	2	2026-06-26 00:46:42.602046
+341	100	4	2	2026-06-26 00:46:42.610546
+342	108	4	3	2026-06-26 00:46:42.623081
+343	111	4	3	2026-06-26 00:46:42.633192
+350	142	5	46	2026-06-26 00:46:43.404606
+354	157	5	15	2026-06-26 00:46:43.469022
+366	145	5	20	2026-06-26 00:46:43.492778
+344	89	4	3	2026-06-26 00:46:42.723294
+345	97	4	3	2026-06-26 00:46:42.731814
+367	146	5	20	2026-06-26 00:46:43.501348
+365	148	5	40	2026-06-26 00:46:43.540537
+334	87	4	33	2026-06-26 00:46:42.787695
+346	94	4	2	2026-06-26 00:46:42.795763
+368	163	5	12	2026-06-26 00:46:43.550337
+369	170	5	6	2026-06-26 00:46:43.558611
+361	150	5	21	2026-06-26 00:46:43.572326
+327	113	4	9	2026-06-26 00:46:42.892263
+\.
+
+
+--
+-- Data for Name: inventory_transactions; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.inventory_transactions (id, product_id, vendor_id, order_id, type, quantity, notes, created_at) FROM stdin;
+1	189	7	1	receive	1	\N	2026-05-03 00:26:19.230086
+2	191	7	1	receive	1	\N	2026-05-03 00:26:19.457338
+3	192	7	1	receive	1	\N	2026-05-03 00:26:19.464248
+4	196	7	1	receive	1	\N	2026-05-03 00:26:19.471844
+5	189	7	\N	sale	-1	Sales order #3 — 4" Gardenia Bush "Veitchii" Trayed	2026-05-04 10:58:23.129744
+6	191	7	\N	sale	-1	Sales order #9 — 6" Gardenia "Veitchii" Topiary Sleeved	2026-05-12 18:32:29.46136
+7	189	7	\N	sale	-1	Sales order #9 — 4" Gardenia Bush "Veitchii" Trayed	2026-05-12 18:32:29.470352
+8	542	14	9	receive	1	\N	2026-06-20 13:18:19.315106
+9	543	14	9	receive	1	\N	2026-06-20 13:18:19.32588
+10	544	14	9	receive	1	\N	2026-06-20 13:18:19.332767
+11	568	14	9	receive	1	\N	2026-06-20 13:18:19.343841
+12	541	14	9	receive	1	\N	2026-06-20 13:18:19.350919
+13	866	16	8	receive	1	\N	2026-06-26 00:07:10.301746
+14	221	8	7	receive	1	\N	2026-06-26 00:10:49.067494
+15	227	8	6	receive	1	\N	2026-06-26 00:16:59.210052
+16	172	6	11	receive	80	Historical import	2026-06-26 00:46:09.874225
+17	172	6	12	receive	240	Historical import	2026-06-26 00:46:26.149364
+18	174	6	12	receive	96	Historical import	2026-06-26 00:46:26.161572
+19	172	6	13	receive	60	Historical import	2026-06-26 00:46:26.180013
+20	174	6	13	receive	48	Historical import	2026-06-26 00:46:26.190376
+21	189	7	14	receive	1	Historical import	2026-06-26 00:46:26.208072
+22	190	7	14	receive	2	Historical import	2026-06-26 00:46:26.216015
+23	194	7	14	receive	6	Historical import	2026-06-26 00:46:26.225726
+24	195	7	14	receive	6	Historical import	2026-06-26 00:46:26.235152
+25	196	7	14	receive	6	Historical import	2026-06-26 00:46:26.243982
+26	197	7	14	receive	6	Historical import	2026-06-26 00:46:26.252411
+27	198	7	14	receive	1	Historical import	2026-06-26 00:46:26.261269
+28	199	7	14	receive	2	Historical import	2026-06-26 00:46:26.270795
+29	201	7	14	receive	5	Historical import	2026-06-26 00:46:26.280784
+30	202	7	14	receive	5	Historical import	2026-06-26 00:46:26.288554
+31	189	7	15	receive	1	Historical import	2026-06-26 00:46:26.304543
+32	190	7	15	receive	7	Historical import	2026-06-26 00:46:26.312915
+33	194	7	15	receive	12	Historical import	2026-06-26 00:46:26.321131
+34	195	7	15	receive	6	Historical import	2026-06-26 00:46:26.330155
+35	196	7	15	receive	10	Historical import	2026-06-26 00:46:26.339607
+36	198	7	15	receive	1	Historical import	2026-06-26 00:46:26.348193
+37	199	7	15	receive	11	Historical import	2026-06-26 00:46:26.35868
+38	200	7	15	receive	5	Historical import	2026-06-26 00:46:26.368324
+39	201	7	15	receive	90	Historical import	2026-06-26 00:46:26.379281
+40	202	7	15	receive	30	Historical import	2026-06-26 00:46:26.387102
+41	196	7	15	receive	5	Historical import	2026-06-26 00:46:26.396275
+42	197	7	15	receive	10	Historical import	2026-06-26 00:46:26.404738
+43	189	7	16	receive	1	Historical import	2026-06-26 00:46:26.421307
+44	190	7	16	receive	1	Historical import	2026-06-26 00:46:26.429551
+45	191	7	16	receive	1	Historical import	2026-06-26 00:46:26.438736
+46	194	7	16	receive	12	Historical import	2026-06-26 00:46:26.447918
+47	189	7	17	receive	1	Historical import	2026-06-26 00:46:26.461155
+48	190	7	17	receive	3	Historical import	2026-06-26 00:46:26.471795
+49	191	7	17	receive	1	Historical import	2026-06-26 00:46:26.479613
+50	194	7	17	receive	12	Historical import	2026-06-26 00:46:26.487044
+51	196	7	17	receive	3	Historical import	2026-06-26 00:46:26.496504
+52	190	7	18	receive	15	Historical import	2026-06-26 00:46:26.507543
+53	194	7	18	receive	3	Historical import	2026-06-26 00:46:26.516036
+54	190	7	19	receive	3	Historical import	2026-06-26 00:46:26.528358
+55	190	7	20	receive	2	Historical import	2026-06-26 00:46:26.544364
+56	196	7	20	receive	15	Historical import	2026-06-26 00:46:26.557002
+57	198	7	21	receive	2	Historical import	2026-06-26 00:46:26.576387
+58	199	7	21	receive	7	Historical import	2026-06-26 00:46:26.586477
+59	201	7	21	receive	15	Historical import	2026-06-26 00:46:26.595566
+60	198	7	22	receive	2	Historical import	2026-06-26 00:46:26.608832
+61	199	7	22	receive	9	Historical import	2026-06-26 00:46:26.617643
+62	200	7	22	receive	3	Historical import	2026-06-26 00:46:26.626327
+63	201	7	22	receive	25	Historical import	2026-06-26 00:46:26.634822
+64	202	7	22	receive	40	Historical import	2026-06-26 00:46:26.643313
+65	196	7	22	receive	5	Historical import	2026-06-26 00:46:26.651015
+66	197	7	22	receive	10	Historical import	2026-06-26 00:46:26.659326
+67	198	7	23	receive	1	Historical import	2026-06-26 00:46:26.67058
+68	199	7	23	receive	2	Historical import	2026-06-26 00:46:26.678634
+69	201	7	23	receive	5	Historical import	2026-06-26 00:46:26.686661
+70	197	7	23	receive	10	Historical import	2026-06-26 00:46:26.695383
+71	203	8	24	receive	21	Historical import	2026-06-26 00:46:26.711164
+72	218	8	24	receive	12	Historical import	2026-06-26 00:46:26.720449
+73	232	8	24	receive	6	Historical import	2026-06-26 00:46:26.728873
+74	204	8	25	receive	2	Historical import	2026-06-26 00:46:26.740608
+75	205	8	25	receive	2	Historical import	2026-06-26 00:46:26.748495
+76	206	8	25	receive	2	Historical import	2026-06-26 00:46:26.75638
+77	207	8	25	receive	2	Historical import	2026-06-26 00:46:26.764404
+78	211	8	25	receive	2	Historical import	2026-06-26 00:46:26.771824
+79	212	8	25	receive	2	Historical import	2026-06-26 00:46:26.779872
+80	214	8	25	receive	2	Historical import	2026-06-26 00:46:26.890489
+81	211	8	25	receive	2	Historical import	2026-06-26 00:46:26.901265
+82	216	8	25	receive	2	Historical import	2026-06-26 00:46:26.910538
+83	217	8	25	receive	3	Historical import	2026-06-26 00:46:26.919423
+84	218	8	25	receive	12	Historical import	2026-06-26 00:46:26.928427
+85	225	8	25	receive	6	Historical import	2026-06-26 00:46:26.938292
+86	226	8	25	receive	6	Historical import	2026-06-26 00:46:26.946953
+87	228	8	25	receive	6	Historical import	2026-06-26 00:46:26.955135
+88	231	8	25	receive	6	Historical import	2026-06-26 00:46:26.963206
+89	232	8	25	receive	3	Historical import	2026-06-26 00:46:26.973458
+90	233	8	25	receive	6	Historical import	2026-06-26 00:46:26.980855
+91	234	8	25	receive	6	Historical import	2026-06-26 00:46:26.989461
+92	237	8	25	receive	6	Historical import	2026-06-26 00:46:26.997841
+93	239	8	25	receive	10	Historical import	2026-06-26 00:46:27.006713
+94	240	8	25	receive	5	Historical import	2026-06-26 00:46:27.015067
+95	246	8	25	receive	6	Historical import	2026-06-26 00:46:27.023642
+96	248	8	25	receive	15	Historical import	2026-06-26 00:46:27.032061
+97	249	8	25	receive	15	Historical import	2026-06-26 00:46:27.041128
+98	250	8	25	receive	5	Historical import	2026-06-26 00:46:27.048695
+99	252	8	25	receive	6	Historical import	2026-06-26 00:46:27.057373
+100	204	8	26	receive	4	Historical import	2026-06-26 00:46:27.069208
+101	205	8	26	receive	3	Historical import	2026-06-26 00:46:27.07789
+102	206	8	26	receive	3	Historical import	2026-06-26 00:46:27.086025
+103	207	8	26	receive	2	Historical import	2026-06-26 00:46:27.09326
+104	214	8	26	receive	4	Historical import	2026-06-26 00:46:27.109966
+105	211	8	26	receive	3	Historical import	2026-06-26 00:46:27.119234
+106	216	8	26	receive	6	Historical import	2026-06-26 00:46:27.128009
+107	217	8	26	receive	3	Historical import	2026-06-26 00:46:27.136948
+108	218	8	26	receive	6	Historical import	2026-06-26 00:46:27.146375
+109	225	8	26	receive	12	Historical import	2026-06-26 00:46:27.155042
+110	226	8	26	receive	12	Historical import	2026-06-26 00:46:27.163696
+111	228	8	26	receive	12	Historical import	2026-06-26 00:46:27.173183
+112	233	8	26	receive	18	Historical import	2026-06-26 00:46:27.181184
+113	234	8	26	receive	18	Historical import	2026-06-26 00:46:27.190096
+114	237	8	26	receive	15	Historical import	2026-06-26 00:46:27.199302
+115	246	8	26	receive	20	Historical import	2026-06-26 00:46:27.210036
+116	249	8	26	receive	25	Historical import	2026-06-26 00:46:27.219662
+117	250	8	26	receive	15	Historical import	2026-06-26 00:46:27.227932
+118	252	8	26	receive	6	Historical import	2026-06-26 00:46:27.236812
+119	208	8	27	receive	4	Historical import	2026-06-26 00:46:27.250899
+120	213	8	27	receive	2	Historical import	2026-06-26 00:46:27.260311
+121	214	8	27	receive	1	Historical import	2026-06-26 00:46:27.268746
+122	216	8	27	receive	2	Historical import	2026-06-26 00:46:27.277721
+123	237	8	27	receive	15	Historical import	2026-06-26 00:46:27.285792
+124	249	8	27	receive	50	Historical import	2026-06-26 00:46:27.295832
+125	209	8	28	receive	4	Historical import	2026-06-26 00:46:27.309069
+126	246	8	28	receive	40	Historical import	2026-06-26 00:46:27.31962
+127	210	8	29	receive	15	Historical import	2026-06-26 00:46:27.335124
+128	210	8	30	receive	5	Historical import	2026-06-26 00:46:27.347348
+129	220	8	30	receive	50	Historical import	2026-06-26 00:46:27.356736
+130	228	8	30	receive	6	Historical import	2026-06-26 00:46:27.366547
+131	232	8	30	receive	6	Historical import	2026-06-26 00:46:27.376896
+132	239	8	30	receive	6	Historical import	2026-06-26 00:46:27.388776
+133	220	8	31	receive	100	Historical import	2026-06-26 00:46:27.403319
+134	248	8	31	receive	50	Historical import	2026-06-26 00:46:27.410862
+135	252	8	31	receive	3	Historical import	2026-06-26 00:46:27.421474
+136	220	8	32	receive	50	Historical import	2026-06-26 00:46:27.434349
+137	220	8	33	receive	25	Historical import	2026-06-26 00:46:27.445259
+138	223	8	34	receive	3	Historical import	2026-06-26 00:46:27.456977
+139	224	8	34	receive	3	Historical import	2026-06-26 00:46:27.465458
+140	229	8	34	receive	10	Historical import	2026-06-26 00:46:27.473327
+141	233	8	34	receive	10	Historical import	2026-06-26 00:46:27.484197
+142	235	8	34	receive	10	Historical import	2026-06-26 00:46:27.492251
+143	228	8	36	receive	12	Historical import	2026-06-26 00:46:27.510719
+144	249	8	36	receive	10	Historical import	2026-06-26 00:46:27.519105
+145	261	10	37	receive	1	Historical import	2026-06-26 00:46:27.585056
+146	261	10	39	receive	2	Historical import	2026-06-26 00:46:27.629482
+147	270	10	39	receive	2	Historical import	2026-06-26 00:46:27.637222
+148	276	10	39	receive	2	Historical import	2026-06-26 00:46:27.645111
+149	280	10	39	receive	3	Historical import	2026-06-26 00:46:27.652764
+150	283	10	39	receive	2	Historical import	2026-06-26 00:46:27.661524
+151	284	10	39	receive	3	Historical import	2026-06-26 00:46:27.672281
+152	286	10	39	receive	5	Historical import	2026-06-26 00:46:27.681041
+153	290	10	39	receive	6	Historical import	2026-06-26 00:46:27.69112
+154	293	10	39	receive	6	Historical import	2026-06-26 00:46:27.700548
+155	296	10	39	receive	6	Historical import	2026-06-26 00:46:27.712637
+156	303	10	39	receive	6	Historical import	2026-06-26 00:46:27.727273
+157	307	10	39	receive	3	Historical import	2026-06-26 00:46:27.741948
+158	308	10	39	receive	3	Historical import	2026-06-26 00:46:27.751738
+159	309	10	39	receive	3	Historical import	2026-06-26 00:46:27.761985
+160	312	10	39	receive	3	Historical import	2026-06-26 00:46:27.77194
+161	315	10	39	receive	2	Historical import	2026-06-26 00:46:27.784785
+162	319	10	39	receive	3	Historical import	2026-06-26 00:46:27.797489
+163	324	10	39	receive	10	Historical import	2026-06-26 00:46:27.807462
+164	326	10	39	receive	10	Historical import	2026-06-26 00:46:27.817015
+165	261	10	40	receive	2	Historical import	2026-06-26 00:46:27.83541
+166	270	10	40	receive	2	Historical import	2026-06-26 00:46:27.846456
+167	276	10	40	receive	2	Historical import	2026-06-26 00:46:27.855662
+168	280	10	40	receive	2	Historical import	2026-06-26 00:46:27.86693
+169	283	10	40	receive	2	Historical import	2026-06-26 00:46:27.876798
+170	284	10	40	receive	4	Historical import	2026-06-26 00:46:27.887992
+171	285	10	40	receive	6	Historical import	2026-06-26 00:46:27.897037
+172	286	10	40	receive	5	Historical import	2026-06-26 00:46:27.906946
+173	290	10	40	receive	6	Historical import	2026-06-26 00:46:27.917209
+174	291	10	40	receive	6	Historical import	2026-06-26 00:46:27.927075
+175	293	10	40	receive	6	Historical import	2026-06-26 00:46:27.936984
+176	294	10	40	receive	5	Historical import	2026-06-26 00:46:27.954898
+177	295	10	40	receive	6	Historical import	2026-06-26 00:46:27.965482
+178	296	10	40	receive	6	Historical import	2026-06-26 00:46:27.975529
+179	298	10	40	receive	6	Historical import	2026-06-26 00:46:27.990526
+180	303	10	40	receive	6	Historical import	2026-06-26 00:46:28.00645
+181	307	10	40	receive	2	Historical import	2026-06-26 00:46:28.016546
+182	308	10	40	receive	3	Historical import	2026-06-26 00:46:28.026029
+183	312	10	40	receive	3	Historical import	2026-06-26 00:46:28.035731
+184	315	10	40	receive	3	Historical import	2026-06-26 00:46:28.045753
+185	319	10	40	receive	4	Historical import	2026-06-26 00:46:28.055346
+186	324	10	40	receive	10	Historical import	2026-06-26 00:46:28.065208
+187	326	10	40	receive	10	Historical import	2026-06-26 00:46:28.074805
+188	264	10	41	receive	2	Historical import	2026-06-26 00:46:28.098966
+189	295	10	41	receive	14	Historical import	2026-06-26 00:46:28.110165
+190	261	10	42	receive	1	Historical import	2026-06-26 00:46:28.126693
+191	269	10	42	receive	10	Historical import	2026-06-26 00:46:28.13811
+192	307	10	42	receive	5	Historical import	2026-06-26 00:46:28.287123
+193	319	10	42	receive	20	Historical import	2026-06-26 00:46:28.298117
+194	323	10	42	receive	11	Historical import	2026-06-26 00:46:28.311558
+195	262	10	43	receive	18	Historical import	2026-06-26 00:46:28.326083
+196	269	10	43	receive	8	Historical import	2026-06-26 00:46:28.334513
+197	319	10	43	receive	2	Historical import	2026-06-26 00:46:28.343219
+198	323	10	43	receive	6	Historical import	2026-06-26 00:46:28.353404
+199	324	10	43	receive	6	Historical import	2026-06-26 00:46:28.362745
+200	293	10	44	receive	3	Historical import	2026-06-26 00:46:28.377831
+201	294	10	44	receive	3	Historical import	2026-06-26 00:46:28.387022
+202	297	10	44	receive	6	Historical import	2026-06-26 00:46:28.510214
+203	299	10	44	receive	3	Historical import	2026-06-26 00:46:28.520774
+204	300	10	44	receive	8	Historical import	2026-06-26 00:46:28.53027
+205	309	10	44	receive	2	Historical import	2026-06-26 00:46:28.539777
+206	312	10	44	receive	2	Historical import	2026-06-26 00:46:28.550117
+207	313	10	44	receive	3	Historical import	2026-06-26 00:46:28.561729
+208	319	10	44	receive	3	Historical import	2026-06-26 00:46:28.570498
+209	324	10	44	receive	5	Historical import	2026-06-26 00:46:28.588746
+210	290	10	45	receive	2	Historical import	2026-06-26 00:46:28.606223
+211	291	10	45	receive	3	Historical import	2026-06-26 00:46:28.616698
+212	294	10	45	receive	3	Historical import	2026-06-26 00:46:28.625672
+213	296	10	45	receive	3	Historical import	2026-06-26 00:46:28.634213
+214	298	10	45	receive	6	Historical import	2026-06-26 00:46:28.643501
+215	302	10	45	receive	4	Historical import	2026-06-26 00:46:28.651786
+216	305	10	45	receive	2	Historical import	2026-06-26 00:46:28.660914
+217	319	10	45	receive	3	Historical import	2026-06-26 00:46:28.669603
+218	291	10	47	receive	5	Historical import	2026-06-26 00:46:28.697292
+219	295	10	47	receive	5	Historical import	2026-06-26 00:46:28.705477
+220	302	10	47	receive	5	Historical import	2026-06-26 00:46:28.713924
+221	324	10	47	receive	9	Historical import	2026-06-26 00:46:28.722251
+222	269	10	48	receive	2	Historical import	2026-06-26 00:46:28.736218
+223	291	10	48	receive	5	Historical import	2026-06-26 00:46:28.745483
+224	294	10	48	receive	5	Historical import	2026-06-26 00:46:28.754292
+225	300	10	48	receive	4	Historical import	2026-06-26 00:46:28.76406
+226	309	10	48	receive	3	Historical import	2026-06-26 00:46:28.77253
+227	311	10	48	receive	4	Historical import	2026-06-26 00:46:28.781895
+228	324	10	48	receive	10	Historical import	2026-06-26 00:46:28.793064
+229	326	10	48	receive	11	Historical import	2026-06-26 00:46:28.806327
+230	269	10	49	receive	2	Historical import	2026-06-26 00:46:28.821669
+231	314	10	49	receive	6	Historical import	2026-06-26 00:46:28.836559
+232	319	10	49	receive	4	Historical import	2026-06-26 00:46:28.846522
+233	321	10	49	receive	2	Historical import	2026-06-26 00:46:28.855812
+234	324	10	49	receive	10	Historical import	2026-06-26 00:46:28.864995
+235	325	10	49	receive	2	Historical import	2026-06-26 00:46:28.87385
+236	326	10	49	receive	10	Historical import	2026-06-26 00:46:28.883196
+237	269	10	50	receive	1	Historical import	2026-06-26 00:46:28.900488
+238	313	10	50	receive	3	Historical import	2026-06-26 00:46:28.911332
+239	269	10	51	receive	4	Historical import	2026-06-26 00:46:28.930956
+240	314	10	51	receive	10	Historical import	2026-06-26 00:46:28.939541
+241	319	10	51	receive	4	Historical import	2026-06-26 00:46:28.949758
+242	269	10	52	receive	2	Historical import	2026-06-26 00:46:28.962527
+243	314	10	52	receive	3	Historical import	2026-06-26 00:46:28.975269
+244	326	10	52	receive	6	Historical import	2026-06-26 00:46:28.98756
+245	269	10	53	receive	2	Historical import	2026-06-26 00:46:29.006781
+246	317	10	53	receive	6	Historical import	2026-06-26 00:46:29.031059
+247	319	10	53	receive	3	Historical import	2026-06-26 00:46:29.041083
+248	275	10	54	receive	2	Historical import	2026-06-26 00:46:29.057414
+249	291	10	54	receive	2	Historical import	2026-06-26 00:46:29.066318
+250	296	10	54	receive	3	Historical import	2026-06-26 00:46:29.074822
+251	314	10	54	receive	2	Historical import	2026-06-26 00:46:29.084721
+252	320	10	54	receive	3	Historical import	2026-06-26 00:46:29.097001
+253	324	10	54	receive	5	Historical import	2026-06-26 00:46:29.105659
+254	291	10	55	receive	8	Historical import	2026-06-26 00:46:29.118413
+255	310	10	55	receive	22	Historical import	2026-06-26 00:46:29.127406
+256	314	10	55	receive	2	Historical import	2026-06-26 00:46:29.136968
+257	316	10	55	receive	2	Historical import	2026-06-26 00:46:29.145386
+258	317	10	55	receive	2	Historical import	2026-06-26 00:46:29.154826
+259	320	10	55	receive	2	Historical import	2026-06-26 00:46:29.163901
+260	324	10	55	receive	5	Historical import	2026-06-26 00:46:29.173268
+261	326	10	55	receive	12	Historical import	2026-06-26 00:46:29.182104
+262	327	10	55	receive	4	Historical import	2026-06-26 00:46:29.191816
+263	305	10	56	receive	2	Historical import	2026-06-26 00:46:29.205075
+264	311	10	56	receive	2	Historical import	2026-06-26 00:46:29.21362
+265	312	10	56	receive	2	Historical import	2026-06-26 00:46:29.222977
+266	290	10	57	receive	2	Historical import	2026-06-26 00:46:29.23914
+267	293	10	57	receive	2	Historical import	2026-06-26 00:46:29.256519
+268	313	10	57	receive	3	Historical import	2026-06-26 00:46:29.705516
+269	317	10	57	receive	2	Historical import	2026-06-26 00:46:29.714943
+270	294	10	58	receive	4	Historical import	2026-06-26 00:46:29.7289
+271	296	10	58	receive	6	Historical import	2026-06-26 00:46:29.739779
+272	300	10	58	receive	5	Historical import	2026-06-26 00:46:29.749422
+273	311	10	58	receive	3	Historical import	2026-06-26 00:46:29.758914
+274	312	10	58	receive	2	Historical import	2026-06-26 00:46:29.7686
+275	305	10	58	receive	4	Historical import	2026-06-26 00:46:29.778127
+276	314	10	58	receive	5	Historical import	2026-06-26 00:46:29.789463
+277	323	10	58	receive	12	Historical import	2026-06-26 00:46:29.800466
+278	320	10	60	receive	2	Historical import	2026-06-26 00:46:29.835392
+279	325	10	60	receive	6	Historical import	2026-06-26 00:46:29.850996
+280	326	10	60	receive	5	Historical import	2026-06-26 00:46:29.861241
+281	328	11	63	receive	2	Historical import	2026-06-26 00:46:29.894868
+282	332	11	63	receive	2	Historical import	2026-06-26 00:46:29.903636
+283	333	11	63	receive	3	Historical import	2026-06-26 00:46:29.913676
+284	336	11	63	receive	2	Historical import	2026-06-26 00:46:29.922997
+285	347	11	63	receive	20	Historical import	2026-06-26 00:46:29.933108
+286	348	11	63	receive	20	Historical import	2026-06-26 00:46:29.942813
+287	328	11	64	receive	2	Historical import	2026-06-26 00:46:29.958072
+288	333	11	64	receive	3	Historical import	2026-06-26 00:46:29.968131
+289	336	11	64	receive	3	Historical import	2026-06-26 00:46:29.97725
+290	343	11	64	receive	2	Historical import	2026-06-26 00:46:29.987779
+291	344	11	64	receive	2	Historical import	2026-06-26 00:46:29.997784
+292	328	11	65	receive	2	Historical import	2026-06-26 00:46:30.011109
+293	333	11	65	receive	3	Historical import	2026-06-26 00:46:30.020539
+294	336	11	65	receive	3	Historical import	2026-06-26 00:46:30.029691
+295	343	11	65	receive	2	Historical import	2026-06-26 00:46:30.038061
+296	344	11	65	receive	2	Historical import	2026-06-26 00:46:30.048168
+297	336	11	66	receive	3	Historical import	2026-06-26 00:46:30.070564
+298	331	11	68	receive	5	Historical import	2026-06-26 00:46:30.125669
+299	338	11	68	receive	5	Historical import	2026-06-26 00:46:30.134491
+300	339	11	68	receive	1	Historical import	2026-06-26 00:46:30.143653
+301	340	11	68	receive	1	Historical import	2026-06-26 00:46:30.151751
+302	347	11	68	receive	1	Historical import	2026-06-26 00:46:30.161133
+303	329	11	69	receive	2	Historical import	2026-06-26 00:46:30.175183
+304	330	11	69	receive	2	Historical import	2026-06-26 00:46:30.183866
+305	344	11	69	receive	2	Historical import	2026-06-26 00:46:30.206245
+306	346	11	69	receive	10	Historical import	2026-06-26 00:46:30.214654
+307	348	11	69	receive	10	Historical import	2026-06-26 00:46:30.224745
+308	331	11	70	receive	2	Historical import	2026-06-26 00:46:30.237946
+309	338	11	70	receive	3	Historical import	2026-06-26 00:46:30.246613
+310	344	11	70	receive	4	Historical import	2026-06-26 00:46:30.256274
+311	347	11	70	receive	12	Historical import	2026-06-26 00:46:30.264593
+312	348	11	70	receive	12	Historical import	2026-06-26 00:46:30.274389
+313	331	11	71	receive	2	Historical import	2026-06-26 00:46:30.287904
+314	336	11	71	receive	3	Historical import	2026-06-26 00:46:30.30266
+315	338	11	71	receive	3	Historical import	2026-06-26 00:46:30.311482
+316	343	11	71	receive	3	Historical import	2026-06-26 00:46:30.321693
+317	346	11	71	receive	15	Historical import	2026-06-26 00:46:30.333042
+318	333	11	72	receive	5	Historical import	2026-06-26 00:46:30.352506
+319	338	11	72	receive	5	Historical import	2026-06-26 00:46:30.362098
+320	343	11	72	receive	1	Historical import	2026-06-26 00:46:30.372392
+321	347	11	72	receive	12	Historical import	2026-06-26 00:46:30.381139
+322	336	11	73	receive	2	Historical import	2026-06-26 00:46:30.399793
+323	343	11	73	receive	4	Historical import	2026-06-26 00:46:30.408373
+324	348	11	73	receive	20	Historical import	2026-06-26 00:46:30.423727
+325	348	11	73	receive	3	Historical import	2026-06-26 00:46:30.432427
+326	336	11	74	receive	3	Historical import	2026-06-26 00:46:30.446473
+327	338	11	74	receive	2	Historical import	2026-06-26 00:46:30.456641
+328	338	11	75	receive	3	Historical import	2026-06-26 00:46:30.471354
+329	344	11	75	receive	2	Historical import	2026-06-26 00:46:30.480538
+330	348	11	75	receive	6	Historical import	2026-06-26 00:46:30.489528
+331	338	11	76	receive	3	Historical import	2026-06-26 00:46:30.503297
+332	343	11	76	receive	2	Historical import	2026-06-26 00:46:30.511971
+333	344	11	76	receive	4	Historical import	2026-06-26 00:46:30.522001
+334	347	11	76	receive	12	Historical import	2026-06-26 00:46:30.531058
+335	348	11	76	receive	12	Historical import	2026-06-26 00:46:30.540418
+336	349	12	78	receive	2	Historical import	2026-06-26 00:46:30.717295
+337	351	12	78	receive	26	Historical import	2026-06-26 00:46:30.727285
+338	353	12	78	receive	200	Historical import	2026-06-26 00:46:30.736261
+339	354	12	78	receive	40	Historical import	2026-06-26 00:46:30.745408
+340	349	12	79	receive	2	Historical import	2026-06-26 00:46:30.760334
+341	351	12	79	receive	29	Historical import	2026-06-26 00:46:30.769853
+342	353	12	79	receive	180	Historical import	2026-06-26 00:46:30.779371
+343	354	12	79	receive	65	Historical import	2026-06-26 00:46:30.788361
+344	349	12	80	receive	2	Historical import	2026-06-26 00:46:30.804545
+345	351	12	80	receive	30	Historical import	2026-06-26 00:46:30.818123
+346	353	12	80	receive	230	Historical import	2026-06-26 00:46:30.827455
+347	354	12	80	receive	100	Historical import	2026-06-26 00:46:30.836876
+348	349	12	81	receive	2	Historical import	2026-06-26 00:46:30.851068
+349	351	12	81	receive	28	Historical import	2026-06-26 00:46:30.86003
+350	353	12	81	receive	230	Historical import	2026-06-26 00:46:30.871464
+351	354	12	81	receive	100	Historical import	2026-06-26 00:46:30.880801
+352	349	12	82	receive	1	Historical import	2026-06-26 00:46:30.894863
+353	353	12	82	receive	150	Historical import	2026-06-26 00:46:30.904259
+354	354	12	82	receive	75	Historical import	2026-06-26 00:46:30.913833
+355	349	12	83	receive	2	Historical import	2026-06-26 00:46:30.933166
+356	351	12	83	receive	33	Historical import	2026-06-26 00:46:30.942501
+357	353	12	83	receive	250	Historical import	2026-06-26 00:46:30.951921
+358	354	12	83	receive	80	Historical import	2026-06-26 00:46:30.963756
+359	349	12	84	receive	2	Historical import	2026-06-26 00:46:30.978999
+360	351	12	84	receive	33	Historical import	2026-06-26 00:46:30.988999
+361	353	12	84	receive	300	Historical import	2026-06-26 00:46:30.997947
+362	354	12	84	receive	95	Historical import	2026-06-26 00:46:31.007442
+363	349	12	85	receive	3	Historical import	2026-06-26 00:46:31.02243
+364	351	12	85	receive	35	Historical import	2026-06-26 00:46:31.031288
+365	353	12	85	receive	300	Historical import	2026-06-26 00:46:31.041154
+366	354	12	85	receive	75	Historical import	2026-06-26 00:46:31.050088
+367	349	12	86	receive	4	Historical import	2026-06-26 00:46:31.063547
+368	351	12	86	receive	36	Historical import	2026-06-26 00:46:31.074931
+369	352	12	86	receive	6	Historical import	2026-06-26 00:46:31.083814
+370	353	12	86	receive	300	Historical import	2026-06-26 00:46:31.094294
+371	354	12	86	receive	90	Historical import	2026-06-26 00:46:31.103508
+372	349	12	87	receive	5	Historical import	2026-06-26 00:46:31.117217
+373	351	12	87	receive	30	Historical import	2026-06-26 00:46:31.126971
+374	352	12	87	receive	6	Historical import	2026-06-26 00:46:31.135805
+375	353	12	87	receive	250	Historical import	2026-06-26 00:46:31.149161
+376	354	12	87	receive	70	Historical import	2026-06-26 00:46:31.159484
+377	349	12	88	receive	3	Historical import	2026-06-26 00:46:31.173217
+378	351	12	88	receive	30	Historical import	2026-06-26 00:46:31.183025
+379	353	12	88	receive	250	Historical import	2026-06-26 00:46:31.193382
+380	354	12	88	receive	70	Historical import	2026-06-26 00:46:31.20288
+381	349	12	89	receive	3	Historical import	2026-06-26 00:46:31.216143
+382	351	12	89	receive	30	Historical import	2026-06-26 00:46:31.224788
+383	353	12	89	receive	200	Historical import	2026-06-26 00:46:31.235737
+384	354	12	89	receive	65	Historical import	2026-06-26 00:46:31.244764
+385	349	12	90	receive	5	Historical import	2026-06-26 00:46:31.257793
+386	351	12	90	receive	26	Historical import	2026-06-26 00:46:31.266878
+387	353	12	90	receive	150	Historical import	2026-06-26 00:46:31.274971
+388	354	12	90	receive	50	Historical import	2026-06-26 00:46:31.284
+389	349	12	91	receive	10	Historical import	2026-06-26 00:46:31.300123
+390	351	12	91	receive	39	Historical import	2026-06-26 00:46:31.312397
+391	353	12	91	receive	250	Historical import	2026-06-26 00:46:31.321562
+392	354	12	91	receive	100	Historical import	2026-06-26 00:46:31.330614
+393	349	12	92	receive	3	Historical import	2026-06-26 00:46:31.344058
+394	351	12	92	receive	30	Historical import	2026-06-26 00:46:31.353909
+395	353	12	92	receive	200	Historical import	2026-06-26 00:46:31.362996
+396	354	12	92	receive	75	Historical import	2026-06-26 00:46:31.372145
+397	349	12	93	receive	4	Historical import	2026-06-26 00:46:31.388602
+398	350	12	93	receive	2	Historical import	2026-06-26 00:46:31.398369
+399	351	12	93	receive	33	Historical import	2026-06-26 00:46:31.408545
+400	353	12	93	receive	250	Historical import	2026-06-26 00:46:31.417474
+401	354	12	93	receive	60	Historical import	2026-06-26 00:46:31.426661
+402	349	12	94	receive	3	Historical import	2026-06-26 00:46:31.440814
+403	350	12	94	receive	2	Historical import	2026-06-26 00:46:31.454056
+404	351	12	94	receive	30	Historical import	2026-06-26 00:46:31.463133
+405	353	12	94	receive	200	Historical import	2026-06-26 00:46:31.473689
+406	354	12	94	receive	60	Historical import	2026-06-26 00:46:31.482787
+407	349	12	95	receive	10	Historical import	2026-06-26 00:46:31.498603
+408	350	12	95	receive	2	Historical import	2026-06-26 00:46:31.507594
+409	351	12	95	receive	25	Historical import	2026-06-26 00:46:31.519304
+410	353	12	95	receive	160	Historical import	2026-06-26 00:46:31.530204
+411	354	12	95	receive	40	Historical import	2026-06-26 00:46:31.539537
+412	349	12	96	receive	5	Historical import	2026-06-26 00:46:31.552449
+413	350	12	96	receive	2	Historical import	2026-06-26 00:46:31.651901
+414	351	12	96	receive	25	Historical import	2026-06-26 00:46:31.661279
+415	353	12	96	receive	200	Historical import	2026-06-26 00:46:31.670184
+416	354	12	96	receive	50	Historical import	2026-06-26 00:46:31.679409
+417	349	12	97	receive	8	Historical import	2026-06-26 00:46:31.694428
+418	350	12	97	receive	1	Historical import	2026-06-26 00:46:31.703355
+419	351	12	97	receive	20	Historical import	2026-06-26 00:46:31.712466
+420	353	12	97	receive	150	Historical import	2026-06-26 00:46:31.721677
+421	354	12	97	receive	40	Historical import	2026-06-26 00:46:31.731072
+422	349	12	98	receive	2	Historical import	2026-06-26 00:46:31.745876
+423	351	12	98	receive	20	Historical import	2026-06-26 00:46:31.754742
+424	353	12	98	receive	175	Historical import	2026-06-26 00:46:31.764187
+425	354	12	98	receive	80	Historical import	2026-06-26 00:46:31.772978
+426	349	12	99	receive	3	Historical import	2026-06-26 00:46:31.786623
+427	350	12	99	receive	1	Historical import	2026-06-26 00:46:31.796312
+428	351	12	99	receive	25	Historical import	2026-06-26 00:46:31.806113
+429	353	12	99	receive	200	Historical import	2026-06-26 00:46:31.814887
+430	354	12	99	receive	100	Historical import	2026-06-26 00:46:31.825275
+431	351	12	100	receive	20	Historical import	2026-06-26 00:46:31.843142
+432	353	12	100	receive	200	Historical import	2026-06-26 00:46:31.852347
+433	354	12	100	receive	80	Historical import	2026-06-26 00:46:31.862162
+434	351	12	101	receive	25	Historical import	2026-06-26 00:46:31.87651
+435	353	12	101	receive	250	Historical import	2026-06-26 00:46:31.887759
+436	354	12	101	receive	80	Historical import	2026-06-26 00:46:31.897469
+437	351	12	102	receive	25	Historical import	2026-06-26 00:46:31.911794
+438	353	12	102	receive	200	Historical import	2026-06-26 00:46:31.920815
+439	354	12	102	receive	70	Historical import	2026-06-26 00:46:31.93044
+440	355	13	105	receive	5	Historical import	2026-06-26 00:46:32.023478
+441	368	13	105	receive	3	Historical import	2026-06-26 00:46:32.035163
+442	375	13	105	receive	2	Historical import	2026-06-26 00:46:32.04453
+443	382	13	105	receive	3	Historical import	2026-06-26 00:46:32.055011
+444	392	13	105	receive	2	Historical import	2026-06-26 00:46:32.064487
+445	393	13	105	receive	3	Historical import	2026-06-26 00:46:32.078244
+446	405	13	105	receive	2	Historical import	2026-06-26 00:46:32.088615
+447	410	13	105	receive	2	Historical import	2026-06-26 00:46:32.098212
+448	413	13	105	receive	3	Historical import	2026-06-26 00:46:32.106455
+449	414	13	105	receive	3	Historical import	2026-06-26 00:46:32.115921
+450	422	13	105	receive	15	Historical import	2026-06-26 00:46:32.123905
+451	355	13	106	receive	5	Historical import	2026-06-26 00:46:32.137751
+452	373	13	106	receive	3	Historical import	2026-06-26 00:46:32.150313
+453	384	13	106	receive	3	Historical import	2026-06-26 00:46:32.166653
+454	388	13	106	receive	3	Historical import	2026-06-26 00:46:32.176047
+455	389	13	106	receive	3	Historical import	2026-06-26 00:46:32.185304
+456	422	13	106	receive	15	Historical import	2026-06-26 00:46:32.195859
+457	355	13	107	receive	5	Historical import	2026-06-26 00:46:32.209209
+458	373	13	107	receive	2	Historical import	2026-06-26 00:46:32.222241
+459	381	13	107	receive	2	Historical import	2026-06-26 00:46:32.23195
+460	386	13	107	receive	2	Historical import	2026-06-26 00:46:32.246774
+461	416	13	107	receive	1	Historical import	2026-06-26 00:46:32.256889
+462	419	13	107	receive	1	Historical import	2026-06-26 00:46:32.265449
+463	355	13	108	receive	3	Historical import	2026-06-26 00:46:32.27848
+464	358	13	108	receive	2	Historical import	2026-06-26 00:46:32.287852
+465	359	13	108	receive	2	Historical import	2026-06-26 00:46:32.2972
+466	371	13	108	receive	2	Historical import	2026-06-26 00:46:32.30681
+467	382	13	108	receive	3	Historical import	2026-06-26 00:46:32.320562
+468	388	13	108	receive	3	Historical import	2026-06-26 00:46:32.334333
+469	391	13	108	receive	4	Historical import	2026-06-26 00:46:32.343414
+470	396	13	108	receive	3	Historical import	2026-06-26 00:46:32.352807
+471	408	13	108	receive	2	Historical import	2026-06-26 00:46:32.36173
+472	409	13	108	receive	2	Historical import	2026-06-26 00:46:32.371449
+473	416	13	108	receive	3	Historical import	2026-06-26 00:46:32.379786
+474	419	13	108	receive	3	Historical import	2026-06-26 00:46:32.389862
+475	421	13	108	receive	3	Historical import	2026-06-26 00:46:32.399039
+476	422	13	108	receive	10	Historical import	2026-06-26 00:46:32.408949
+477	355	13	109	receive	9	Historical import	2026-06-26 00:46:32.422822
+478	369	13	109	receive	7	Historical import	2026-06-26 00:46:32.431467
+479	375	13	109	receive	3	Historical import	2026-06-26 00:46:32.441367
+480	381	13	109	receive	3	Historical import	2026-06-26 00:46:32.449664
+481	382	13	109	receive	3	Historical import	2026-06-26 00:46:32.460277
+482	385	13	109	receive	3	Historical import	2026-06-26 00:46:32.470285
+483	388	13	109	receive	3	Historical import	2026-06-26 00:46:32.479122
+484	393	13	109	receive	3	Historical import	2026-06-26 00:46:32.492457
+485	396	13	109	receive	3	Historical import	2026-06-26 00:46:32.505926
+486	405	13	109	receive	2	Historical import	2026-06-26 00:46:32.515894
+487	411	13	109	receive	2	Historical import	2026-06-26 00:46:32.524382
+488	412	13	109	receive	1	Historical import	2026-06-26 00:46:32.534755
+489	416	13	109	receive	1	Historical import	2026-06-26 00:46:32.542976
+490	419	13	109	receive	1	Historical import	2026-06-26 00:46:32.550748
+491	421	13	109	receive	1	Historical import	2026-06-26 00:46:32.560725
+492	422	13	109	receive	15	Historical import	2026-06-26 00:46:32.569158
+493	355	13	110	receive	4	Historical import	2026-06-26 00:46:32.58118
+494	373	13	110	receive	3	Historical import	2026-06-26 00:46:32.589217
+495	375	13	110	receive	3	Historical import	2026-06-26 00:46:32.598401
+496	382	13	110	receive	3	Historical import	2026-06-26 00:46:32.608412
+497	388	13	110	receive	3	Historical import	2026-06-26 00:46:32.619933
+498	391	13	110	receive	3	Historical import	2026-06-26 00:46:32.628862
+499	396	13	110	receive	3	Historical import	2026-06-26 00:46:32.637147
+500	422	13	110	receive	15	Historical import	2026-06-26 00:46:32.645361
+501	355	13	111	receive	3	Historical import	2026-06-26 00:46:32.658474
+502	362	13	111	receive	2	Historical import	2026-06-26 00:46:32.666941
+503	369	13	111	receive	2	Historical import	2026-06-26 00:46:32.675092
+504	375	13	111	receive	5	Historical import	2026-06-26 00:46:32.683156
+505	388	13	111	receive	5	Historical import	2026-06-26 00:46:32.691651
+506	389	13	111	receive	3	Historical import	2026-06-26 00:46:32.704261
+507	392	13	111	receive	5	Historical import	2026-06-26 00:46:32.712801
+508	396	13	111	receive	5	Historical import	2026-06-26 00:46:32.721902
+509	405	13	111	receive	3	Historical import	2026-06-26 00:46:32.730637
+510	416	13	111	receive	1	Historical import	2026-06-26 00:46:32.738972
+511	421	13	111	receive	1	Historical import	2026-06-26 00:46:32.747605
+512	422	13	111	receive	20	Historical import	2026-06-26 00:46:32.756061
+513	355	13	112	receive	3	Historical import	2026-06-26 00:46:32.768259
+514	357	13	112	receive	2	Historical import	2026-06-26 00:46:32.777316
+515	404	13	112	receive	1	Historical import	2026-06-26 00:46:32.786923
+516	406	13	112	receive	1	Historical import	2026-06-26 00:46:32.796457
+517	410	13	112	receive	5	Historical import	2026-06-26 00:46:32.805235
+518	412	13	112	receive	1	Historical import	2026-06-26 00:46:32.813984
+519	416	13	112	receive	2	Historical import	2026-06-26 00:46:32.823032
+520	419	13	112	receive	1	Historical import	2026-06-26 00:46:32.832136
+521	421	13	112	receive	1	Historical import	2026-06-26 00:46:32.84175
+522	422	13	112	receive	20	Historical import	2026-06-26 00:46:32.850157
+523	355	13	113	receive	3	Historical import	2026-06-26 00:46:32.86191
+524	369	13	113	receive	3	Historical import	2026-06-26 00:46:32.87033
+525	385	13	113	receive	3	Historical import	2026-06-26 00:46:32.880941
+526	386	13	113	receive	5	Historical import	2026-06-26 00:46:32.88915
+527	388	13	113	receive	3	Historical import	2026-06-26 00:46:32.897374
+528	393	13	113	receive	4	Historical import	2026-06-26 00:46:32.906425
+529	398	13	113	receive	3	Historical import	2026-06-26 00:46:32.914751
+530	406	13	113	receive	4	Historical import	2026-06-26 00:46:32.923067
+531	408	13	113	receive	3	Historical import	2026-06-26 00:46:32.931991
+532	411	13	113	receive	3	Historical import	2026-06-26 00:46:32.940112
+533	412	13	113	receive	3	Historical import	2026-06-26 00:46:32.948865
+534	416	13	113	receive	1	Historical import	2026-06-26 00:46:32.958092
+535	419	13	113	receive	1	Historical import	2026-06-26 00:46:32.966789
+536	422	13	113	receive	15	Historical import	2026-06-26 00:46:32.979737
+537	355	13	114	receive	3	Historical import	2026-06-26 00:46:32.99413
+538	356	13	114	receive	1	Historical import	2026-06-26 00:46:33.002401
+539	362	13	114	receive	1	Historical import	2026-06-26 00:46:33.010685
+540	363	13	114	receive	1	Historical import	2026-06-26 00:46:33.019722
+541	372	13	114	receive	5	Historical import	2026-06-26 00:46:33.03206
+542	381	13	114	receive	2	Historical import	2026-06-26 00:46:33.040638
+543	385	13	114	receive	5	Historical import	2026-06-26 00:46:33.206133
+544	386	13	114	receive	3	Historical import	2026-06-26 00:46:33.21609
+545	389	13	114	receive	2	Historical import	2026-06-26 00:46:33.226688
+546	394	13	114	receive	3	Historical import	2026-06-26 00:46:33.235767
+547	396	13	114	receive	5	Historical import	2026-06-26 00:46:33.244955
+548	406	13	114	receive	3	Historical import	2026-06-26 00:46:33.253486
+549	422	13	114	receive	15	Historical import	2026-06-26 00:46:33.263753
+550	355	13	115	receive	20	Historical import	2026-06-26 00:46:33.277312
+551	357	13	115	receive	1	Historical import	2026-06-26 00:46:33.289902
+552	369	13	115	receive	2	Historical import	2026-06-26 00:46:33.299403
+553	372	13	115	receive	3	Historical import	2026-06-26 00:46:33.308205
+554	386	13	115	receive	3	Historical import	2026-06-26 00:46:33.316765
+555	389	13	115	receive	4	Historical import	2026-06-26 00:46:33.328315
+556	415	13	115	receive	2	Historical import	2026-06-26 00:46:33.339214
+557	416	13	115	receive	2	Historical import	2026-06-26 00:46:33.348564
+558	418	13	115	receive	2	Historical import	2026-06-26 00:46:33.358082
+559	419	13	115	receive	2	Historical import	2026-06-26 00:46:33.366752
+560	421	13	115	receive	2	Historical import	2026-06-26 00:46:33.37698
+561	422	13	115	receive	20	Historical import	2026-06-26 00:46:33.385544
+562	355	13	116	receive	5	Historical import	2026-06-26 00:46:33.398519
+563	369	13	116	receive	2	Historical import	2026-06-26 00:46:33.408003
+564	378	13	116	receive	2	Historical import	2026-06-26 00:46:33.417829
+565	387	13	116	receive	2	Historical import	2026-06-26 00:46:33.428635
+566	391	13	116	receive	2	Historical import	2026-06-26 00:46:33.437255
+567	399	13	116	receive	2	Historical import	2026-06-26 00:46:33.4465
+568	416	13	116	receive	2	Historical import	2026-06-26 00:46:33.454834
+569	419	13	116	receive	2	Historical import	2026-06-26 00:46:33.467398
+570	421	13	116	receive	2	Historical import	2026-06-26 00:46:33.482147
+571	422	13	116	receive	25	Historical import	2026-06-26 00:46:33.492437
+572	355	13	117	receive	5	Historical import	2026-06-26 00:46:33.508284
+573	369	13	117	receive	3	Historical import	2026-06-26 00:46:33.524495
+574	385	13	117	receive	2	Historical import	2026-06-26 00:46:33.649394
+575	387	13	117	receive	1	Historical import	2026-06-26 00:46:33.659109
+576	397	13	117	receive	3	Historical import	2026-06-26 00:46:33.668184
+577	416	13	117	receive	2	Historical import	2026-06-26 00:46:33.676624
+578	422	13	117	receive	20	Historical import	2026-06-26 00:46:33.686996
+579	355	13	118	receive	5	Historical import	2026-06-26 00:46:33.700843
+580	357	13	118	receive	2	Historical import	2026-06-26 00:46:33.711295
+581	416	13	118	receive	4	Historical import	2026-06-26 00:46:33.720966
+582	419	13	118	receive	3	Historical import	2026-06-26 00:46:33.730488
+583	421	13	118	receive	2	Historical import	2026-06-26 00:46:33.739941
+584	422	13	118	receive	25	Historical import	2026-06-26 00:46:33.749158
+585	355	13	119	receive	4	Historical import	2026-06-26 00:46:33.763574
+586	416	13	119	receive	2	Historical import	2026-06-26 00:46:33.772224
+587	419	13	119	receive	1	Historical import	2026-06-26 00:46:33.781311
+588	421	13	119	receive	3	Historical import	2026-06-26 00:46:33.79062
+589	422	13	119	receive	15	Historical import	2026-06-26 00:46:33.799755
+590	355	13	120	receive	4	Historical import	2026-06-26 00:46:33.813705
+591	356	13	120	receive	1	Historical import	2026-06-26 00:46:33.822384
+592	357	13	120	receive	1	Historical import	2026-06-26 00:46:33.830934
+593	369	13	120	receive	1	Historical import	2026-06-26 00:46:33.838784
+594	406	13	120	receive	2	Historical import	2026-06-26 00:46:33.847421
+595	411	13	120	receive	2	Historical import	2026-06-26 00:46:33.857335
+596	422	13	120	receive	15	Historical import	2026-06-26 00:46:33.86619
+597	355	13	121	receive	5	Historical import	2026-06-26 00:46:33.879141
+598	356	13	121	receive	1	Historical import	2026-06-26 00:46:33.888006
+599	357	13	121	receive	1	Historical import	2026-06-26 00:46:33.89712
+600	369	13	121	receive	6	Historical import	2026-06-26 00:46:33.908551
+601	405	13	121	receive	2	Historical import	2026-06-26 00:46:33.917439
+602	411	13	121	receive	2	Historical import	2026-06-26 00:46:33.925721
+603	417	13	121	receive	1	Historical import	2026-06-26 00:46:33.934629
+604	422	13	121	receive	15	Historical import	2026-06-26 00:46:33.942657
+605	355	13	122	receive	5	Historical import	2026-06-26 00:46:33.957985
+606	357	13	122	receive	1	Historical import	2026-06-26 00:46:33.966678
+607	369	13	122	receive	2	Historical import	2026-06-26 00:46:33.974743
+608	391	13	122	receive	3	Historical import	2026-06-26 00:46:33.983799
+609	417	13	122	receive	1	Historical import	2026-06-26 00:46:33.992208
+610	422	13	122	receive	10	Historical import	2026-06-26 00:46:34.001525
+611	355	13	123	receive	5	Historical import	2026-06-26 00:46:34.01454
+612	388	13	123	receive	3	Historical import	2026-06-26 00:46:34.028381
+613	391	13	123	receive	2	Historical import	2026-06-26 00:46:34.040323
+614	397	13	123	receive	3	Historical import	2026-06-26 00:46:34.052268
+615	398	13	123	receive	3	Historical import	2026-06-26 00:46:34.061551
+616	417	13	123	receive	2	Historical import	2026-06-26 00:46:34.069736
+617	422	13	123	receive	14	Historical import	2026-06-26 00:46:34.082775
+618	355	13	124	receive	1	Historical import	2026-06-26 00:46:34.095837
+619	375	13	124	receive	3	Historical import	2026-06-26 00:46:34.104842
+620	383	13	124	receive	3	Historical import	2026-06-26 00:46:34.113836
+621	388	13	124	receive	3	Historical import	2026-06-26 00:46:34.12218
+622	397	13	124	receive	2	Historical import	2026-06-26 00:46:34.130982
+623	401	13	124	receive	2	Historical import	2026-06-26 00:46:34.13932
+624	422	13	124	receive	10	Historical import	2026-06-26 00:46:34.148989
+625	369	13	125	receive	2	Historical import	2026-06-26 00:46:34.161225
+626	389	13	125	receive	3	Historical import	2026-06-26 00:46:34.16948
+627	400	13	125	receive	3	Historical import	2026-06-26 00:46:34.17834
+628	416	13	125	receive	2	Historical import	2026-06-26 00:46:34.186513
+629	422	13	125	receive	10	Historical import	2026-06-26 00:46:34.196358
+630	369	13	126	receive	7	Historical import	2026-06-26 00:46:34.208782
+631	388	13	126	receive	5	Historical import	2026-06-26 00:46:34.216886
+632	408	13	126	receive	3	Historical import	2026-06-26 00:46:34.401717
+633	411	13	126	receive	3	Historical import	2026-06-26 00:46:34.411266
+634	416	13	126	receive	3	Historical import	2026-06-26 00:46:34.42045
+635	419	13	126	receive	3	Historical import	2026-06-26 00:46:34.430039
+636	421	13	126	receive	3	Historical import	2026-06-26 00:46:34.439193
+637	422	13	126	receive	15	Historical import	2026-06-26 00:46:34.447762
+638	419	13	128	receive	3	Historical import	2026-06-26 00:46:34.47221
+639	421	13	128	receive	2	Historical import	2026-06-26 00:46:34.481827
+640	422	13	128	receive	10	Historical import	2026-06-26 00:46:34.490677
+641	420	13	129	receive	4	Historical import	2026-06-26 00:46:34.503659
+642	422	13	129	receive	15	Historical import	2026-06-26 00:46:34.51307
+643	887	16	169	receive	1	Historical import	2026-06-26 00:46:34.841383
+644	855	16	169	receive	12	Historical import	2026-06-26 00:46:34.850817
+645	867	16	169	receive	6	Historical import	2026-06-26 00:46:34.859725
+646	871	16	169	receive	5	Historical import	2026-06-26 00:46:34.868221
+647	880	16	169	receive	20	Historical import	2026-06-26 00:46:34.876957
+648	900	16	169	receive	6	Historical import	2026-06-26 00:46:34.885657
+649	901	16	169	receive	6	Historical import	2026-06-26 00:46:34.894545
+650	865	16	170	receive	8	Historical import	2026-06-26 00:46:34.907975
+651	903	16	170	receive	3	Historical import	2026-06-26 00:46:34.916537
+652	894	16	171	receive	2	Historical import	2026-06-26 00:46:34.929708
+653	894	16	171	receive	2	Historical import	2026-06-26 00:46:34.938132
+654	894	16	171	receive	2	Historical import	2026-06-26 00:46:34.947412
+655	894	16	171	receive	4	Historical import	2026-06-26 00:46:34.957256
+656	899	16	171	receive	10	Historical import	2026-06-26 00:46:34.966812
+657	855	16	171	receive	8	Historical import	2026-06-26 00:46:34.976266
+658	869	16	171	receive	6	Historical import	2026-06-26 00:46:34.989432
+659	871	16	171	receive	8	Historical import	2026-06-26 00:46:34.999567
+660	888	16	171	receive	8	Historical import	2026-06-26 00:46:35.008503
+661	900	16	171	receive	10	Historical import	2026-06-26 00:46:35.018201
+662	872	16	171	receive	3	Historical import	2026-06-26 00:46:35.02824
+663	882	16	171	receive	8	Historical import	2026-06-26 00:46:35.038093
+664	883	16	171	receive	8	Historical import	2026-06-26 00:46:35.048229
+665	901	16	171	receive	4	Historical import	2026-06-26 00:46:35.055682
+666	894	16	172	receive	1	Historical import	2026-06-26 00:46:35.067979
+667	894	16	172	receive	2	Historical import	2026-06-26 00:46:35.076219
+668	899	16	172	receive	8	Historical import	2026-06-26 00:46:35.084545
+669	855	16	172	receive	4	Historical import	2026-06-26 00:46:35.093172
+670	865	16	172	receive	6	Historical import	2026-06-26 00:46:35.102868
+671	867	16	172	receive	6	Historical import	2026-06-26 00:46:35.110659
+672	871	16	172	receive	3	Historical import	2026-06-26 00:46:35.118322
+673	871	16	172	receive	8	Historical import	2026-06-26 00:46:35.126241
+674	871	16	172	receive	8	Historical import	2026-06-26 00:46:35.134298
+675	888	16	172	receive	4	Historical import	2026-06-26 00:46:35.143186
+676	900	16	172	receive	8	Historical import	2026-06-26 00:46:35.151664
+677	899	16	173	receive	6	Historical import	2026-06-26 00:46:35.164574
+678	866	16	173	receive	6	Historical import	2026-06-26 00:46:35.173232
+679	867	16	173	receive	6	Historical import	2026-06-26 00:46:35.182307
+680	871	16	173	receive	10	Historical import	2026-06-26 00:46:35.192561
+681	871	16	173	receive	10	Historical import	2026-06-26 00:46:35.206869
+682	900	16	173	receive	10	Historical import	2026-06-26 00:46:35.215811
+683	884	16	173	receive	3	Historical import	2026-06-26 00:46:35.224089
+684	901	16	173	receive	2	Historical import	2026-06-26 00:46:35.233305
+685	901	16	173	receive	2	Historical import	2026-06-26 00:46:35.241601
+686	887	16	174	receive	2	Historical import	2026-06-26 00:46:35.254111
+687	871	16	174	receive	10	Historical import	2026-06-26 00:46:35.26224
+688	888	16	174	receive	10	Historical import	2026-06-26 00:46:35.269677
+689	901	16	174	receive	6	Historical import	2026-06-26 00:46:35.278184
+690	887	16	175	receive	2	Historical import	2026-06-26 00:46:35.289646
+691	894	16	175	receive	2	Historical import	2026-06-26 00:46:35.299524
+692	894	16	175	receive	3	Historical import	2026-06-26 00:46:35.308396
+693	855	16	175	receive	8	Historical import	2026-06-26 00:46:35.319409
+694	871	16	175	receive	12	Historical import	2026-06-26 00:46:35.327735
+695	900	16	175	receive	20	Historical import	2026-06-26 00:46:35.33562
+696	855	16	176	receive	10	Historical import	2026-06-26 00:46:35.358078
+697	865	16	176	receive	6	Historical import	2026-06-26 00:46:35.367452
+698	866	16	176	receive	8	Historical import	2026-06-26 00:46:35.376122
+699	869	16	176	receive	8	Historical import	2026-06-26 00:46:35.386888
+700	900	16	176	receive	6	Historical import	2026-06-26 00:46:35.395302
+701	900	16	176	receive	10	Historical import	2026-06-26 00:46:35.403628
+702	894	16	177	receive	1	Historical import	2026-06-26 00:46:35.417165
+703	894	16	177	receive	1	Historical import	2026-06-26 00:46:35.426361
+704	894	16	177	receive	3	Historical import	2026-06-26 00:46:35.434768
+705	894	16	177	receive	2	Historical import	2026-06-26 00:46:35.443297
+706	894	16	177	receive	3	Historical import	2026-06-26 00:46:35.452811
+707	899	16	177	receive	8	Historical import	2026-06-26 00:46:35.461925
+708	855	16	177	receive	6	Historical import	2026-06-26 00:46:35.470532
+709	865	16	177	receive	6	Historical import	2026-06-26 00:46:35.478808
+710	868	16	177	receive	6	Historical import	2026-06-26 00:46:35.487976
+711	871	16	177	receive	10	Historical import	2026-06-26 00:46:35.496485
+712	871	16	177	receive	10	Historical import	2026-06-26 00:46:35.50564
+713	900	16	177	receive	25	Historical import	2026-06-26 00:46:35.513772
+714	900	16	177	receive	15	Historical import	2026-06-26 00:46:35.521822
+715	902	16	177	receive	6	Historical import	2026-06-26 00:46:35.532921
+716	879	16	177	receive	2	Historical import	2026-06-26 00:46:35.540305
+717	883	16	177	receive	4	Historical import	2026-06-26 00:46:35.548448
+718	901	16	177	receive	3	Historical import	2026-06-26 00:46:35.557441
+719	901	16	177	receive	3	Historical import	2026-06-26 00:46:35.565195
+720	894	16	178	receive	2	Historical import	2026-06-26 00:46:35.576905
+721	894	16	178	receive	4	Historical import	2026-06-26 00:46:35.584296
+722	899	16	178	receive	10	Historical import	2026-06-26 00:46:35.593043
+723	855	16	178	receive	10	Historical import	2026-06-26 00:46:35.600482
+724	869	16	178	receive	6	Historical import	2026-06-26 00:46:35.609164
+725	871	16	178	receive	6	Historical import	2026-06-26 00:46:35.616546
+726	900	16	178	receive	10	Historical import	2026-06-26 00:46:35.625278
+727	882	16	178	receive	4	Historical import	2026-06-26 00:46:35.633929
+728	883	16	178	receive	39	Historical import	2026-06-26 00:46:35.641343
+729	894	16	179	receive	3	Historical import	2026-06-26 00:46:35.652546
+730	899	16	179	receive	8	Historical import	2026-06-26 00:46:35.660761
+731	855	16	179	receive	6	Historical import	2026-06-26 00:46:35.678297
+732	869	16	179	receive	6	Historical import	2026-06-26 00:46:35.691572
+733	900	16	179	receive	10	Historical import	2026-06-26 00:46:35.700067
+734	900	16	179	receive	6	Historical import	2026-06-26 00:46:35.708013
+735	879	16	179	receive	6	Historical import	2026-06-26 00:46:35.717943
+736	901	16	179	receive	6	Historical import	2026-06-26 00:46:35.726874
+737	894	16	180	receive	2	Historical import	2026-06-26 00:46:35.741248
+738	894	16	180	receive	3	Historical import	2026-06-26 00:46:35.750277
+739	855	16	180	receive	12	Historical import	2026-06-26 00:46:35.758911
+740	901	16	180	receive	4	Historical import	2026-06-26 00:46:35.767844
+741	901	16	180	receive	4	Historical import	2026-06-26 00:46:35.776817
+742	894	16	182	receive	4	Historical import	2026-06-26 00:46:35.819109
+743	899	16	182	receive	10	Historical import	2026-06-26 00:46:35.827942
+744	855	16	182	receive	8	Historical import	2026-06-26 00:46:35.837736
+745	867	16	182	receive	8	Historical import	2026-06-26 00:46:35.847403
+746	900	16	182	receive	12	Historical import	2026-06-26 00:46:35.856479
+747	901	16	182	receive	6	Historical import	2026-06-26 00:46:35.865632
+748	889	16	182	receive	6	Historical import	2026-06-26 00:46:35.874955
+749	894	16	183	receive	2	Historical import	2026-06-26 00:46:35.888182
+750	859	16	183	receive	6	Historical import	2026-06-26 00:46:35.89741
+751	866	16	183	receive	10	Historical import	2026-06-26 00:46:35.907483
+752	869	16	183	receive	8	Historical import	2026-06-26 00:46:35.916705
+753	888	16	183	receive	8	Historical import	2026-06-26 00:46:35.92874
+754	900	16	183	receive	15	Historical import	2026-06-26 00:46:35.938788
+755	900	16	183	receive	10	Historical import	2026-06-26 00:46:35.94813
+756	901	16	183	receive	6	Historical import	2026-06-26 00:46:35.957805
+757	900	16	184	receive	35	Historical import	2026-06-26 00:46:35.971767
+758	879	16	184	receive	6	Historical import	2026-06-26 00:46:35.981662
+759	900	16	185	receive	20	Historical import	2026-06-26 00:46:35.996231
+760	879	16	185	receive	3	Historical import	2026-06-26 00:46:36.005542
+761	866	16	186	receive	6	Historical import	2026-06-26 00:46:36.020716
+762	869	16	186	receive	6	Historical import	2026-06-26 00:46:36.029082
+763	900	16	186	receive	15	Historical import	2026-06-26 00:46:36.037923
+764	900	16	186	receive	15	Historical import	2026-06-26 00:46:36.046404
+765	889	16	186	receive	4	Historical import	2026-06-26 00:46:36.054618
+766	899	16	187	receive	8	Historical import	2026-06-26 00:46:36.068199
+767	869	16	187	receive	6	Historical import	2026-06-26 00:46:36.077624
+768	900	16	187	receive	10	Historical import	2026-06-26 00:46:36.08668
+769	855	16	189	receive	6	Historical import	2026-06-26 00:46:36.110012
+770	871	16	189	receive	6	Historical import	2026-06-26 00:46:36.118046
+771	871	16	189	receive	8	Historical import	2026-06-26 00:46:36.12604
+772	879	16	189	receive	6	Historical import	2026-06-26 00:46:36.135038
+773	889	16	189	receive	12	Historical import	2026-06-26 00:46:36.14292
+774	855	16	190	receive	6	Historical import	2026-06-26 00:46:36.154949
+775	867	16	190	receive	6	Historical import	2026-06-26 00:46:36.162796
+776	880	16	190	receive	6	Historical import	2026-06-26 00:46:36.173123
+777	901	16	190	receive	3	Historical import	2026-06-26 00:46:36.372783
+778	867	16	191	receive	6	Historical import	2026-06-26 00:46:36.39117
+779	900	16	191	receive	8	Historical import	2026-06-26 00:46:36.40086
+780	883	16	191	receive	10	Historical import	2026-06-26 00:46:36.410119
+781	901	16	191	receive	6	Historical import	2026-06-26 00:46:36.419622
+782	865	16	192	receive	6	Historical import	2026-06-26 00:46:36.432149
+783	884	16	192	receive	4	Historical import	2026-06-26 00:46:36.44105
+784	881	16	193	receive	1	Historical import	2026-06-26 00:46:36.454218
+785	1311	17	194	receive	2	Historical import	2026-06-26 00:46:36.613933
+786	922	17	194	receive	1	Historical import	2026-06-26 00:46:36.624278
+787	935	17	194	receive	2	Historical import	2026-06-26 00:46:36.633125
+788	958	17	194	receive	1	Historical import	2026-06-26 00:46:36.643131
+789	985	17	194	receive	2	Historical import	2026-06-26 00:46:36.651997
+790	1041	17	194	receive	6	Historical import	2026-06-26 00:46:36.663626
+791	1055	17	194	receive	4	Historical import	2026-06-26 00:46:36.673392
+792	1055	17	194	receive	4	Historical import	2026-06-26 00:46:36.683601
+793	1087	17	194	receive	4	Historical import	2026-06-26 00:46:36.69755
+794	1097	17	194	receive	4	Historical import	2026-06-26 00:46:36.708732
+795	1111	17	194	receive	4	Historical import	2026-06-26 00:46:36.718322
+796	1143	17	194	receive	6	Historical import	2026-06-26 00:46:36.729864
+797	1143	17	194	receive	6	Historical import	2026-06-26 00:46:36.739791
+798	1278	17	194	receive	4	Historical import	2026-06-26 00:46:36.749095
+799	1291	17	194	receive	2	Historical import	2026-06-26 00:46:36.758955
+800	918	17	195	receive	2	Historical import	2026-06-26 00:46:36.771392
+801	922	17	195	receive	2	Historical import	2026-06-26 00:46:36.779233
+802	935	17	195	receive	3	Historical import	2026-06-26 00:46:36.787059
+803	959	17	195	receive	1	Historical import	2026-06-26 00:46:36.796424
+804	958	17	195	receive	1	Historical import	2026-06-26 00:46:36.804047
+805	958	17	195	receive	1	Historical import	2026-06-26 00:46:36.812552
+806	958	17	195	receive	2	Historical import	2026-06-26 00:46:36.820685
+807	1039	17	195	receive	6	Historical import	2026-06-26 00:46:36.831178
+808	1051	17	195	receive	4	Historical import	2026-06-26 00:46:36.840003
+809	1055	17	195	receive	24	Historical import	2026-06-26 00:46:36.85232
+810	1055	17	195	receive	6	Historical import	2026-06-26 00:46:36.860381
+811	1103	17	195	receive	6	Historical import	2026-06-26 00:46:36.870258
+812	1108	17	195	receive	8	Historical import	2026-06-26 00:46:36.878634
+813	1143	17	195	receive	6	Historical import	2026-06-26 00:46:36.887361
+814	1167	17	195	receive	6	Historical import	2026-06-26 00:46:36.895794
+815	1175	17	195	receive	10	Historical import	2026-06-26 00:46:36.904631
+816	1143	17	195	receive	4	Historical import	2026-06-26 00:46:36.912969
+817	1306	17	195	receive	2	Historical import	2026-06-26 00:46:36.922711
+818	1308	17	195	receive	2	Historical import	2026-06-26 00:46:36.930792
+819	1311	17	195	receive	8	Historical import	2026-06-26 00:46:36.938849
+820	1408	17	195	receive	2	Historical import	2026-06-26 00:46:36.948042
+821	918	17	196	receive	2	Historical import	2026-06-26 00:46:36.96072
+822	935	17	196	receive	3	Historical import	2026-06-26 00:46:36.969285
+823	958	17	196	receive	3	Historical import	2026-06-26 00:46:36.977693
+824	973	17	196	receive	3	Historical import	2026-06-26 00:46:36.986416
+825	1055	17	196	receive	6	Historical import	2026-06-26 00:46:36.996472
+826	1055	17	196	receive	6	Historical import	2026-06-26 00:46:37.004809
+827	1088	17	196	receive	6	Historical import	2026-06-26 00:46:37.013872
+828	1097	17	196	receive	4	Historical import	2026-06-26 00:46:37.023377
+829	1143	17	196	receive	4	Historical import	2026-06-26 00:46:37.031853
+830	1342	17	196	receive	2	Historical import	2026-06-26 00:46:37.042746
+831	1323	17	196	receive	3	Historical import	2026-06-26 00:46:37.051413
+832	918	17	197	receive	2	Historical import	2026-06-26 00:46:37.063422
+833	959	17	197	receive	3	Historical import	2026-06-26 00:46:37.071545
+834	973	17	197	receive	3	Historical import	2026-06-26 00:46:37.079817
+835	1021	17	197	receive	3	Historical import	2026-06-26 00:46:37.088362
+836	1087	17	197	receive	4	Historical import	2026-06-26 00:46:37.09691
+837	1111	17	197	receive	4	Historical import	2026-06-26 00:46:37.105466
+838	1278	17	197	receive	4	Historical import	2026-06-26 00:46:37.114893
+839	1342	17	197	receive	6	Historical import	2026-06-26 00:46:37.122936
+840	1323	17	197	receive	3	Historical import	2026-06-26 00:46:37.131613
+841	918	17	198	receive	1	Historical import	2026-06-26 00:46:37.143865
+842	935	17	198	receive	2	Historical import	2026-06-26 00:46:37.154497
+843	959	17	198	receive	1	Historical import	2026-06-26 00:46:37.162553
+844	958	17	198	receive	2	Historical import	2026-06-26 00:46:37.170999
+845	969	17	198	receive	2	Historical import	2026-06-26 00:46:37.179229
+846	983	17	198	receive	2	Historical import	2026-06-26 00:46:37.187713
+847	1039	17	198	receive	4	Historical import	2026-06-26 00:46:37.197579
+848	1033	17	198	receive	6	Historical import	2026-06-26 00:46:37.206103
+849	1054	17	198	receive	4	Historical import	2026-06-26 00:46:37.214499
+850	1055	17	198	receive	4	Historical import	2026-06-26 00:46:37.222981
+851	1055	17	198	receive	6	Historical import	2026-06-26 00:46:37.23122
+852	1097	17	198	receive	4	Historical import	2026-06-26 00:46:37.240948
+853	1108	17	198	receive	4	Historical import	2026-06-26 00:46:37.251067
+854	1119	17	198	receive	2	Historical import	2026-06-26 00:46:37.259706
+855	1143	17	198	receive	3	Historical import	2026-06-26 00:46:37.268194
+856	1148	17	198	receive	6	Historical import	2026-06-26 00:46:37.276686
+857	1156	17	198	receive	4	Historical import	2026-06-26 00:46:37.28462
+858	1167	17	198	receive	6	Historical import	2026-06-26 00:46:37.293216
+859	1175	17	198	receive	6	Historical import	2026-06-26 00:46:37.301438
+860	1176	17	198	receive	6	Historical import	2026-06-26 00:46:37.31115
+861	1177	17	198	receive	4	Historical import	2026-06-26 00:46:37.319284
+862	1263	17	198	receive	1	Historical import	2026-06-26 00:46:37.334455
+863	1271	17	198	receive	2	Historical import	2026-06-26 00:46:37.342447
+864	1278	17	198	receive	4	Historical import	2026-06-26 00:46:37.350178
+865	1306	17	198	receive	2	Historical import	2026-06-26 00:46:37.359475
+866	1308	17	198	receive	2	Historical import	2026-06-26 00:46:37.367454
+867	1342	17	198	receive	4	Historical import	2026-06-26 00:46:37.376344
+868	1342	17	198	receive	8	Historical import	2026-06-26 00:46:37.384827
+869	1365	17	198	receive	2	Historical import	2026-06-26 00:46:37.393948
+870	1394	17	198	receive	1	Historical import	2026-06-26 00:46:37.402451
+871	1408	17	198	receive	2	Historical import	2026-06-26 00:46:37.410965
+872	922	17	199	receive	2	Historical import	2026-06-26 00:46:37.423368
+873	922	17	199	receive	2	Historical import	2026-06-26 00:46:37.432132
+874	945	17	199	receive	2	Historical import	2026-06-26 00:46:37.44016
+875	966	17	199	receive	2	Historical import	2026-06-26 00:46:37.449156
+876	964	17	199	receive	4	Historical import	2026-06-26 00:46:37.457992
+877	1089	17	199	receive	6	Historical import	2026-06-26 00:46:37.46945
+878	1143	17	199	receive	8	Historical import	2026-06-26 00:46:37.477718
+879	1175	17	199	receive	8	Historical import	2026-06-26 00:46:37.486437
+880	1176	17	199	receive	8	Historical import	2026-06-26 00:46:37.494637
+881	1288	17	199	receive	3	Historical import	2026-06-26 00:46:37.504265
+882	1311	17	199	receive	3	Historical import	2026-06-26 00:46:37.512845
+883	1368	17	199	receive	3	Historical import	2026-06-26 00:46:37.520878
+884	922	17	200	receive	2	Historical import	2026-06-26 00:46:37.533397
+885	958	17	200	receive	2	Historical import	2026-06-26 00:46:37.541701
+886	975	17	200	receive	3	Historical import	2026-06-26 00:46:37.549743
+887	1036	17	200	receive	6	Historical import	2026-06-26 00:46:37.560136
+888	1039	17	200	receive	6	Historical import	2026-06-26 00:46:37.568576
+889	1055	17	200	receive	6	Historical import	2026-06-26 00:46:37.577466
+890	1088	17	200	receive	8	Historical import	2026-06-26 00:46:37.586236
+891	1097	17	200	receive	6	Historical import	2026-06-26 00:46:37.599058
+892	1108	17	200	receive	10	Historical import	2026-06-26 00:46:37.608226
+893	1159	17	200	receive	6	Historical import	2026-06-26 00:46:37.617081
+894	1175	17	200	receive	6	Historical import	2026-06-26 00:46:37.625367
+895	1176	17	200	receive	6	Historical import	2026-06-26 00:46:37.63397
+896	1292	17	200	receive	6	Historical import	2026-06-26 00:46:37.643852
+897	1365	17	200	receive	3	Historical import	2026-06-26 00:46:37.652524
+898	922	17	201	receive	2	Historical import	2026-06-26 00:46:37.664631
+899	937	17	201	receive	2	Historical import	2026-06-26 00:46:37.673665
+900	958	17	201	receive	1	Historical import	2026-06-26 00:46:37.682769
+901	958	17	201	receive	2	Historical import	2026-06-26 00:46:37.691185
+902	980	17	201	receive	3	Historical import	2026-06-26 00:46:37.699184
+903	1023	17	201	receive	2	Historical import	2026-06-26 00:46:37.708756
+904	1088	17	201	receive	10	Historical import	2026-06-26 00:46:37.719475
+905	1097	17	201	receive	6	Historical import	2026-06-26 00:46:37.727979
+906	1108	17	201	receive	10	Historical import	2026-06-26 00:46:37.73661
+907	1116	17	201	receive	6	Historical import	2026-06-26 00:46:37.745321
+908	1148	17	201	receive	6	Historical import	2026-06-26 00:46:37.754418
+909	1159	17	201	receive	6	Historical import	2026-06-26 00:46:37.763836
+910	1164	17	201	receive	8	Historical import	2026-06-26 00:46:37.771908
+911	1175	17	201	receive	8	Historical import	2026-06-26 00:46:37.779784
+912	1176	17	201	receive	8	Historical import	2026-06-26 00:46:37.787745
+913	1195	17	201	receive	8	Historical import	2026-06-26 00:46:37.795641
+914	922	17	202	receive	1	Historical import	2026-06-26 00:46:37.809474
+915	935	17	202	receive	2	Historical import	2026-06-26 00:46:37.818068
+916	937	17	202	receive	2	Historical import	2026-06-26 00:46:37.826342
+917	958	17	202	receive	3	Historical import	2026-06-26 00:46:37.834627
+918	958	17	202	receive	2	Historical import	2026-06-26 00:46:37.842714
+919	980	17	202	receive	2	Historical import	2026-06-26 00:46:37.850809
+920	1023	17	202	receive	2	Historical import	2026-06-26 00:46:37.859627
+921	1088	17	202	receive	8	Historical import	2026-06-26 00:46:37.870117
+922	1097	17	202	receive	4	Historical import	2026-06-26 00:46:37.878208
+923	1108	17	202	receive	6	Historical import	2026-06-26 00:46:37.886211
+924	1114	17	202	receive	6	Historical import	2026-06-26 00:46:37.893924
+925	1148	17	202	receive	6	Historical import	2026-06-26 00:46:37.901423
+926	1159	17	202	receive	6	Historical import	2026-06-26 00:46:37.909314
+927	1164	17	202	receive	6	Historical import	2026-06-26 00:46:37.917429
+928	1292	17	202	receive	2	Historical import	2026-06-26 00:46:37.932114
+929	966	17	203	receive	3	Historical import	2026-06-26 00:46:37.94457
+930	964	17	203	receive	3	Historical import	2026-06-26 00:46:37.952907
+931	1041	17	203	receive	8	Historical import	2026-06-26 00:46:37.962107
+932	1091	17	203	receive	15	Historical import	2026-06-26 00:46:37.970128
+933	1088	17	203	receive	90	Historical import	2026-06-26 00:46:37.979242
+934	1176	17	203	receive	10	Historical import	2026-06-26 00:46:37.98698
+935	1311	17	203	receive	5	Historical import	2026-06-26 00:46:37.995688
+936	1342	17	203	receive	15	Historical import	2026-06-26 00:46:38.003701
+937	1288	17	204	receive	4	Historical import	2026-06-26 00:46:38.017132
+938	959	17	205	receive	3	Historical import	2026-06-26 00:46:38.030042
+939	1087	17	205	receive	6	Historical import	2026-06-26 00:46:38.039733
+940	1308	17	205	receive	4	Historical import	2026-06-26 00:46:38.048601
+941	935	17	207	receive	4	Historical import	2026-06-26 00:46:38.165056
+942	958	17	207	receive	3	Historical import	2026-06-26 00:46:38.177833
+943	1088	17	207	receive	10	Historical import	2026-06-26 00:46:38.186347
+944	1108	17	207	receive	10	Historical import	2026-06-26 00:46:38.194786
+945	1159	17	207	receive	8	Historical import	2026-06-26 00:46:38.203938
+946	1175	17	207	receive	8	Historical import	2026-06-26 00:46:38.212287
+947	1176	17	207	receive	8	Historical import	2026-06-26 00:46:38.222426
+948	947	17	208	receive	1	Historical import	2026-06-26 00:46:38.234351
+949	950	17	208	receive	2	Historical import	2026-06-26 00:46:38.244545
+950	985	17	208	receive	1	Historical import	2026-06-26 00:46:38.252916
+951	1039	17	208	receive	4	Historical import	2026-06-26 00:46:38.262046
+952	1048	17	208	receive	6	Historical import	2026-06-26 00:46:38.269997
+953	1183	17	208	receive	3	Historical import	2026-06-26 00:46:38.280203
+954	1271	17	208	receive	2	Historical import	2026-06-26 00:46:38.294983
+955	1314	17	208	receive	2	Historical import	2026-06-26 00:46:38.307453
+956	1306	17	208	receive	2	Historical import	2026-06-26 00:46:38.317137
+957	1026	17	209	receive	3	Historical import	2026-06-26 00:46:38.33019
+958	958	17	210	receive	2	Historical import	2026-06-26 00:46:38.344842
+959	1055	17	210	receive	8	Historical import	2026-06-26 00:46:38.35651
+960	1089	17	210	receive	8	Historical import	2026-06-26 00:46:38.366672
+961	1103	17	210	receive	6	Historical import	2026-06-26 00:46:38.376047
+962	1108	17	210	receive	10	Historical import	2026-06-26 00:46:38.390503
+963	958	17	211	receive	2	Historical import	2026-06-26 00:46:38.404187
+964	1055	17	211	receive	6	Historical import	2026-06-26 00:46:38.414164
+965	1164	17	211	receive	6	Historical import	2026-06-26 00:46:38.423
+966	1108	17	212	receive	12	Historical import	2026-06-26 00:46:38.436735
+967	1175	17	212	receive	8	Historical import	2026-06-26 00:46:38.445358
+968	1176	17	212	receive	8	Historical import	2026-06-26 00:46:38.453422
+969	1342	17	212	receive	6	Historical import	2026-06-26 00:46:38.46245
+970	1325	17	212	receive	6	Historical import	2026-06-26 00:46:38.470823
+971	959	17	213	receive	2	Historical import	2026-06-26 00:46:38.483643
+972	958	17	214	receive	4	Historical import	2026-06-26 00:46:38.496402
+973	958	17	214	receive	3	Historical import	2026-06-26 00:46:38.505131
+974	964	17	214	receive	2	Historical import	2026-06-26 00:46:38.513531
+975	958	17	214	receive	2	Historical import	2026-06-26 00:46:38.522129
+976	1026	17	214	receive	2	Historical import	2026-06-26 00:46:38.531322
+977	1023	17	214	receive	3	Historical import	2026-06-26 00:46:38.539459
+978	1039	17	214	receive	6	Historical import	2026-06-26 00:46:38.547941
+979	1055	17	214	receive	6	Historical import	2026-06-26 00:46:38.558846
+980	1055	17	214	receive	12	Historical import	2026-06-26 00:46:38.568091
+981	1089	17	214	receive	8	Historical import	2026-06-26 00:46:38.576366
+982	1103	17	214	receive	6	Historical import	2026-06-26 00:46:38.584891
+983	1143	17	214	receive	6	Historical import	2026-06-26 00:46:38.597238
+984	1156	17	214	receive	6	Historical import	2026-06-26 00:46:38.611849
+985	1159	17	214	receive	10	Historical import	2026-06-26 00:46:38.621122
+986	1167	17	214	receive	8	Historical import	2026-06-26 00:46:38.629498
+987	1175	17	214	receive	6	Historical import	2026-06-26 00:46:38.809082
+988	1288	17	214	receive	3	Historical import	2026-06-26 00:46:38.965132
+989	1308	17	214	receive	4	Historical import	2026-06-26 00:46:38.973983
+990	1311	17	214	receive	3	Historical import	2026-06-26 00:46:38.983371
+991	1365	17	214	receive	3	Historical import	2026-06-26 00:46:38.9926
+992	966	17	215	receive	3	Historical import	2026-06-26 00:46:39.139147
+993	973	17	215	receive	2	Historical import	2026-06-26 00:46:39.148462
+994	1041	17	215	receive	15	Historical import	2026-06-26 00:46:39.159649
+995	1087	17	215	receive	6	Historical import	2026-06-26 00:46:39.173105
+996	1091	17	215	receive	48	Historical import	2026-06-26 00:46:39.182484
+997	1088	17	215	receive	10	Historical import	2026-06-26 00:46:39.19149
+998	1101	17	215	receive	6	Historical import	2026-06-26 00:46:39.201523
+999	1103	17	215	receive	6	Historical import	2026-06-26 00:46:39.210608
+1000	1111	17	215	receive	6	Historical import	2026-06-26 00:46:39.220298
+1001	1108	17	215	receive	10	Historical import	2026-06-26 00:46:39.229035
+1002	1197	17	215	receive	10	Historical import	2026-06-26 00:46:39.238239
+1003	1159	17	215	receive	6	Historical import	2026-06-26 00:46:39.246944
+1004	1167	17	215	receive	8	Historical import	2026-06-26 00:46:39.256067
+1005	1176	17	215	receive	10	Historical import	2026-06-26 00:46:39.265473
+1006	1143	17	215	receive	6	Historical import	2026-06-26 00:46:39.274573
+1007	1278	17	215	receive	6	Historical import	2026-06-26 00:46:39.284943
+1008	1288	17	215	receive	4	Historical import	2026-06-26 00:46:39.29499
+1009	1311	17	215	receive	4	Historical import	2026-06-26 00:46:39.303423
+1010	1342	17	215	receive	20	Historical import	2026-06-26 00:46:39.313184
+1011	1370	17	215	receive	4	Historical import	2026-06-26 00:46:39.323042
+1012	1055	17	217	receive	14	Historical import	2026-06-26 00:46:39.340541
+1013	1143	17	217	receive	2	Historical import	2026-06-26 00:46:39.348935
+1014	1342	17	217	receive	4	Historical import	2026-06-26 00:46:39.359491
+1015	1323	17	217	receive	2	Historical import	2026-06-26 00:46:39.368569
+1016	1599	18	219	receive	3	Historical import	2026-06-26 00:46:39.42048
+1017	1545	18	219	receive	15	Historical import	2026-06-26 00:46:39.429402
+1018	1612	18	219	receive	6	Historical import	2026-06-26 00:46:39.438562
+1019	1613	18	219	receive	8	Historical import	2026-06-26 00:46:39.452861
+1020	1617	18	219	receive	8	Historical import	2026-06-26 00:46:39.463927
+1021	1585	18	219	receive	6	Historical import	2026-06-26 00:46:39.472964
+1022	1546	18	220	receive	6	Historical import	2026-06-26 00:46:39.488841
+1023	1559	18	220	receive	2	Historical import	2026-06-26 00:46:39.498043
+1024	1599	18	220	receive	2	Historical import	2026-06-26 00:46:39.506865
+1025	1591	18	220	receive	2	Historical import	2026-06-26 00:46:39.516413
+1026	1545	18	220	receive	8	Historical import	2026-06-26 00:46:39.525198
+1027	1636	18	220	receive	20	Historical import	2026-06-26 00:46:39.535085
+1028	1613	18	220	receive	8	Historical import	2026-06-26 00:46:39.547741
+1029	1592	18	220	receive	6	Historical import	2026-06-26 00:46:39.556624
+1030	1585	18	221	receive	10	Historical import	2026-06-26 00:46:39.576897
+1031	1591	18	222	receive	2	Historical import	2026-06-26 00:46:39.591837
+1032	1545	18	222	receive	10	Historical import	2026-06-26 00:46:39.601431
+1033	1612	18	222	receive	8	Historical import	2026-06-26 00:46:39.611166
+1034	1636	18	222	receive	30	Historical import	2026-06-26 00:46:39.620079
+1035	1613	18	222	receive	15	Historical import	2026-06-26 00:46:39.634818
+1036	1613	18	222	receive	4	Historical import	2026-06-26 00:46:39.642702
+1037	1613	18	222	receive	6	Historical import	2026-06-26 00:46:39.651692
+1038	1592	18	222	receive	10	Historical import	2026-06-26 00:46:39.659275
+1039	1637	18	222	receive	25	Historical import	2026-06-26 00:46:39.669059
+1040	1612	18	223	receive	6	Historical import	2026-06-26 00:46:39.683542
+1041	1636	18	223	receive	15	Historical import	2026-06-26 00:46:39.691934
+1042	1613	18	223	receive	6	Historical import	2026-06-26 00:46:39.704364
+1043	1613	18	223	receive	6	Historical import	2026-06-26 00:46:39.712746
+1044	1637	18	223	receive	10	Historical import	2026-06-26 00:46:39.72266
+1045	1546	18	224	receive	12	Historical import	2026-06-26 00:46:39.734537
+1046	1546	18	224	receive	5	Historical import	2026-06-26 00:46:39.743339
+1047	1612	18	224	receive	6	Historical import	2026-06-26 00:46:39.751516
+1048	1636	18	224	receive	72	Historical import	2026-06-26 00:46:39.760967
+1049	1613	18	224	receive	6	Historical import	2026-06-26 00:46:39.771523
+1050	1613	18	224	receive	6	Historical import	2026-06-26 00:46:39.780414
+1051	1609	18	226	receive	2	Historical import	2026-06-26 00:46:39.807123
+1052	1599	18	226	receive	3	Historical import	2026-06-26 00:46:39.815298
+1053	1599	18	226	receive	3	Historical import	2026-06-26 00:46:39.82385
+1054	1599	18	226	receive	2	Historical import	2026-06-26 00:46:39.83295
+1055	1626	18	226	receive	12	Historical import	2026-06-26 00:46:39.846359
+1056	1613	18	226	receive	6	Historical import	2026-06-26 00:46:39.855452
+1057	1546	18	227	receive	1	Historical import	2026-06-26 00:46:39.870465
+1058	1635	18	227	receive	3	Historical import	2026-06-26 00:46:39.881963
+1059	1545	18	227	receive	25	Historical import	2026-06-26 00:46:39.89157
+1060	1636	18	227	receive	8	Historical import	2026-06-26 00:46:39.900952
+1061	1613	18	227	receive	6	Historical import	2026-06-26 00:46:39.910843
+1062	1613	18	227	receive	8	Historical import	2026-06-26 00:46:39.920379
+1063	1637	18	227	receive	20	Historical import	2026-06-26 00:46:39.931993
+1064	1559	18	228	receive	2	Historical import	2026-06-26 00:46:39.947404
+1065	1599	18	228	receive	2	Historical import	2026-06-26 00:46:39.959572
+1066	1591	18	228	receive	2	Historical import	2026-06-26 00:46:39.968911
+1067	1545	18	228	receive	15	Historical import	2026-06-26 00:46:39.978768
+1068	1545	18	228	receive	6	Historical import	2026-06-26 00:46:39.992252
+1069	1636	18	228	receive	15	Historical import	2026-06-26 00:46:40.002937
+1070	1626	18	228	receive	6	Historical import	2026-06-26 00:46:40.012983
+1071	1613	18	228	receive	12	Historical import	2026-06-26 00:46:40.023732
+1072	1613	18	229	receive	6	Historical import	2026-06-26 00:46:40.043192
+1073	1599	18	230	receive	3	Historical import	2026-06-26 00:46:40.061276
+1074	1613	18	230	receive	6	Historical import	2026-06-26 00:46:40.072766
+1075	1592	18	230	receive	10	Historical import	2026-06-26 00:46:40.082441
+1076	1545	18	231	receive	25	Historical import	2026-06-26 00:46:40.097194
+1077	1613	18	231	receive	6	Historical import	2026-06-26 00:46:40.106822
+1078	1613	18	231	receive	6	Historical import	2026-06-26 00:46:40.115311
+1079	1609	18	232	receive	4	Historical import	2026-06-26 00:46:40.131265
+1080	1599	18	232	receive	2	Historical import	2026-06-26 00:46:40.140387
+1081	1599	18	232	receive	2	Historical import	2026-06-26 00:46:40.148302
+1082	1612	18	233	receive	4	Historical import	2026-06-26 00:46:40.165727
+1083	1599	18	234	receive	4	Historical import	2026-06-26 00:46:40.180924
+1084	1599	18	234	receive	4	Historical import	2026-06-26 00:46:40.19
+1085	1599	18	234	receive	2	Historical import	2026-06-26 00:46:40.198046
+1086	1545	18	234	receive	12	Historical import	2026-06-26 00:46:40.206018
+1087	1612	18	234	receive	6	Historical import	2026-06-26 00:46:40.215102
+1088	1613	18	234	receive	6	Historical import	2026-06-26 00:46:40.22603
+1089	1585	18	234	receive	6	Historical import	2026-06-26 00:46:40.234676
+1090	1545	18	235	receive	30	Historical import	2026-06-26 00:46:40.250258
+1091	1592	18	235	receive	15	Historical import	2026-06-26 00:46:40.26163
+1092	1585	18	235	receive	8	Historical import	2026-06-26 00:46:40.27137
+1093	1599	18	236	receive	3	Historical import	2026-06-26 00:46:40.2865
+1094	1545	18	236	receive	25	Historical import	2026-06-26 00:46:40.296036
+1095	1612	18	236	receive	6	Historical import	2026-06-26 00:46:40.305813
+1096	1612	18	236	receive	6	Historical import	2026-06-26 00:46:40.314715
+1097	1584	18	236	receive	8	Historical import	2026-06-26 00:46:40.325479
+1098	1613	18	236	receive	6	Historical import	2026-06-26 00:46:40.333996
+1099	1613	18	236	receive	6	Historical import	2026-06-26 00:46:40.342946
+1100	1585	18	236	receive	5	Historical import	2026-06-26 00:46:40.352742
+1101	1545	18	237	receive	6	Historical import	2026-06-26 00:46:40.366142
+1102	1636	18	237	receive	15	Historical import	2026-06-26 00:46:40.37533
+1103	1613	18	237	receive	10	Historical import	2026-06-26 00:46:40.385099
+1104	1637	18	237	receive	15	Historical import	2026-06-26 00:46:40.394348
+1105	1599	18	238	receive	3	Historical import	2026-06-26 00:46:40.406881
+1106	1545	18	238	receive	10	Historical import	2026-06-26 00:46:40.416904
+1107	1612	18	238	receive	6	Historical import	2026-06-26 00:46:40.426812
+1108	1613	18	238	receive	6	Historical import	2026-06-26 00:46:40.43649
+1109	1613	18	238	receive	6	Historical import	2026-06-26 00:46:40.444608
+1110	1599	18	239	receive	6	Historical import	2026-06-26 00:46:40.456867
+1111	1545	18	239	receive	20	Historical import	2026-06-26 00:46:40.465022
+1112	1637	18	239	receive	8	Historical import	2026-06-26 00:46:40.476226
+1113	1636	18	241	receive	8	Historical import	2026-06-26 00:46:40.504213
+1114	1584	18	241	receive	5	Historical import	2026-06-26 00:46:40.513171
+1115	1613	18	241	receive	4	Historical import	2026-06-26 00:46:40.521154
+1116	1637	18	241	receive	8	Historical import	2026-06-26 00:46:40.532158
+1117	1635	18	242	receive	2	Historical import	2026-06-26 00:46:40.546719
+1118	1636	18	242	receive	10	Historical import	2026-06-26 00:46:40.55634
+1119	1584	18	242	receive	6	Historical import	2026-06-26 00:46:40.567315
+1120	1613	18	242	receive	4	Historical import	2026-06-26 00:46:40.577027
+1121	1637	18	242	receive	10	Historical import	2026-06-26 00:46:40.587429
+1122	1545	18	243	receive	10	Historical import	2026-06-26 00:46:40.602472
+1123	1612	18	243	receive	6	Historical import	2026-06-26 00:46:40.612628
+1124	1613	18	243	receive	6	Historical import	2026-06-26 00:46:40.626914
+1125	1592	18	243	receive	4	Historical import	2026-06-26 00:46:40.635649
+1126	1636	18	244	receive	15	Historical import	2026-06-26 00:46:40.650783
+1127	1613	18	244	receive	10	Historical import	2026-06-26 00:46:40.661056
+1128	1	1	246	receive	2	Historical import	2026-06-26 00:46:40.695851
+1129	3	1	246	receive	5	Historical import	2026-06-26 00:46:40.705948
+1130	16	1	246	receive	6	Historical import	2026-06-26 00:46:40.714182
+1131	18	1	246	receive	3	Historical import	2026-06-26 00:46:40.724488
+1132	24	1	246	receive	10	Historical import	2026-06-26 00:46:40.734434
+1133	27	1	246	receive	6	Historical import	2026-06-26 00:46:40.74472
+1134	30	1	246	receive	6	Historical import	2026-06-26 00:46:40.753947
+1135	1	1	247	receive	2	Historical import	2026-06-26 00:46:40.769899
+1136	3	1	247	receive	2	Historical import	2026-06-26 00:46:40.779126
+1137	18	1	247	receive	10	Historical import	2026-06-26 00:46:40.789023
+1138	24	1	247	receive	10	Historical import	2026-06-26 00:46:40.799521
+1139	29	1	247	receive	10	Historical import	2026-06-26 00:46:40.809716
+1140	36	1	247	receive	2	Historical import	2026-06-26 00:46:40.822772
+1141	37	1	247	receive	4	Historical import	2026-06-26 00:46:40.832745
+1142	1	1	248	receive	4	Historical import	2026-06-26 00:46:40.846164
+1143	3	1	248	receive	4	Historical import	2026-06-26 00:46:40.855811
+1144	13	1	248	receive	23	Historical import	2026-06-26 00:46:40.865551
+1145	21	1	248	receive	5	Historical import	2026-06-26 00:46:40.8749
+1146	24	1	248	receive	6	Historical import	2026-06-26 00:46:40.888271
+1147	36	1	248	receive	3	Historical import	2026-06-26 00:46:40.897734
+1148	1	1	249	receive	2	Historical import	2026-06-26 00:46:40.915115
+1149	13	1	249	receive	6	Historical import	2026-06-26 00:46:40.925736
+1150	16	1	249	receive	6	Historical import	2026-06-26 00:46:40.935475
+1151	17	1	249	receive	6	Historical import	2026-06-26 00:46:40.950771
+1152	18	1	249	receive	6	Historical import	2026-06-26 00:46:40.961126
+1153	21	1	249	receive	6	Historical import	2026-06-26 00:46:40.971375
+1154	22	1	249	receive	6	Historical import	2026-06-26 00:46:40.983613
+1155	23	1	249	receive	10	Historical import	2026-06-26 00:46:40.993143
+1156	24	1	249	receive	10	Historical import	2026-06-26 00:46:41.002316
+1157	30	1	249	receive	3	Historical import	2026-06-26 00:46:41.010873
+1158	1	1	250	receive	2	Historical import	2026-06-26 00:46:41.025017
+1159	36	1	250	receive	1	Historical import	2026-06-26 00:46:41.034322
+1160	1	1	251	receive	2	Historical import	2026-06-26 00:46:41.050628
+1161	7	1	251	receive	6	Historical import	2026-06-26 00:46:41.059097
+1162	11	1	251	receive	4	Historical import	2026-06-26 00:46:41.067766
+1163	15	1	251	receive	5	Historical import	2026-06-26 00:46:41.080898
+1164	17	1	251	receive	5	Historical import	2026-06-26 00:46:41.089619
+1165	18	1	251	receive	5	Historical import	2026-06-26 00:46:41.098279
+1166	24	1	251	receive	10	Historical import	2026-06-26 00:46:41.106665
+1167	29	1	251	receive	5	Historical import	2026-06-26 00:46:41.116409
+1168	30	1	251	receive	3	Historical import	2026-06-26 00:46:41.125945
+1169	30	1	251	receive	3	Historical import	2026-06-26 00:46:41.134398
+1170	32	1	251	receive	3	Historical import	2026-06-26 00:46:41.145256
+1171	33	1	251	receive	3	Historical import	2026-06-26 00:46:41.155005
+1172	1	1	252	receive	2	Historical import	2026-06-26 00:46:41.172599
+1173	4	1	252	receive	1	Historical import	2026-06-26 00:46:41.182888
+1174	13	1	252	receive	3	Historical import	2026-06-26 00:46:41.193654
+1175	14	1	252	receive	19	Historical import	2026-06-26 00:46:41.204162
+1176	1	1	253	receive	2	Historical import	2026-06-26 00:46:41.218367
+1177	18	1	253	receive	2	Historical import	2026-06-26 00:46:41.22984
+1178	24	1	253	receive	3	Historical import	2026-06-26 00:46:41.239442
+1179	36	1	253	receive	2	Historical import	2026-06-26 00:46:41.249115
+1180	1	1	254	receive	2	Historical import	2026-06-26 00:46:41.264639
+1181	1	1	255	receive	2	Historical import	2026-06-26 00:46:41.279068
+1182	36	1	255	receive	2	Historical import	2026-06-26 00:46:41.292233
+1183	1	1	256	receive	2	Historical import	2026-06-26 00:46:41.308212
+1184	4	1	256	receive	1	Historical import	2026-06-26 00:46:41.318975
+1185	9	1	256	receive	5	Historical import	2026-06-26 00:46:41.33118
+1186	678	1	256	receive	6	Historical import	2026-06-26 00:46:41.341808
+1187	7	1	256	receive	3	Historical import	2026-06-26 00:46:41.35152
+1188	16	1	256	receive	6	Historical import	2026-06-26 00:46:41.364456
+1189	7	1	256	receive	6	Historical import	2026-06-26 00:46:41.375942
+1190	7	1	256	receive	6	Historical import	2026-06-26 00:46:41.38757
+1191	27	1	256	receive	6	Historical import	2026-06-26 00:46:41.397985
+1192	28	1	256	receive	8	Historical import	2026-06-26 00:46:41.408897
+1193	29	1	256	receive	3	Historical import	2026-06-26 00:46:41.419243
+1194	32	1	256	receive	3	Historical import	2026-06-26 00:46:41.429316
+1195	35	1	256	receive	3	Historical import	2026-06-26 00:46:41.438035
+1196	36	1	256	receive	2	Historical import	2026-06-26 00:46:41.447732
+1197	37	1	256	receive	4	Historical import	2026-06-26 00:46:41.456967
+1198	1	1	257	receive	4	Historical import	2026-06-26 00:46:41.470203
+1199	4	1	257	receive	1	Historical import	2026-06-26 00:46:41.478894
+1200	9	1	257	receive	3	Historical import	2026-06-26 00:46:41.488063
+1201	7	1	257	receive	2	Historical import	2026-06-26 00:46:41.497966
+1202	7	1	257	receive	6	Historical import	2026-06-26 00:46:41.507152
+1203	27	1	257	receive	6	Historical import	2026-06-26 00:46:41.515822
+1204	30	1	257	receive	4	Historical import	2026-06-26 00:46:41.524707
+1205	32	1	257	receive	6	Historical import	2026-06-26 00:46:41.534873
+1206	36	1	257	receive	2	Historical import	2026-06-26 00:46:41.543353
+1207	37	1	257	receive	4	Historical import	2026-06-26 00:46:41.552928
+1208	39	1	257	receive	8	Historical import	2026-06-26 00:46:41.561302
+1209	1	1	258	receive	5	Historical import	2026-06-26 00:46:41.57408
+1210	4	1	258	receive	1	Historical import	2026-06-26 00:46:41.582144
+1211	9	1	258	receive	3	Historical import	2026-06-26 00:46:41.59069
+1212	13	1	258	receive	17	Historical import	2026-06-26 00:46:41.599529
+1213	7	1	258	receive	3	Historical import	2026-06-26 00:46:41.607984
+1214	7	1	258	receive	3	Historical import	2026-06-26 00:46:41.616072
+1215	27	1	258	receive	3	Historical import	2026-06-26 00:46:41.624384
+1216	28	1	258	receive	4	Historical import	2026-06-26 00:46:41.633568
+1217	30	1	258	receive	5	Historical import	2026-06-26 00:46:41.643057
+1218	32	1	258	receive	6	Historical import	2026-06-26 00:46:41.651521
+1219	36	1	258	receive	2	Historical import	2026-06-26 00:46:41.66035
+1220	37	1	258	receive	3	Historical import	2026-06-26 00:46:41.668212
+1221	39	1	258	receive	10	Historical import	2026-06-26 00:46:41.676405
+1222	1	1	259	receive	2	Historical import	2026-06-26 00:46:41.690135
+1223	6	1	259	receive	6	Historical import	2026-06-26 00:46:41.698529
+1224	9	1	259	receive	3	Historical import	2026-06-26 00:46:41.706917
+1225	7	1	259	receive	2	Historical import	2026-06-26 00:46:41.718543
+1226	7	1	259	receive	4	Historical import	2026-06-26 00:46:41.72748
+1227	7	1	259	receive	3	Historical import	2026-06-26 00:46:41.735551
+1228	27	1	259	receive	6	Historical import	2026-06-26 00:46:41.74401
+1229	28	1	259	receive	3	Historical import	2026-06-26 00:46:41.753094
+1230	34	1	259	receive	2	Historical import	2026-06-26 00:46:41.766497
+1231	30	1	259	receive	2	Historical import	2026-06-26 00:46:41.775666
+1232	5	1	260	receive	3	Historical import	2026-06-26 00:46:41.787748
+1233	13	1	260	receive	5	Historical import	2026-06-26 00:46:41.7963
+1234	16	1	260	receive	3	Historical import	2026-06-26 00:46:41.806866
+1235	18	1	260	receive	4	Historical import	2026-06-26 00:46:41.815407
+1236	20	1	260	receive	5	Historical import	2026-06-26 00:46:41.824302
+1237	23	1	260	receive	7	Historical import	2026-06-26 00:46:41.8325
+1238	28	1	260	receive	3	Historical import	2026-06-26 00:46:41.841555
+1239	29	1	260	receive	4	Historical import	2026-06-26 00:46:41.849854
+1240	37	1	260	receive	6	Historical import	2026-06-26 00:46:41.858251
+1241	39	1	260	receive	10	Historical import	2026-06-26 00:46:41.868766
+1242	8	1	262	receive	3	Historical import	2026-06-26 00:46:41.902782
+1243	9	1	262	receive	5	Historical import	2026-06-26 00:46:41.911494
+1244	10	1	262	receive	6	Historical import	2026-06-26 00:46:41.919702
+1245	11	1	262	receive	3	Historical import	2026-06-26 00:46:41.928063
+1246	13	1	262	receive	6	Historical import	2026-06-26 00:46:41.936444
+1247	16	1	262	receive	5	Historical import	2026-06-26 00:46:41.945392
+1248	21	1	262	receive	10	Historical import	2026-06-26 00:46:41.955432
+1249	23	1	262	receive	5	Historical import	2026-06-26 00:46:41.963472
+1250	24	1	262	receive	10	Historical import	2026-06-26 00:46:41.972009
+1251	26	1	262	receive	5	Historical import	2026-06-26 00:46:41.980309
+1252	28	1	262	receive	5	Historical import	2026-06-26 00:46:41.992449
+1253	8	1	263	receive	4	Historical import	2026-06-26 00:46:42.00667
+1254	9	1	263	receive	4	Historical import	2026-06-26 00:46:42.015307
+1255	12	1	263	receive	5	Historical import	2026-06-26 00:46:42.023968
+1256	17	1	263	receive	4	Historical import	2026-06-26 00:46:42.032247
+1257	18	1	263	receive	4	Historical import	2026-06-26 00:46:42.040431
+1258	25	1	263	receive	4	Historical import	2026-06-26 00:46:42.049118
+1259	28	1	263	receive	3	Historical import	2026-06-26 00:46:42.057706
+1260	32	1	263	receive	3	Historical import	2026-06-26 00:46:42.065781
+1261	33	1	263	receive	3	Historical import	2026-06-26 00:46:42.073987
+1262	34	1	263	receive	3	Historical import	2026-06-26 00:46:42.082824
+1263	35	1	263	receive	2	Historical import	2026-06-26 00:46:42.091331
+1264	36	1	263	receive	2	Historical import	2026-06-26 00:46:42.09993
+1265	37	1	263	receive	4	Historical import	2026-06-26 00:46:42.107843
+1266	38	1	263	receive	4	Historical import	2026-06-26 00:46:42.119438
+1267	18	1	265	receive	9	Historical import	2026-06-26 00:46:42.13925
+1268	24	1	265	receive	56	Historical import	2026-06-26 00:46:42.147302
+1269	23	1	266	receive	10	Historical import	2026-06-26 00:46:42.159936
+1270	40	1	267	receive	10	Historical import	2026-06-26 00:46:42.173908
+1271	45	3	268	receive	3	Historical import	2026-06-26 00:46:42.191316
+1272	60	3	268	receive	21	Historical import	2026-06-26 00:46:42.200544
+1273	45	3	269	receive	3	Historical import	2026-06-26 00:46:42.214035
+1274	60	3	269	receive	12	Historical import	2026-06-26 00:46:42.223154
+1275	46	3	270	receive	7	Historical import	2026-06-26 00:46:42.235551
+1276	47	3	270	receive	5	Historical import	2026-06-26 00:46:42.244515
+1277	60	3	270	receive	15	Historical import	2026-06-26 00:46:42.253278
+1278	60	3	272	receive	10	Historical import	2026-06-26 00:46:42.27108
+1279	60	3	273	receive	30	Historical import	2026-06-26 00:46:42.284067
+1280	60	3	274	receive	20	Historical import	2026-06-26 00:46:42.297284
+1281	60	3	275	receive	10	Historical import	2026-06-26 00:46:42.310695
+1282	60	3	277	receive	20	Historical import	2026-06-26 00:46:42.329038
+1283	85	4	279	receive	4	Historical import	2026-06-26 00:46:42.348004
+1284	85	4	280	receive	2	Historical import	2026-06-26 00:46:42.360865
+1285	113	4	280	receive	2	Historical import	2026-06-26 00:46:42.368873
+1286	114	4	280	receive	1	Historical import	2026-06-26 00:46:42.377031
+1287	116	4	280	receive	1	Historical import	2026-06-26 00:46:42.385245
+1288	117	4	280	receive	1	Historical import	2026-06-26 00:46:42.393968
+1289	118	4	280	receive	1	Historical import	2026-06-26 00:46:42.402538
+1290	119	4	280	receive	1	Historical import	2026-06-26 00:46:42.411558
+1291	120	4	280	receive	2	Historical import	2026-06-26 00:46:42.419992
+1292	87	4	281	receive	5	Historical import	2026-06-26 00:46:42.434411
+1293	115	4	281	receive	1	Historical import	2026-06-26 00:46:42.455958
+1294	116	4	281	receive	2	Historical import	2026-06-26 00:46:42.464343
+1295	117	4	281	receive	2	Historical import	2026-06-26 00:46:42.47607
+1296	118	4	281	receive	2	Historical import	2026-06-26 00:46:42.486828
+1297	119	4	281	receive	2	Historical import	2026-06-26 00:46:42.495463
+1298	87	4	282	receive	3	Historical import	2026-06-26 00:46:42.509018
+1299	90	4	282	receive	1	Historical import	2026-06-26 00:46:42.517388
+1300	93	4	282	receive	3	Historical import	2026-06-26 00:46:42.529091
+1301	103	4	282	receive	1	Historical import	2026-06-26 00:46:42.538061
+1302	112	4	282	receive	6	Historical import	2026-06-26 00:46:42.547731
+1303	113	4	282	receive	1	Historical import	2026-06-26 00:46:42.556264
+1304	116	4	282	receive	1	Historical import	2026-06-26 00:46:42.564984
+1305	87	4	283	receive	6	Historical import	2026-06-26 00:46:42.577284
+1306	87	4	284	receive	12	Historical import	2026-06-26 00:46:42.590225
+1307	92	4	284	receive	2	Historical import	2026-06-26 00:46:42.598991
+1308	100	4	284	receive	2	Historical import	2026-06-26 00:46:42.607226
+1309	108	4	284	receive	3	Historical import	2026-06-26 00:46:42.619695
+1310	111	4	284	receive	3	Historical import	2026-06-26 00:46:42.63021
+1311	113	4	284	receive	2	Historical import	2026-06-26 00:46:42.638475
+1312	114	4	284	receive	2	Historical import	2026-06-26 00:46:42.647177
+1313	115	4	284	receive	1	Historical import	2026-06-26 00:46:42.655571
+1314	116	4	284	receive	3	Historical import	2026-06-26 00:46:42.663545
+1315	117	4	284	receive	6	Historical import	2026-06-26 00:46:42.672017
+1316	118	4	284	receive	2	Historical import	2026-06-26 00:46:42.681026
+1317	119	4	284	receive	4	Historical import	2026-06-26 00:46:42.690017
+1318	120	4	284	receive	5	Historical import	2026-06-26 00:46:42.698816
+1319	87	4	285	receive	5	Historical import	2026-06-26 00:46:42.710362
+1320	89	4	285	receive	3	Historical import	2026-06-26 00:46:42.718846
+1321	97	4	285	receive	3	Historical import	2026-06-26 00:46:42.728406
+1322	114	4	285	receive	1	Historical import	2026-06-26 00:46:42.737338
+1323	115	4	285	receive	1	Historical import	2026-06-26 00:46:42.746293
+1324	116	4	285	receive	1	Historical import	2026-06-26 00:46:42.754628
+1325	118	4	285	receive	1	Historical import	2026-06-26 00:46:42.762755
+1326	120	4	285	receive	1	Historical import	2026-06-26 00:46:42.771669
+1327	87	4	286	receive	2	Historical import	2026-06-26 00:46:42.784635
+1328	94	4	286	receive	2	Historical import	2026-06-26 00:46:42.792723
+1329	130	4	286	receive	2	Historical import	2026-06-26 00:46:42.801287
+1330	113	4	287	receive	2	Historical import	2026-06-26 00:46:42.814472
+1331	114	4	287	receive	1	Historical import	2026-06-26 00:46:42.82301
+1332	115	4	287	receive	1	Historical import	2026-06-26 00:46:42.832353
+1333	116	4	287	receive	2	Historical import	2026-06-26 00:46:42.840964
+1334	117	4	287	receive	2	Historical import	2026-06-26 00:46:42.849606
+1335	118	4	287	receive	2	Historical import	2026-06-26 00:46:42.857791
+1336	119	4	287	receive	2	Historical import	2026-06-26 00:46:42.866525
+1337	120	4	287	receive	2	Historical import	2026-06-26 00:46:42.875437
+1338	113	4	288	receive	2	Historical import	2026-06-26 00:46:42.88885
+1339	114	4	288	receive	1	Historical import	2026-06-26 00:46:42.897428
+1340	115	4	288	receive	1	Historical import	2026-06-26 00:46:42.906269
+1341	116	4	288	receive	1	Historical import	2026-06-26 00:46:42.921544
+1342	117	4	288	receive	1	Historical import	2026-06-26 00:46:42.93282
+1343	118	4	288	receive	1	Historical import	2026-06-26 00:46:42.941224
+1344	119	4	288	receive	2	Historical import	2026-06-26 00:46:42.949489
+1345	120	4	288	receive	1	Historical import	2026-06-26 00:46:42.958451
+1346	114	4	289	receive	1	Historical import	2026-06-26 00:46:42.971678
+1347	115	4	289	receive	1	Historical import	2026-06-26 00:46:42.980532
+1348	116	4	289	receive	2	Historical import	2026-06-26 00:46:42.988778
+1349	117	4	289	receive	1	Historical import	2026-06-26 00:46:42.997884
+1350	118	4	289	receive	2	Historical import	2026-06-26 00:46:43.007436
+1351	119	4	289	receive	1	Historical import	2026-06-26 00:46:43.016114
+1352	129	4	289	receive	2	Historical import	2026-06-26 00:46:43.025173
+1353	130	4	289	receive	2	Historical import	2026-06-26 00:46:43.034098
+1354	114	4	290	receive	2	Historical import	2026-06-26 00:46:43.046758
+1355	116	4	290	receive	2	Historical import	2026-06-26 00:46:43.055185
+1356	117	4	290	receive	2	Historical import	2026-06-26 00:46:43.063245
+1357	118	4	290	receive	2	Historical import	2026-06-26 00:46:43.074083
+1358	119	4	290	receive	3	Historical import	2026-06-26 00:46:43.082739
+1359	120	4	290	receive	2	Historical import	2026-06-26 00:46:43.090857
+1360	129	4	290	receive	2	Historical import	2026-06-26 00:46:43.099379
+1361	130	4	290	receive	2	Historical import	2026-06-26 00:46:43.108528
+1362	116	4	291	receive	2	Historical import	2026-06-26 00:46:43.121866
+1363	117	4	291	receive	1	Historical import	2026-06-26 00:46:43.130788
+1364	118	4	291	receive	1	Historical import	2026-06-26 00:46:43.139825
+1365	119	4	291	receive	1	Historical import	2026-06-26 00:46:43.148483
+1366	120	4	291	receive	2	Historical import	2026-06-26 00:46:43.156568
+1367	131	5	292	receive	2	Historical import	2026-06-26 00:46:43.17313
+1368	142	5	292	receive	8	Historical import	2026-06-26 00:46:43.181332
+1369	134	5	293	receive	24	Historical import	2026-06-26 00:46:43.195158
+1370	138	5	293	receive	24	Historical import	2026-06-26 00:46:43.203903
+1371	139	5	293	receive	12	Historical import	2026-06-26 00:46:43.213601
+1372	142	5	293	receive	8	Historical import	2026-06-26 00:46:43.222195
+1373	157	5	293	receive	5	Historical import	2026-06-26 00:46:43.231429
+1374	160	5	293	receive	8	Historical import	2026-06-26 00:46:43.240015
+1375	167	5	293	receive	6	Historical import	2026-06-26 00:46:43.247904
+1376	171	5	293	receive	2	Historical import	2026-06-26 00:46:43.257323
+1377	136	5	294	receive	2	Historical import	2026-06-26 00:46:43.273804
+1378	137	5	294	receive	2	Historical import	2026-06-26 00:46:43.282575
+1379	141	5	294	receive	6	Historical import	2026-06-26 00:46:43.291942
+1380	142	5	294	receive	6	Historical import	2026-06-26 00:46:43.300408
+1381	150	5	294	receive	4	Historical import	2026-06-26 00:46:43.309152
+1382	158	5	294	receive	12	Historical import	2026-06-26 00:46:43.317618
+1383	159	5	294	receive	20	Historical import	2026-06-26 00:46:43.326458
+1384	166	5	294	receive	1	Historical import	2026-06-26 00:46:43.337624
+1385	139	5	295	receive	6	Historical import	2026-06-26 00:46:43.35437
+1386	142	5	295	receive	6	Historical import	2026-06-26 00:46:43.364976
+1387	142	5	296	receive	6	Historical import	2026-06-26 00:46:43.379455
+1388	142	5	296	receive	6	Historical import	2026-06-26 00:46:43.392129
+1389	142	5	296	receive	6	Historical import	2026-06-26 00:46:43.400991
+1390	148	5	296	receive	6	Historical import	2026-06-26 00:46:43.410173
+1391	145	5	297	receive	10	Historical import	2026-06-26 00:46:43.423575
+1392	146	5	297	receive	10	Historical import	2026-06-26 00:46:43.432158
+1393	148	5	297	receive	15	Historical import	2026-06-26 00:46:43.445894
+1394	150	5	297	receive	8	Historical import	2026-06-26 00:46:43.456686
+1395	157	5	297	receive	10	Historical import	2026-06-26 00:46:43.465045
+1396	163	5	297	receive	4	Historical import	2026-06-26 00:46:43.476394
+1397	145	5	298	receive	10	Historical import	2026-06-26 00:46:43.489335
+1398	146	5	298	receive	10	Historical import	2026-06-26 00:46:43.497937
+1399	148	5	298	receive	15	Historical import	2026-06-26 00:46:43.506095
+1400	150	5	298	receive	8	Historical import	2026-06-26 00:46:43.515002
+1401	163	5	298	receive	4	Historical import	2026-06-26 00:46:43.524018
+1402	148	5	299	receive	4	Historical import	2026-06-26 00:46:43.537348
+1403	163	5	299	receive	4	Historical import	2026-06-26 00:46:43.546652
+1404	170	5	299	receive	6	Historical import	2026-06-26 00:46:43.555607
+1405	150	5	300	receive	1	Historical import	2026-06-26 00:46:43.568923
+\.
+
+
+--
+-- Data for Name: order_items; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.order_items (id, order_id, product_id, quantity_ordered, quantity_confirmed, availability, notes, created_at, substitution_name, substitution_notes) FROM stdin;
+6	2	255	2	\N	\N	\N	2026-05-02 22:42:03.745517	\N	\N
+7	2	257	2	\N	\N	\N	2026-05-02 22:42:03.745517	\N	\N
+8	2	259	2	\N	\N	\N	2026-05-02 22:42:03.745517	\N	\N
+5	2	253	2	\N	\N	\N	2026-05-02 22:42:03.745517	\N	\N
+1	1	189	1	1	available	\N	2026-05-02 21:21:08.223913	\N	\N
+2	1	191	1	1	available	\N	2026-05-02 21:21:08.223913	\N	\N
+3	1	192	3	3	available	\N	2026-05-02 21:21:08.223913	\N	\N
+4	1	196	1	1	available	\N	2026-05-02 21:21:08.223913	\N	\N
+9	3	575	6	\N	\N	\N	2026-06-11 23:46:40.162773	\N	\N
+1559	301	521	2	\N	\N	\N	2026-06-30 13:40:18.090551	\N	\N
+11	4	571	6	\N	\N	\N	2026-06-12 00:14:45.668305	\N	\N
+12	4	575	6	\N	\N	\N	2026-06-12 00:14:45.668305	\N	\N
+13	5	541	2	\N	\N	\N	2026-06-13 13:54:37.370989	\N	\N
+14	5	546	2	\N	\N	\N	2026-06-13 13:54:37.370989	\N	\N
+1560	301	541	3	\N	\N	\N	2026-06-30 13:40:18.090551	\N	\N
+1563	303	855	1	\N	\N	\N	2026-06-30 13:44:06.010898	\N	\N
+1564	303	865	1	\N	\N	\N	2026-06-30 13:44:06.010898	\N	\N
+24	9	542	1	1	available	\N	2026-06-17 12:26:15.945281	\N	\N
+25	9	543	1	1	available	Tallest	2026-06-17 12:26:15.945281	\N	\N
+26	9	544	1	1	available	\N	2026-06-17 12:26:15.945281	\N	\N
+27	9	568	1	1	available	\N	2026-06-17 12:26:34.190065	\N	\N
+23	9	541	1	1	available	Fullest	2026-06-17 12:26:15.945281	Xmas Tree	\N
+20	8	864	1	1	available	fill this up	2026-06-17 12:04:36.908332	\N	\N
+21	8	866	1	1	available	\N	2026-06-17 12:04:36.908332	\N	\N
+22	8	873	1	1	available	\N	2026-06-17 12:04:36.908332	\N	\N
+18	7	221	1	1	available	\N	2026-06-13 14:46:46.805306	\N	\N
+19	7	227	1	1	available	\N	2026-06-13 14:46:46.805306	\N	\N
+15	6	221	1	1	available	\N	2026-06-13 14:40:48.332956	\N	\N
+16	6	227	1	1	available	\N	2026-06-13 14:40:48.332956	\N	\N
+17	6	231	1	1	available	\N	2026-06-13 14:40:48.332956	\N	\N
+28	11	172	80	80	available	\N	2026-06-26 00:46:09.867467	\N	\N
+29	12	172	240	240	available	\N	2026-06-26 00:46:26.14498	\N	\N
+30	12	174	96	96	available	\N	2026-06-26 00:46:26.15866	\N	\N
+31	13	172	60	60	available	\N	2026-06-26 00:46:26.175969	\N	\N
+32	13	174	48	48	available	\N	2026-06-26 00:46:26.186816	\N	\N
+33	14	189	1	1	available	\N	2026-06-26 00:46:26.205102	\N	\N
+34	14	190	2	2	available	\N	2026-06-26 00:46:26.213472	\N	\N
+35	14	194	6	6	available	\N	2026-06-26 00:46:26.22318	\N	\N
+36	14	195	6	6	available	\N	2026-06-26 00:46:26.232806	\N	\N
+37	14	196	6	6	available	\N	2026-06-26 00:46:26.240565	\N	\N
+38	14	197	6	6	available	\N	2026-06-26 00:46:26.249853	\N	\N
+39	14	198	1	1	available	\N	2026-06-26 00:46:26.25894	\N	\N
+40	14	199	2	2	available	\N	2026-06-26 00:46:26.268357	\N	\N
+41	14	201	5	5	available	\N	2026-06-26 00:46:26.276979	\N	\N
+42	14	202	5	5	available	\N	2026-06-26 00:46:26.285923	\N	\N
+43	15	189	1	1	available	\N	2026-06-26 00:46:26.301294	\N	\N
+44	15	190	7	7	available	\N	2026-06-26 00:46:26.310379	\N	\N
+45	15	194	12	12	available	\N	2026-06-26 00:46:26.318773	\N	\N
+46	15	195	6	6	available	\N	2026-06-26 00:46:26.327888	\N	\N
+47	15	196	10	10	available	\N	2026-06-26 00:46:26.336574	\N	\N
+48	15	198	1	1	available	\N	2026-06-26 00:46:26.345616	\N	\N
+49	15	199	11	11	available	\N	2026-06-26 00:46:26.355704	\N	\N
+50	15	200	5	5	available	\N	2026-06-26 00:46:26.365378	\N	\N
+51	15	201	90	90	available	\N	2026-06-26 00:46:26.375104	\N	\N
+52	15	202	30	30	available	\N	2026-06-26 00:46:26.384789	\N	\N
+53	15	196	5	5	available	\N	2026-06-26 00:46:26.393951	\N	\N
+54	15	197	10	10	available	\N	2026-06-26 00:46:26.401895	\N	\N
+55	16	189	1	1	available	\N	2026-06-26 00:46:26.415014	\N	\N
+56	16	190	1	1	available	\N	2026-06-26 00:46:26.426406	\N	\N
+57	16	191	1	1	available	\N	2026-06-26 00:46:26.43617	\N	\N
+58	16	194	12	12	available	\N	2026-06-26 00:46:26.445727	\N	\N
+59	16	196	5	\N	partial	\N	2026-06-26 00:46:26.453292	\N	\N
+60	17	189	1	1	available	\N	2026-06-26 00:46:26.458892	\N	\N
+61	17	190	3	3	available	\N	2026-06-26 00:46:26.467679	\N	\N
+62	17	191	1	1	available	\N	2026-06-26 00:46:26.477278	\N	\N
+63	17	194	12	12	available	\N	2026-06-26 00:46:26.484376	\N	\N
+64	17	196	3	3	available	\N	2026-06-26 00:46:26.493481	\N	\N
+65	18	190	15	15	available	\N	2026-06-26 00:46:26.50522	\N	\N
+66	18	194	3	3	available	\N	2026-06-26 00:46:26.513066	\N	\N
+67	19	190	3	3	available	\N	2026-06-26 00:46:26.526174	\N	\N
+68	20	190	2	2	available	\N	2026-06-26 00:46:26.541139	\N	\N
+69	20	196	15	15	available	\N	2026-06-26 00:46:26.55013	\N	\N
+70	21	198	2	2	available	\N	2026-06-26 00:46:26.57421	\N	\N
+71	21	199	7	7	available	\N	2026-06-26 00:46:26.584191	\N	\N
+72	21	201	15	15	available	\N	2026-06-26 00:46:26.592967	\N	\N
+73	22	198	2	2	available	\N	2026-06-26 00:46:26.606248	\N	\N
+74	22	199	9	9	available	\N	2026-06-26 00:46:26.614517	\N	\N
+75	22	200	3	3	available	\N	2026-06-26 00:46:26.623604	\N	\N
+76	22	201	25	25	available	\N	2026-06-26 00:46:26.632516	\N	\N
+77	22	202	40	40	available	\N	2026-06-26 00:46:26.641037	\N	\N
+78	22	196	5	5	available	\N	2026-06-26 00:46:26.648149	\N	\N
+79	22	197	10	10	available	\N	2026-06-26 00:46:26.6564	\N	\N
+80	23	198	1	1	available	\N	2026-06-26 00:46:26.667685	\N	\N
+81	23	199	2	2	available	\N	2026-06-26 00:46:26.675784	\N	\N
+82	23	201	5	5	available	\N	2026-06-26 00:46:26.684436	\N	\N
+83	23	197	10	10	available	\N	2026-06-26 00:46:26.692324	\N	\N
+84	24	203	21	21	available	\N	2026-06-26 00:46:26.70885	\N	\N
+85	24	218	12	12	available	\N	2026-06-26 00:46:26.716964	\N	\N
+86	24	232	6	6	available	\N	2026-06-26 00:46:26.726516	\N	\N
+87	25	204	2	2	available	\N	2026-06-26 00:46:26.73771	\N	\N
+88	25	205	2	2	available	\N	2026-06-26 00:46:26.746264	\N	\N
+89	25	206	2	2	available	\N	2026-06-26 00:46:26.754075	\N	\N
+90	25	207	2	2	available	\N	2026-06-26 00:46:26.761488	\N	\N
+91	25	211	2	2	available	\N	2026-06-26 00:46:26.769449	\N	\N
+92	25	212	2	2	available	\N	2026-06-26 00:46:26.777557	\N	\N
+93	25	214	2	2	available	\N	2026-06-26 00:46:26.88789	\N	\N
+94	25	211	2	2	available	\N	2026-06-26 00:46:26.896502	\N	\N
+95	25	216	2	2	available	\N	2026-06-26 00:46:26.908182	\N	\N
+96	25	217	3	3	available	\N	2026-06-26 00:46:26.91694	\N	\N
+97	25	218	12	12	available	\N	2026-06-26 00:46:26.925896	\N	\N
+98	25	225	6	6	available	\N	2026-06-26 00:46:26.933998	\N	\N
+99	25	226	6	6	available	\N	2026-06-26 00:46:26.944493	\N	\N
+100	25	228	6	6	available	\N	2026-06-26 00:46:26.952749	\N	\N
+101	25	231	6	6	available	\N	2026-06-26 00:46:26.960858	\N	\N
+102	25	232	3	3	available	\N	2026-06-26 00:46:26.9696	\N	\N
+103	25	233	6	6	available	\N	2026-06-26 00:46:26.978507	\N	\N
+104	25	234	6	6	available	\N	2026-06-26 00:46:26.987006	\N	\N
+105	25	237	6	6	available	\N	2026-06-26 00:46:26.995466	\N	\N
+106	25	239	10	10	available	\N	2026-06-26 00:46:27.003555	\N	\N
+107	25	240	5	5	available	\N	2026-06-26 00:46:27.011918	\N	\N
+108	25	246	6	6	available	\N	2026-06-26 00:46:27.021263	\N	\N
+109	25	248	15	15	available	\N	2026-06-26 00:46:27.02975	\N	\N
+110	25	249	15	15	available	\N	2026-06-26 00:46:27.037845	\N	\N
+111	25	250	5	5	available	\N	2026-06-26 00:46:27.046477	\N	\N
+112	25	252	6	6	available	\N	2026-06-26 00:46:27.054563	\N	\N
+113	26	204	4	4	available	\N	2026-06-26 00:46:27.066883	\N	\N
+114	26	205	3	3	available	\N	2026-06-26 00:46:27.075351	\N	\N
+115	26	206	3	3	available	\N	2026-06-26 00:46:27.083136	\N	\N
+116	26	207	2	2	available	\N	2026-06-26 00:46:27.090943	\N	\N
+117	26	211	5	\N	partial	\N	2026-06-26 00:46:27.101123	\N	\N
+118	26	212	3	\N	partial	\N	2026-06-26 00:46:27.104054	\N	\N
+119	26	214	4	4	available	\N	2026-06-26 00:46:27.106704	\N	\N
+120	26	211	3	3	available	\N	2026-06-26 00:46:27.115895	\N	\N
+121	26	216	6	6	available	\N	2026-06-26 00:46:27.125556	\N	\N
+122	26	217	3	3	available	\N	2026-06-26 00:46:27.134448	\N	\N
+123	26	218	6	6	available	\N	2026-06-26 00:46:27.142621	\N	\N
+124	26	225	12	12	available	\N	2026-06-26 00:46:27.152787	\N	\N
+125	26	226	12	12	available	\N	2026-06-26 00:46:27.161217	\N	\N
+126	26	228	12	12	available	\N	2026-06-26 00:46:27.170413	\N	\N
+127	26	233	18	18	available	\N	2026-06-26 00:46:27.178137	\N	\N
+128	26	234	18	18	available	\N	2026-06-26 00:46:27.187692	\N	\N
+129	26	237	15	15	available	\N	2026-06-26 00:46:27.196729	\N	\N
+130	26	240	12	\N	partial	\N	2026-06-26 00:46:27.205236	\N	\N
+131	26	246	20	20	available	\N	2026-06-26 00:46:27.207755	\N	\N
+132	26	249	25	25	available	\N	2026-06-26 00:46:27.217049	\N	\N
+133	26	250	15	15	available	\N	2026-06-26 00:46:27.224975	\N	\N
+134	26	252	6	6	available	\N	2026-06-26 00:46:27.234321	\N	\N
+135	27	208	4	4	available	\N	2026-06-26 00:46:27.24846	\N	\N
+136	27	213	2	2	available	\N	2026-06-26 00:46:27.257463	\N	\N
+137	27	214	1	1	available	\N	2026-06-26 00:46:27.266345	\N	\N
+138	27	216	2	2	available	\N	2026-06-26 00:46:27.27433	\N	\N
+139	27	237	15	15	available	\N	2026-06-26 00:46:27.283406	\N	\N
+140	27	249	50	50	available	\N	2026-06-26 00:46:27.29327	\N	\N
+141	28	209	4	4	available	\N	2026-06-26 00:46:27.306755	\N	\N
+142	28	222	4	\N	partial	\N	2026-06-26 00:46:27.315016	\N	\N
+143	28	246	40	40	available	\N	2026-06-26 00:46:27.317334	\N	\N
+144	28	251	8	\N	partial	\N	2026-06-26 00:46:27.326168	\N	\N
+145	29	210	15	15	available	\N	2026-06-26 00:46:27.332083	\N	\N
+146	30	210	5	5	available	\N	2026-06-26 00:46:27.344818	\N	\N
+147	30	220	50	50	available	\N	2026-06-26 00:46:27.353978	\N	\N
+148	30	228	6	6	available	\N	2026-06-26 00:46:27.363781	\N	\N
+149	30	232	6	6	available	\N	2026-06-26 00:46:27.373988	\N	\N
+150	30	239	6	6	available	\N	2026-06-26 00:46:27.383417	\N	\N
+151	31	220	100	100	available	\N	2026-06-26 00:46:27.400494	\N	\N
+152	31	248	50	50	available	\N	2026-06-26 00:46:27.408556	\N	\N
+153	31	249	50	\N	partial	\N	2026-06-26 00:46:27.416801	\N	\N
+154	31	252	3	3	available	\N	2026-06-26 00:46:27.419145	\N	\N
+155	32	220	50	50	available	\N	2026-06-26 00:46:27.431319	\N	\N
+156	33	220	25	25	available	\N	2026-06-26 00:46:27.443034	\N	\N
+157	34	223	3	3	available	\N	2026-06-26 00:46:27.454562	\N	\N
+158	34	224	3	3	available	\N	2026-06-26 00:46:27.463175	\N	\N
+159	34	229	10	10	available	\N	2026-06-26 00:46:27.470958	\N	\N
+160	34	233	10	10	available	\N	2026-06-26 00:46:27.481122	\N	\N
+161	34	235	10	10	available	\N	2026-06-26 00:46:27.489751	\N	\N
+162	35	228	12	\N	partial	\N	2026-06-26 00:46:27.501523	\N	\N
+163	36	228	12	12	available	\N	2026-06-26 00:46:27.508168	\N	\N
+164	36	249	10	10	available	\N	2026-06-26 00:46:27.516215	\N	\N
+165	37	261	1	1	available	\N	2026-06-26 00:46:27.579346	\N	\N
+166	37	311	3	\N	partial	\N	2026-06-26 00:46:27.595797	\N	\N
+167	37	312	3	\N	partial	\N	2026-06-26 00:46:27.598084	\N	\N
+168	38	261	1	\N	partial	\N	2026-06-26 00:46:27.604825	\N	\N
+169	38	264	1	\N	partial	\N	2026-06-26 00:46:27.607907	\N	\N
+170	38	295	6	\N	partial	\N	2026-06-26 00:46:27.610249	\N	\N
+171	38	296	10	\N	partial	\N	2026-06-26 00:46:27.613345	\N	\N
+172	38	299	10	\N	partial	\N	2026-06-26 00:46:27.615747	\N	\N
+173	38	302	6	\N	partial	\N	2026-06-26 00:46:27.618027	\N	\N
+174	38	325	1	\N	partial	\N	2026-06-26 00:46:27.620385	\N	\N
+175	39	261	2	2	available	\N	2026-06-26 00:46:27.627247	\N	\N
+176	39	270	2	2	available	\N	2026-06-26 00:46:27.634997	\N	\N
+177	39	276	2	2	available	\N	2026-06-26 00:46:27.642284	\N	\N
+178	39	280	3	3	available	\N	2026-06-26 00:46:27.650575	\N	\N
+179	39	283	2	2	available	\N	2026-06-26 00:46:27.659244	\N	\N
+180	39	284	3	3	available	\N	2026-06-26 00:46:27.668134	\N	\N
+181	39	286	5	5	available	\N	2026-06-26 00:46:27.678281	\N	\N
+182	39	290	6	6	available	\N	2026-06-26 00:46:27.68749	\N	\N
+183	39	293	6	6	available	\N	2026-06-26 00:46:27.697989	\N	\N
+184	39	294	6	\N	partial	\N	2026-06-26 00:46:27.706519	\N	\N
+185	39	296	6	6	available	\N	2026-06-26 00:46:27.709621	\N	\N
+186	39	303	6	6	available	\N	2026-06-26 00:46:27.719562	\N	\N
+187	39	307	3	3	available	\N	2026-06-26 00:46:27.739175	\N	\N
+188	39	308	3	3	available	\N	2026-06-26 00:46:27.748291	\N	\N
+189	39	309	3	3	available	\N	2026-06-26 00:46:27.758046	\N	\N
+190	39	312	3	3	available	\N	2026-06-26 00:46:27.768492	\N	\N
+191	39	315	2	2	available	\N	2026-06-26 00:46:27.781608	\N	\N
+192	39	316	2	\N	partial	\N	2026-06-26 00:46:27.790993	\N	\N
+193	39	319	3	3	available	\N	2026-06-26 00:46:27.794536	\N	\N
+194	39	324	10	10	available	\N	2026-06-26 00:46:27.804187	\N	\N
+195	39	326	10	10	available	\N	2026-06-26 00:46:27.813914	\N	\N
+196	40	261	2	2	available	\N	2026-06-26 00:46:27.831927	\N	\N
+197	40	270	2	2	available	\N	2026-06-26 00:46:27.843058	\N	\N
+198	40	276	2	2	available	\N	2026-06-26 00:46:27.852872	\N	\N
+199	40	280	2	2	available	\N	2026-06-26 00:46:27.863014	\N	\N
+200	40	283	2	2	available	\N	2026-06-26 00:46:27.873814	\N	\N
+201	40	284	4	4	available	\N	2026-06-26 00:46:27.883861	\N	\N
+202	40	285	6	6	available	\N	2026-06-26 00:46:27.894408	\N	\N
+203	40	286	5	5	available	\N	2026-06-26 00:46:27.903543	\N	\N
+204	40	290	6	6	available	\N	2026-06-26 00:46:27.914273	\N	\N
+205	40	291	6	6	available	\N	2026-06-26 00:46:27.923739	\N	\N
+206	40	293	6	6	available	\N	2026-06-26 00:46:27.934204	\N	\N
+207	40	294	5	5	available	\N	2026-06-26 00:46:27.944233	\N	\N
+208	40	295	6	6	available	\N	2026-06-26 00:46:27.962605	\N	\N
+209	40	296	6	6	available	\N	2026-06-26 00:46:27.972108	\N	\N
+210	40	298	6	6	available	\N	2026-06-26 00:46:27.987402	\N	\N
+211	40	303	6	6	available	\N	2026-06-26 00:46:28.00315	\N	\N
+212	40	307	2	2	available	\N	2026-06-26 00:46:28.014225	\N	\N
+213	40	308	3	3	available	\N	2026-06-26 00:46:28.022702	\N	\N
+214	40	312	3	3	available	\N	2026-06-26 00:46:28.03306	\N	\N
+215	40	315	3	3	available	\N	2026-06-26 00:46:28.042516	\N	\N
+216	40	319	4	4	available	\N	2026-06-26 00:46:28.052479	\N	\N
+217	40	324	10	10	available	\N	2026-06-26 00:46:28.061991	\N	\N
+218	40	326	10	10	available	\N	2026-06-26 00:46:28.071924	\N	\N
+219	41	261	2	\N	partial	\N	2026-06-26 00:46:28.090288	\N	\N
+220	41	264	2	2	available	\N	2026-06-26 00:46:28.094979	\N	\N
+221	41	295	14	14	available	\N	2026-06-26 00:46:28.107657	\N	\N
+222	41	325	6	\N	partial	\N	2026-06-26 00:46:28.117008	\N	\N
+223	42	261	1	1	available	\N	2026-06-26 00:46:28.123566	\N	\N
+224	42	262	5	\N	partial	\N	2026-06-26 00:46:28.132429	\N	\N
+225	42	269	10	10	available	\N	2026-06-26 00:46:28.135058	\N	\N
+226	42	307	5	5	available	\N	2026-06-26 00:46:28.28421	\N	\N
+227	42	319	20	20	available	\N	2026-06-26 00:46:28.293402	\N	\N
+228	42	323	11	11	available	\N	2026-06-26 00:46:28.308991	\N	\N
+229	43	262	18	18	available	\N	2026-06-26 00:46:28.323794	\N	\N
+230	43	269	8	8	available	\N	2026-06-26 00:46:28.331685	\N	\N
+231	43	319	2	2	available	\N	2026-06-26 00:46:28.340758	\N	\N
+232	43	323	6	6	available	\N	2026-06-26 00:46:28.349679	\N	\N
+233	43	324	6	6	available	\N	2026-06-26 00:46:28.359973	\N	\N
+234	44	293	3	3	available	\N	2026-06-26 00:46:28.375218	\N	\N
+235	44	294	3	3	available	\N	2026-06-26 00:46:28.383978	\N	\N
+236	44	297	6	6	available	\N	2026-06-26 00:46:28.393841	\N	\N
+237	44	299	3	3	available	\N	2026-06-26 00:46:28.517157	\N	\N
+238	44	300	8	8	available	\N	2026-06-26 00:46:28.527854	\N	\N
+239	44	309	2	2	available	\N	2026-06-26 00:46:28.536403	\N	\N
+240	44	312	2	2	available	\N	2026-06-26 00:46:28.547497	\N	\N
+241	44	313	3	3	available	\N	2026-06-26 00:46:28.558136	\N	\N
+242	44	319	3	3	available	\N	2026-06-26 00:46:28.568043	\N	\N
+243	44	324	5	5	available	\N	2026-06-26 00:46:28.576638	\N	\N
+244	45	290	2	2	available	\N	2026-06-26 00:46:28.602926	\N	\N
+245	45	291	3	3	available	\N	2026-06-26 00:46:28.614168	\N	\N
+246	45	294	3	3	available	\N	2026-06-26 00:46:28.622649	\N	\N
+247	45	296	3	3	available	\N	2026-06-26 00:46:28.63163	\N	\N
+248	45	298	6	6	available	\N	2026-06-26 00:46:28.640406	\N	\N
+249	45	302	4	4	available	\N	2026-06-26 00:46:28.649405	\N	\N
+250	45	305	2	2	available	\N	2026-06-26 00:46:28.65746	\N	\N
+251	45	319	3	3	available	\N	2026-06-26 00:46:28.666827	\N	\N
+252	46	299	6	\N	partial	\N	2026-06-26 00:46:28.682876	\N	\N
+253	46	304	6	\N	partial	\N	2026-06-26 00:46:28.685468	\N	\N
+254	47	291	5	5	available	\N	2026-06-26 00:46:28.694347	\N	\N
+255	47	295	5	5	available	\N	2026-06-26 00:46:28.703094	\N	\N
+256	47	302	5	5	available	\N	2026-06-26 00:46:28.71108	\N	\N
+257	47	324	9	9	available	\N	2026-06-26 00:46:28.719789	\N	\N
+258	48	269	2	2	available	\N	2026-06-26 00:46:28.733718	\N	\N
+259	48	291	5	5	available	\N	2026-06-26 00:46:28.742629	\N	\N
+260	48	294	5	5	available	\N	2026-06-26 00:46:28.751804	\N	\N
+261	48	300	4	4	available	\N	2026-06-26 00:46:28.760967	\N	\N
+262	48	309	3	3	available	\N	2026-06-26 00:46:28.77009	\N	\N
+263	48	311	4	4	available	\N	2026-06-26 00:46:28.778634	\N	\N
+264	48	324	10	10	available	\N	2026-06-26 00:46:28.790172	\N	\N
+265	48	326	11	11	available	\N	2026-06-26 00:46:28.802556	\N	\N
+266	49	269	2	2	available	\N	2026-06-26 00:46:28.818388	\N	\N
+267	49	307	3	\N	partial	\N	2026-06-26 00:46:28.827977	\N	\N
+268	49	311	3	\N	partial	\N	2026-06-26 00:46:28.830542	\N	\N
+269	49	314	6	6	available	\N	2026-06-26 00:46:28.833866	\N	\N
+270	49	319	4	4	available	\N	2026-06-26 00:46:28.843406	\N	\N
+271	49	321	2	2	available	\N	2026-06-26 00:46:28.8531	\N	\N
+272	49	324	10	10	available	\N	2026-06-26 00:46:28.861927	\N	\N
+273	49	325	2	2	available	\N	2026-06-26 00:46:28.871395	\N	\N
+274	49	326	10	10	available	\N	2026-06-26 00:46:28.880101	\N	\N
+275	50	264	2	\N	partial	\N	2026-06-26 00:46:28.894396	\N	\N
+276	50	269	1	1	available	\N	2026-06-26 00:46:28.897811	\N	\N
+277	50	313	3	3	available	\N	2026-06-26 00:46:28.907796	\N	\N
+278	50	325	5	\N	partial	\N	2026-06-26 00:46:28.918442	\N	\N
+279	50	326	10	\N	partial	\N	2026-06-26 00:46:28.921164	\N	\N
+280	51	269	4	4	available	\N	2026-06-26 00:46:28.927844	\N	\N
+281	51	314	10	10	available	\N	2026-06-26 00:46:28.937286	\N	\N
+282	51	319	4	4	available	\N	2026-06-26 00:46:28.946654	\N	\N
+283	52	269	2	2	available	\N	2026-06-26 00:46:28.9594	\N	\N
+284	52	282	2	\N	partial	\N	2026-06-26 00:46:28.969222	\N	\N
+285	52	314	3	3	available	\N	2026-06-26 00:46:28.971804	\N	\N
+286	52	325	4	\N	partial	\N	2026-06-26 00:46:28.98108	\N	\N
+287	52	326	6	6	available	\N	2026-06-26 00:46:28.983897	\N	\N
+288	53	269	2	2	available	\N	2026-06-26 00:46:29.003378	\N	\N
+289	53	291	3	\N	partial	\N	2026-06-26 00:46:29.013401	\N	\N
+290	53	294	3	\N	partial	\N	2026-06-26 00:46:29.015995	\N	\N
+291	53	298	6	\N	partial	\N	2026-06-26 00:46:29.019267	\N	\N
+292	53	305	2	\N	partial	\N	2026-06-26 00:46:29.021665	\N	\N
+293	53	317	6	6	available	\N	2026-06-26 00:46:29.028049	\N	\N
+294	53	319	3	3	available	\N	2026-06-26 00:46:29.037915	\N	\N
+295	53	326	6	\N	partial	\N	2026-06-26 00:46:29.047745	\N	\N
+296	54	275	2	2	available	\N	2026-06-26 00:46:29.054982	\N	\N
+297	54	291	2	2	available	\N	2026-06-26 00:46:29.063404	\N	\N
+298	54	296	3	3	available	\N	2026-06-26 00:46:29.072383	\N	\N
+299	54	314	2	2	available	\N	2026-06-26 00:46:29.081392	\N	\N
+300	54	320	3	3	available	\N	2026-06-26 00:46:29.094893	\N	\N
+301	54	324	5	5	available	\N	2026-06-26 00:46:29.102737	\N	\N
+302	55	291	8	8	available	\N	2026-06-26 00:46:29.115488	\N	\N
+303	55	310	22	22	available	\N	2026-06-26 00:46:29.124994	\N	\N
+304	55	314	2	2	available	\N	2026-06-26 00:46:29.133761	\N	\N
+305	55	316	2	2	available	\N	2026-06-26 00:46:29.142893	\N	\N
+306	55	317	2	2	available	\N	2026-06-26 00:46:29.151846	\N	\N
+307	55	320	2	2	available	\N	2026-06-26 00:46:29.161249	\N	\N
+308	55	324	5	5	available	\N	2026-06-26 00:46:29.169941	\N	\N
+309	55	326	12	12	available	\N	2026-06-26 00:46:29.179643	\N	\N
+310	55	327	4	4	available	\N	2026-06-26 00:46:29.188505	\N	\N
+311	56	305	2	2	available	\N	2026-06-26 00:46:29.202039	\N	\N
+312	56	311	2	2	available	\N	2026-06-26 00:46:29.211125	\N	\N
+313	56	312	2	2	available	\N	2026-06-26 00:46:29.21998	\N	\N
+314	57	290	2	2	available	\N	2026-06-26 00:46:29.236019	\N	\N
+315	57	293	2	2	available	\N	2026-06-26 00:46:29.249324	\N	\N
+316	57	313	3	3	available	\N	2026-06-26 00:46:29.701871	\N	\N
+317	57	317	2	2	available	\N	2026-06-26 00:46:29.712331	\N	\N
+318	58	294	4	4	available	\N	2026-06-26 00:46:29.726277	\N	\N
+319	58	296	6	6	available	\N	2026-06-26 00:46:29.736079	\N	\N
+320	58	300	5	5	available	\N	2026-06-26 00:46:29.746623	\N	\N
+321	58	311	3	3	available	\N	2026-06-26 00:46:29.755703	\N	\N
+322	58	312	2	2	available	\N	2026-06-26 00:46:29.766125	\N	\N
+323	58	305	4	4	available	\N	2026-06-26 00:46:29.774961	\N	\N
+324	58	314	5	5	available	\N	2026-06-26 00:46:29.786895	\N	\N
+325	58	323	12	12	available	\N	2026-06-26 00:46:29.796132	\N	\N
+326	59	314	10	\N	pending	\N	2026-06-26 00:46:29.815523	\N	\N
+327	59	323	15	\N	pending	\N	2026-06-26 00:46:29.81915	\N	\N
+328	59	324	15	\N	pending	\N	2026-06-26 00:46:29.821966	\N	\N
+329	59	326	4	\N	pending	\N	2026-06-26 00:46:29.825113	\N	\N
+330	60	320	2	2	available	\N	2026-06-26 00:46:29.832808	\N	\N
+331	60	325	6	6	available	\N	2026-06-26 00:46:29.847287	\N	\N
+332	60	326	5	5	available	\N	2026-06-26 00:46:29.858216	\N	\N
+333	61	324	5	\N	pending	\N	2026-06-26 00:46:29.872464	\N	\N
+334	62	325	6	\N	pending	\N	2026-06-26 00:46:29.879908	\N	\N
+335	62	326	10	\N	pending	\N	2026-06-26 00:46:29.882234	\N	\N
+336	63	328	2	2	available	\N	2026-06-26 00:46:29.891749	\N	\N
+337	63	332	2	2	available	\N	2026-06-26 00:46:29.901218	\N	\N
+338	63	333	3	3	available	\N	2026-06-26 00:46:29.909921	\N	\N
+339	63	336	2	2	available	\N	2026-06-26 00:46:29.92037	\N	\N
+340	63	347	20	20	available	\N	2026-06-26 00:46:29.929227	\N	\N
+341	63	348	20	20	available	\N	2026-06-26 00:46:29.940138	\N	\N
+342	64	328	2	2	available	\N	2026-06-26 00:46:29.954998	\N	\N
+343	64	333	3	3	available	\N	2026-06-26 00:46:29.964528	\N	\N
+344	64	336	3	3	available	\N	2026-06-26 00:46:29.974298	\N	\N
+345	64	343	2	2	available	\N	2026-06-26 00:46:29.984614	\N	\N
+346	64	344	2	2	available	\N	2026-06-26 00:46:29.994474	\N	\N
+347	65	328	2	2	available	\N	2026-06-26 00:46:30.008029	\N	\N
+348	65	333	3	3	available	\N	2026-06-26 00:46:30.01793	\N	\N
+349	65	336	3	3	available	\N	2026-06-26 00:46:30.026662	\N	\N
+350	65	343	2	2	available	\N	2026-06-26 00:46:30.035668	\N	\N
+351	65	344	2	2	available	\N	2026-06-26 00:46:30.044405	\N	\N
+352	66	328	2	\N	partial	\N	2026-06-26 00:46:30.061093	\N	\N
+353	66	333	3	\N	partial	\N	2026-06-26 00:46:30.064373	\N	\N
+354	66	336	3	3	available	\N	2026-06-26 00:46:30.06689	\N	\N
+355	66	343	2	\N	partial	\N	2026-06-26 00:46:30.077307	\N	\N
+356	66	344	2	\N	partial	\N	2026-06-26 00:46:30.079998	\N	\N
+357	66	347	12	\N	partial	\N	2026-06-26 00:46:30.083337	\N	\N
+358	66	348	12	\N	partial	\N	2026-06-26 00:46:30.085694	\N	\N
+359	67	329	3	\N	pending	\N	2026-06-26 00:46:30.092841	\N	\N
+360	67	330	3	\N	pending	\N	2026-06-26 00:46:30.096168	\N	\N
+361	67	331	5	\N	pending	\N	2026-06-26 00:46:30.098646	\N	\N
+362	67	338	1	\N	pending	\N	2026-06-26 00:46:30.101792	\N	\N
+363	67	343	2	\N	pending	\N	2026-06-26 00:46:30.104359	\N	\N
+364	68	329	5	\N	partial	\N	2026-06-26 00:46:30.111984	\N	\N
+365	68	330	5	\N	partial	\N	2026-06-26 00:46:30.114962	\N	\N
+366	68	331	5	5	available	\N	2026-06-26 00:46:30.122313	\N	\N
+367	68	338	5	5	available	\N	2026-06-26 00:46:30.131986	\N	\N
+368	68	339	1	1	available	\N	2026-06-26 00:46:30.140599	\N	\N
+369	68	340	1	1	available	\N	2026-06-26 00:46:30.149391	\N	\N
+370	68	347	1	1	available	\N	2026-06-26 00:46:30.158206	\N	\N
+371	69	329	2	2	available	\N	2026-06-26 00:46:30.172098	\N	\N
+372	69	330	2	2	available	\N	2026-06-26 00:46:30.181081	\N	\N
+373	69	331	1	\N	partial	\N	2026-06-26 00:46:30.190142	\N	\N
+374	69	333	2	\N	partial	\N	2026-06-26 00:46:30.193178	\N	\N
+375	69	338	3	\N	partial	\N	2026-06-26 00:46:30.197359	\N	\N
+376	69	343	3	\N	partial	\N	2026-06-26 00:46:30.200576	\N	\N
+377	69	344	2	2	available	\N	2026-06-26 00:46:30.202954	\N	\N
+378	69	346	10	10	available	\N	2026-06-26 00:46:30.212081	\N	\N
+379	69	348	10	10	available	\N	2026-06-26 00:46:30.221453	\N	\N
+380	70	331	2	2	available	\N	2026-06-26 00:46:30.234756	\N	\N
+381	70	338	3	3	available	\N	2026-06-26 00:46:30.243842	\N	\N
+382	70	344	4	4	available	\N	2026-06-26 00:46:30.252943	\N	\N
+383	70	347	12	12	available	\N	2026-06-26 00:46:30.262302	\N	\N
+384	70	348	12	12	available	\N	2026-06-26 00:46:30.271389	\N	\N
+385	71	331	2	2	available	\N	2026-06-26 00:46:30.284811	\N	\N
+386	71	333	5	\N	partial	\N	2026-06-26 00:46:30.2952	\N	\N
+387	71	336	3	3	available	\N	2026-06-26 00:46:30.29962	\N	\N
+388	71	338	3	3	available	\N	2026-06-26 00:46:30.30884	\N	\N
+389	71	343	3	3	available	\N	2026-06-26 00:46:30.318091	\N	\N
+390	71	344	1	\N	partial	\N	2026-06-26 00:46:30.327411	\N	\N
+391	71	346	15	15	available	\N	2026-06-26 00:46:30.329887	\N	\N
+392	71	347	20	\N	partial	\N	2026-06-26 00:46:30.339174	\N	\N
+393	71	348	20	\N	partial	\N	2026-06-26 00:46:30.341982	\N	\N
+394	72	333	5	5	available	\N	2026-06-26 00:46:30.349423	\N	\N
+395	72	338	5	5	available	\N	2026-06-26 00:46:30.359385	\N	\N
+396	72	343	1	1	available	\N	2026-06-26 00:46:30.369009	\N	\N
+397	72	347	12	12	available	\N	2026-06-26 00:46:30.378743	\N	\N
+398	73	333	3	\N	partial	\N	2026-06-26 00:46:30.394288	\N	\N
+399	73	336	2	2	available	\N	2026-06-26 00:46:30.396754	\N	\N
+400	73	343	4	4	available	\N	2026-06-26 00:46:30.405908	\N	\N
+401	73	344	2	\N	partial	\N	2026-06-26 00:46:30.414338	\N	\N
+402	73	347	20	\N	partial	\N	2026-06-26 00:46:30.417265	\N	\N
+403	73	348	20	20	available	\N	2026-06-26 00:46:30.420511	\N	\N
+404	73	348	3	3	available	\N	2026-06-26 00:46:30.430077	\N	\N
+405	74	336	3	3	available	\N	2026-06-26 00:46:30.443997	\N	\N
+406	74	338	2	2	available	\N	2026-06-26 00:46:30.453394	\N	\N
+407	75	338	3	3	available	\N	2026-06-26 00:46:30.467601	\N	\N
+408	75	344	2	2	available	\N	2026-06-26 00:46:30.477866	\N	\N
+409	75	348	6	6	available	\N	2026-06-26 00:46:30.486637	\N	\N
+410	76	338	3	3	available	\N	2026-06-26 00:46:30.500169	\N	\N
+411	76	343	2	2	available	\N	2026-06-26 00:46:30.509641	\N	\N
+412	76	344	4	4	available	\N	2026-06-26 00:46:30.518326	\N	\N
+413	76	347	12	12	available	\N	2026-06-26 00:46:30.528334	\N	\N
+414	76	348	12	12	available	\N	2026-06-26 00:46:30.537211	\N	\N
+415	77	349	3	\N	pending	\N	2026-06-26 00:46:30.697726	\N	\N
+416	77	351	40	\N	pending	\N	2026-06-26 00:46:30.700821	\N	\N
+417	77	353	330	\N	pending	\N	2026-06-26 00:46:30.703307	\N	\N
+418	77	354	80	\N	pending	\N	2026-06-26 00:46:30.706698	\N	\N
+419	78	349	2	2	available	\N	2026-06-26 00:46:30.714045	\N	\N
+420	78	351	26	26	available	\N	2026-06-26 00:46:30.723855	\N	\N
+421	78	353	200	200	available	\N	2026-06-26 00:46:30.733755	\N	\N
+422	78	354	40	40	available	\N	2026-06-26 00:46:30.742403	\N	\N
+423	79	349	2	2	available	\N	2026-06-26 00:46:30.756652	\N	\N
+424	79	351	29	29	available	\N	2026-06-26 00:46:30.767117	\N	\N
+425	79	353	180	180	available	\N	2026-06-26 00:46:30.776072	\N	\N
+426	79	354	65	65	available	\N	2026-06-26 00:46:30.785835	\N	\N
+427	80	349	2	2	available	\N	2026-06-26 00:46:30.799734	\N	\N
+428	80	351	30	30	available	\N	2026-06-26 00:46:30.81269	\N	\N
+429	80	353	230	230	available	\N	2026-06-26 00:46:30.825105	\N	\N
+430	80	354	100	100	available	\N	2026-06-26 00:46:30.833496	\N	\N
+431	81	349	2	2	available	\N	2026-06-26 00:46:30.84797	\N	\N
+432	81	351	28	28	available	\N	2026-06-26 00:46:30.857393	\N	\N
+433	81	353	230	230	available	\N	2026-06-26 00:46:30.868148	\N	\N
+434	81	354	100	100	available	\N	2026-06-26 00:46:30.878199	\N	\N
+435	82	349	1	1	available	\N	2026-06-26 00:46:30.892127	\N	\N
+436	82	353	150	150	available	\N	2026-06-26 00:46:30.901004	\N	\N
+437	82	354	75	75	available	\N	2026-06-26 00:46:30.910616	\N	\N
+438	83	349	2	2	available	\N	2026-06-26 00:46:30.930183	\N	\N
+439	83	351	33	33	available	\N	2026-06-26 00:46:30.939397	\N	\N
+440	83	353	250	250	available	\N	2026-06-26 00:46:30.949305	\N	\N
+441	83	354	80	80	available	\N	2026-06-26 00:46:30.960964	\N	\N
+442	84	349	2	2	available	\N	2026-06-26 00:46:30.976513	\N	\N
+443	84	351	33	33	available	\N	2026-06-26 00:46:30.985739	\N	\N
+444	84	353	300	300	available	\N	2026-06-26 00:46:30.995469	\N	\N
+445	84	354	95	95	available	\N	2026-06-26 00:46:31.004374	\N	\N
+446	85	349	3	3	available	\N	2026-06-26 00:46:31.019076	\N	\N
+447	85	351	35	35	available	\N	2026-06-26 00:46:31.028767	\N	\N
+448	85	353	300	300	available	\N	2026-06-26 00:46:31.037813	\N	\N
+449	85	354	75	75	available	\N	2026-06-26 00:46:31.047418	\N	\N
+450	86	349	4	4	available	\N	2026-06-26 00:46:31.060976	\N	\N
+451	86	351	36	36	available	\N	2026-06-26 00:46:31.071778	\N	\N
+452	86	352	6	6	available	\N	2026-06-26 00:46:31.081197	\N	\N
+453	86	353	300	300	available	\N	2026-06-26 00:46:31.090934	\N	\N
+454	86	354	90	90	available	\N	2026-06-26 00:46:31.100973	\N	\N
+455	87	349	5	5	available	\N	2026-06-26 00:46:31.113713	\N	\N
+456	87	351	30	30	available	\N	2026-06-26 00:46:31.124041	\N	\N
+457	87	352	6	6	available	\N	2026-06-26 00:46:31.133334	\N	\N
+458	87	353	250	250	available	\N	2026-06-26 00:46:31.146312	\N	\N
+459	87	354	70	70	available	\N	2026-06-26 00:46:31.157057	\N	\N
+460	88	349	3	3	available	\N	2026-06-26 00:46:31.170725	\N	\N
+461	88	351	30	30	available	\N	2026-06-26 00:46:31.179536	\N	\N
+462	88	353	250	250	available	\N	2026-06-26 00:46:31.190307	\N	\N
+463	88	354	70	70	available	\N	2026-06-26 00:46:31.199622	\N	\N
+464	89	349	3	3	available	\N	2026-06-26 00:46:31.213211	\N	\N
+465	89	351	30	30	available	\N	2026-06-26 00:46:31.222161	\N	\N
+466	89	353	200	200	available	\N	2026-06-26 00:46:31.232526	\N	\N
+467	89	354	65	65	available	\N	2026-06-26 00:46:31.241748	\N	\N
+468	90	349	5	5	available	\N	2026-06-26 00:46:31.25538	\N	\N
+469	90	351	26	26	available	\N	2026-06-26 00:46:31.264009	\N	\N
+470	90	353	150	150	available	\N	2026-06-26 00:46:31.27269	\N	\N
+471	90	354	50	50	available	\N	2026-06-26 00:46:31.281053	\N	\N
+472	91	349	10	10	available	\N	2026-06-26 00:46:31.295499	\N	\N
+473	91	351	39	39	available	\N	2026-06-26 00:46:31.309448	\N	\N
+474	91	353	250	250	available	\N	2026-06-26 00:46:31.318679	\N	\N
+475	91	354	100	100	available	\N	2026-06-26 00:46:31.327604	\N	\N
+476	92	349	3	3	available	\N	2026-06-26 00:46:31.341684	\N	\N
+477	92	351	30	30	available	\N	2026-06-26 00:46:31.35101	\N	\N
+478	92	353	200	200	available	\N	2026-06-26 00:46:31.36029	\N	\N
+479	92	354	75	75	available	\N	2026-06-26 00:46:31.369124	\N	\N
+480	93	349	4	4	available	\N	2026-06-26 00:46:31.384008	\N	\N
+481	93	350	2	2	available	\N	2026-06-26 00:46:31.394763	\N	\N
+482	93	351	33	33	available	\N	2026-06-26 00:46:31.405478	\N	\N
+483	93	353	250	250	available	\N	2026-06-26 00:46:31.414819	\N	\N
+484	93	354	60	60	available	\N	2026-06-26 00:46:31.423649	\N	\N
+485	94	349	3	3	available	\N	2026-06-26 00:46:31.437257	\N	\N
+486	94	350	2	2	available	\N	2026-06-26 00:46:31.451566	\N	\N
+487	94	351	30	30	available	\N	2026-06-26 00:46:31.460113	\N	\N
+488	94	353	200	200	available	\N	2026-06-26 00:46:31.471097	\N	\N
+489	94	354	60	60	available	\N	2026-06-26 00:46:31.479953	\N	\N
+490	95	349	10	10	available	\N	2026-06-26 00:46:31.495684	\N	\N
+491	95	350	2	2	available	\N	2026-06-26 00:46:31.505078	\N	\N
+492	95	351	25	25	available	\N	2026-06-26 00:46:31.515936	\N	\N
+493	95	353	160	160	available	\N	2026-06-26 00:46:31.527283	\N	\N
+494	95	354	40	40	available	\N	2026-06-26 00:46:31.536503	\N	\N
+495	96	349	5	5	available	\N	2026-06-26 00:46:31.549391	\N	\N
+496	96	350	2	2	available	\N	2026-06-26 00:46:31.649532	\N	\N
+497	96	351	25	25	available	\N	2026-06-26 00:46:31.658313	\N	\N
+498	96	353	200	200	available	\N	2026-06-26 00:46:31.667159	\N	\N
+499	96	354	50	50	available	\N	2026-06-26 00:46:31.676349	\N	\N
+500	97	349	8	8	available	\N	2026-06-26 00:46:31.690548	\N	\N
+501	97	350	1	1	available	\N	2026-06-26 00:46:31.700863	\N	\N
+502	97	351	20	20	available	\N	2026-06-26 00:46:31.709534	\N	\N
+503	97	353	150	150	available	\N	2026-06-26 00:46:31.719079	\N	\N
+504	97	354	40	40	available	\N	2026-06-26 00:46:31.728306	\N	\N
+505	98	349	2	2	available	\N	2026-06-26 00:46:31.742259	\N	\N
+506	98	351	20	20	available	\N	2026-06-26 00:46:31.752243	\N	\N
+507	98	353	175	175	available	\N	2026-06-26 00:46:31.761025	\N	\N
+508	98	354	80	80	available	\N	2026-06-26 00:46:31.770333	\N	\N
+509	99	349	3	3	available	\N	2026-06-26 00:46:31.784019	\N	\N
+510	99	350	1	1	available	\N	2026-06-26 00:46:31.793133	\N	\N
+511	99	351	25	25	available	\N	2026-06-26 00:46:31.802931	\N	\N
+512	99	353	200	200	available	\N	2026-06-26 00:46:31.8123	\N	\N
+513	99	354	100	100	available	\N	2026-06-26 00:46:31.822007	\N	\N
+514	100	351	20	20	available	\N	2026-06-26 00:46:31.836204	\N	\N
+515	100	353	200	200	available	\N	2026-06-26 00:46:31.849964	\N	\N
+516	100	354	80	80	available	\N	2026-06-26 00:46:31.858942	\N	\N
+517	101	351	25	25	available	\N	2026-06-26 00:46:31.87315	\N	\N
+518	101	353	250	250	available	\N	2026-06-26 00:46:31.885363	\N	\N
+519	101	354	80	80	available	\N	2026-06-26 00:46:31.894053	\N	\N
+520	102	351	25	25	available	\N	2026-06-26 00:46:31.90899	\N	\N
+521	102	353	200	200	available	\N	2026-06-26 00:46:31.918253	\N	\N
+522	102	354	70	70	available	\N	2026-06-26 00:46:31.927148	\N	\N
+523	103	351	15	\N	pending	\N	2026-06-26 00:46:31.940719	\N	\N
+524	103	353	150	\N	pending	\N	2026-06-26 00:46:31.944008	\N	\N
+525	103	354	50	\N	pending	\N	2026-06-26 00:46:31.94671	\N	\N
+526	104	355	5	\N	pending	\N	2026-06-26 00:46:31.97892	\N	\N
+527	104	375	3	\N	pending	\N	2026-06-26 00:46:31.982225	\N	\N
+528	104	382	5	\N	pending	\N	2026-06-26 00:46:31.984762	\N	\N
+529	104	388	2	\N	pending	\N	2026-06-26 00:46:31.988142	\N	\N
+530	104	392	2	\N	pending	\N	2026-06-26 00:46:31.990954	\N	\N
+531	104	397	2	\N	pending	\N	2026-06-26 00:46:31.994102	\N	\N
+532	104	408	2	\N	pending	\N	2026-06-26 00:46:31.996715	\N	\N
+533	104	410	3	\N	pending	\N	2026-06-26 00:46:31.999679	\N	\N
+534	104	411	2	\N	pending	\N	2026-06-26 00:46:32.002127	\N	\N
+535	104	412	2	\N	pending	\N	2026-06-26 00:46:32.005162	\N	\N
+536	104	417	2	\N	pending	\N	2026-06-26 00:46:32.007836	\N	\N
+537	104	422	20	\N	pending	\N	2026-06-26 00:46:32.011194	\N	\N
+538	105	355	5	5	available	\N	2026-06-26 00:46:32.020846	\N	\N
+539	105	368	3	3	available	\N	2026-06-26 00:46:32.032045	\N	\N
+540	105	375	2	2	available	\N	2026-06-26 00:46:32.041786	\N	\N
+541	105	382	3	3	available	\N	2026-06-26 00:46:32.050949	\N	\N
+542	105	392	2	2	available	\N	2026-06-26 00:46:32.061986	\N	\N
+543	105	393	3	3	available	\N	2026-06-26 00:46:32.075045	\N	\N
+544	105	405	2	2	available	\N	2026-06-26 00:46:32.085928	\N	\N
+545	105	410	2	2	available	\N	2026-06-26 00:46:32.095083	\N	\N
+546	105	413	3	3	available	\N	2026-06-26 00:46:32.103998	\N	\N
+547	105	414	3	3	available	\N	2026-06-26 00:46:32.113016	\N	\N
+548	105	422	15	15	available	\N	2026-06-26 00:46:32.121665	\N	\N
+549	106	355	5	5	available	\N	2026-06-26 00:46:32.134983	\N	\N
+550	106	373	3	3	available	\N	2026-06-26 00:46:32.146988	\N	\N
+551	106	384	3	3	available	\N	2026-06-26 00:46:32.160137	\N	\N
+552	106	388	3	3	available	\N	2026-06-26 00:46:32.173009	\N	\N
+553	106	389	3	3	available	\N	2026-06-26 00:46:32.182527	\N	\N
+554	106	422	15	15	available	\N	2026-06-26 00:46:32.192564	\N	\N
+555	107	355	5	5	available	\N	2026-06-26 00:46:32.206049	\N	\N
+556	107	373	2	2	available	\N	2026-06-26 00:46:32.215572	\N	\N
+557	107	381	2	2	available	\N	2026-06-26 00:46:32.228721	\N	\N
+558	107	386	2	2	available	\N	2026-06-26 00:46:32.244204	\N	\N
+559	107	416	1	1	available	\N	2026-06-26 00:46:32.253688	\N	\N
+560	107	419	1	1	available	\N	2026-06-26 00:46:32.263014	\N	\N
+561	108	355	3	3	available	\N	2026-06-26 00:46:32.275898	\N	\N
+562	108	358	2	2	available	\N	2026-06-26 00:46:32.284781	\N	\N
+563	108	359	2	2	available	\N	2026-06-26 00:46:32.294364	\N	\N
+564	108	371	2	2	available	\N	2026-06-26 00:46:32.303553	\N	\N
+565	108	382	3	3	available	\N	2026-06-26 00:46:32.317446	\N	\N
+566	108	388	3	3	available	\N	2026-06-26 00:46:32.327365	\N	\N
+567	108	391	4	4	available	\N	2026-06-26 00:46:32.340895	\N	\N
+568	108	396	3	3	available	\N	2026-06-26 00:46:32.349547	\N	\N
+569	108	408	2	2	available	\N	2026-06-26 00:46:32.359291	\N	\N
+570	108	409	2	2	available	\N	2026-06-26 00:46:32.368138	\N	\N
+571	108	416	3	3	available	\N	2026-06-26 00:46:32.377377	\N	\N
+572	108	419	3	3	available	\N	2026-06-26 00:46:32.386628	\N	\N
+573	108	421	3	3	available	\N	2026-06-26 00:46:32.39637	\N	\N
+574	108	422	10	10	available	\N	2026-06-26 00:46:32.405852	\N	\N
+575	109	355	9	9	available	\N	2026-06-26 00:46:32.419281	\N	\N
+576	109	369	7	7	available	\N	2026-06-26 00:46:32.429135	\N	\N
+577	109	375	3	3	available	\N	2026-06-26 00:46:32.438022	\N	\N
+578	109	381	3	3	available	\N	2026-06-26 00:46:32.447181	\N	\N
+579	109	382	3	3	available	\N	2026-06-26 00:46:32.458121	\N	\N
+580	109	385	3	3	available	\N	2026-06-26 00:46:32.467165	\N	\N
+581	109	388	3	3	available	\N	2026-06-26 00:46:32.476503	\N	\N
+582	109	393	3	3	available	\N	2026-06-26 00:46:32.485166	\N	\N
+583	109	396	3	3	available	\N	2026-06-26 00:46:32.498933	\N	\N
+584	109	405	2	2	available	\N	2026-06-26 00:46:32.512765	\N	\N
+585	109	411	2	2	available	\N	2026-06-26 00:46:32.521984	\N	\N
+586	109	412	1	1	available	\N	2026-06-26 00:46:32.530951	\N	\N
+587	109	416	1	1	available	\N	2026-06-26 00:46:32.540507	\N	\N
+588	109	419	1	1	available	\N	2026-06-26 00:46:32.54822	\N	\N
+589	109	421	1	1	available	\N	2026-06-26 00:46:32.557006	\N	\N
+590	109	422	15	15	available	\N	2026-06-26 00:46:32.566461	\N	\N
+591	110	355	4	4	available	\N	2026-06-26 00:46:32.578682	\N	\N
+592	110	373	3	3	available	\N	2026-06-26 00:46:32.586661	\N	\N
+593	110	375	3	3	available	\N	2026-06-26 00:46:32.595635	\N	\N
+594	110	382	3	3	available	\N	2026-06-26 00:46:32.605946	\N	\N
+595	110	388	3	3	available	\N	2026-06-26 00:46:32.617343	\N	\N
+596	110	391	3	3	available	\N	2026-06-26 00:46:32.626452	\N	\N
+597	110	396	3	3	available	\N	2026-06-26 00:46:32.63453	\N	\N
+598	110	422	15	15	available	\N	2026-06-26 00:46:32.642934	\N	\N
+599	111	355	3	3	available	\N	2026-06-26 00:46:32.655806	\N	\N
+600	111	362	2	2	available	\N	2026-06-26 00:46:32.664342	\N	\N
+601	111	369	2	2	available	\N	2026-06-26 00:46:32.672799	\N	\N
+602	111	375	5	5	available	\N	2026-06-26 00:46:32.680571	\N	\N
+603	111	388	5	5	available	\N	2026-06-26 00:46:32.689007	\N	\N
+604	111	389	3	3	available	\N	2026-06-26 00:46:32.701666	\N	\N
+605	111	392	5	5	available	\N	2026-06-26 00:46:32.710154	\N	\N
+606	111	396	5	5	available	\N	2026-06-26 00:46:32.71913	\N	\N
+607	111	405	3	3	available	\N	2026-06-26 00:46:32.727345	\N	\N
+608	111	416	1	1	available	\N	2026-06-26 00:46:32.736416	\N	\N
+609	111	421	1	1	available	\N	2026-06-26 00:46:32.745201	\N	\N
+610	111	422	20	20	available	\N	2026-06-26 00:46:32.753257	\N	\N
+611	112	355	3	3	available	\N	2026-06-26 00:46:32.765613	\N	\N
+612	112	357	2	2	available	\N	2026-06-26 00:46:32.774635	\N	\N
+613	112	404	1	1	available	\N	2026-06-26 00:46:32.78401	\N	\N
+614	112	406	1	1	available	\N	2026-06-26 00:46:32.793568	\N	\N
+615	112	410	5	5	available	\N	2026-06-26 00:46:32.802625	\N	\N
+616	112	412	1	1	available	\N	2026-06-26 00:46:32.811157	\N	\N
+617	112	416	2	2	available	\N	2026-06-26 00:46:32.820099	\N	\N
+618	112	419	1	1	available	\N	2026-06-26 00:46:32.829271	\N	\N
+619	112	421	1	1	available	\N	2026-06-26 00:46:32.83886	\N	\N
+620	112	422	20	20	available	\N	2026-06-26 00:46:32.847734	\N	\N
+621	113	355	3	3	available	\N	2026-06-26 00:46:32.85946	\N	\N
+622	113	369	3	3	available	\N	2026-06-26 00:46:32.867504	\N	\N
+623	113	385	3	3	available	\N	2026-06-26 00:46:32.877339	\N	\N
+624	113	386	5	5	available	\N	2026-06-26 00:46:32.886814	\N	\N
+625	113	388	3	3	available	\N	2026-06-26 00:46:32.894671	\N	\N
+626	113	393	4	4	available	\N	2026-06-26 00:46:32.903671	\N	\N
+627	113	398	3	3	available	\N	2026-06-26 00:46:32.912033	\N	\N
+628	113	406	4	4	available	\N	2026-06-26 00:46:32.920602	\N	\N
+629	113	408	3	3	available	\N	2026-06-26 00:46:32.92935	\N	\N
+630	113	411	3	3	available	\N	2026-06-26 00:46:32.937808	\N	\N
+631	113	412	3	3	available	\N	2026-06-26 00:46:32.945943	\N	\N
+632	113	416	1	1	available	\N	2026-06-26 00:46:32.955515	\N	\N
+633	113	419	1	1	available	\N	2026-06-26 00:46:32.963621	\N	\N
+634	113	421	1	\N	partial	\N	2026-06-26 00:46:32.973106	\N	\N
+635	113	422	15	15	available	\N	2026-06-26 00:46:32.976243	\N	\N
+636	114	355	3	3	available	\N	2026-06-26 00:46:32.991479	\N	\N
+637	114	356	1	1	available	\N	2026-06-26 00:46:32.999838	\N	\N
+638	114	362	1	1	available	\N	2026-06-26 00:46:33.008183	\N	\N
+639	114	363	1	1	available	\N	2026-06-26 00:46:33.01674	\N	\N
+640	114	372	5	5	available	\N	2026-06-26 00:46:33.029196	\N	\N
+641	114	381	2	2	available	\N	2026-06-26 00:46:33.037691	\N	\N
+642	114	385	5	5	available	\N	2026-06-26 00:46:33.202944	\N	\N
+643	114	386	3	3	available	\N	2026-06-26 00:46:33.213254	\N	\N
+644	114	389	2	2	available	\N	2026-06-26 00:46:33.223228	\N	\N
+645	114	394	3	3	available	\N	2026-06-26 00:46:33.233243	\N	\N
+646	114	396	5	5	available	\N	2026-06-26 00:46:33.241915	\N	\N
+647	114	406	3	3	available	\N	2026-06-26 00:46:33.251065	\N	\N
+648	114	422	15	15	available	\N	2026-06-26 00:46:33.260753	\N	\N
+649	115	355	20	20	available	\N	2026-06-26 00:46:33.273532	\N	\N
+650	115	357	1	1	available	\N	2026-06-26 00:46:33.283447	\N	\N
+651	115	369	2	2	available	\N	2026-06-26 00:46:33.29634	\N	\N
+652	115	372	3	3	available	\N	2026-06-26 00:46:33.305999	\N	\N
+653	115	386	3	3	available	\N	2026-06-26 00:46:33.313767	\N	\N
+654	115	389	4	4	available	\N	2026-06-26 00:46:33.324562	\N	\N
+655	115	415	2	2	available	\N	2026-06-26 00:46:33.336223	\N	\N
+656	115	416	2	2	available	\N	2026-06-26 00:46:33.345497	\N	\N
+657	115	418	2	2	available	\N	2026-06-26 00:46:33.355319	\N	\N
+658	115	419	2	2	available	\N	2026-06-26 00:46:33.364361	\N	\N
+659	115	421	2	2	available	\N	2026-06-26 00:46:33.373291	\N	\N
+660	115	422	20	20	available	\N	2026-06-26 00:46:33.383188	\N	\N
+661	116	355	5	5	available	\N	2026-06-26 00:46:33.396003	\N	\N
+662	116	369	2	2	available	\N	2026-06-26 00:46:33.404641	\N	\N
+663	116	378	2	2	available	\N	2026-06-26 00:46:33.41456	\N	\N
+664	116	387	2	2	available	\N	2026-06-26 00:46:33.424497	\N	\N
+665	116	391	2	2	available	\N	2026-06-26 00:46:33.434403	\N	\N
+666	116	399	2	2	available	\N	2026-06-26 00:46:33.443545	\N	\N
+667	116	416	2	2	available	\N	2026-06-26 00:46:33.452423	\N	\N
+668	116	419	2	2	available	\N	2026-06-26 00:46:33.4642	\N	\N
+669	116	421	2	2	available	\N	2026-06-26 00:46:33.478855	\N	\N
+670	116	422	25	25	available	\N	2026-06-26 00:46:33.489728	\N	\N
+671	117	355	5	5	available	\N	2026-06-26 00:46:33.505563	\N	\N
+672	117	369	3	3	available	\N	2026-06-26 00:46:33.521881	\N	\N
+673	117	385	2	2	available	\N	2026-06-26 00:46:33.645786	\N	\N
+674	117	387	1	1	available	\N	2026-06-26 00:46:33.656056	\N	\N
+675	117	397	3	3	available	\N	2026-06-26 00:46:33.665296	\N	\N
+676	117	416	2	2	available	\N	2026-06-26 00:46:33.674066	\N	\N
+677	117	422	20	20	available	\N	2026-06-26 00:46:33.683999	\N	\N
+678	118	355	5	5	available	\N	2026-06-26 00:46:33.698108	\N	\N
+679	118	357	2	2	available	\N	2026-06-26 00:46:33.707686	\N	\N
+680	118	416	4	4	available	\N	2026-06-26 00:46:33.718529	\N	\N
+681	118	419	3	3	available	\N	2026-06-26 00:46:33.727191	\N	\N
+682	118	421	2	2	available	\N	2026-06-26 00:46:33.737321	\N	\N
+683	118	422	25	25	available	\N	2026-06-26 00:46:33.745971	\N	\N
+684	119	355	4	4	available	\N	2026-06-26 00:46:33.76029	\N	\N
+685	119	416	2	2	available	\N	2026-06-26 00:46:33.769663	\N	\N
+686	119	419	1	1	available	\N	2026-06-26 00:46:33.778333	\N	\N
+687	119	421	3	3	available	\N	2026-06-26 00:46:33.787699	\N	\N
+688	119	422	15	15	available	\N	2026-06-26 00:46:33.79664	\N	\N
+689	120	355	4	4	available	\N	2026-06-26 00:46:33.810624	\N	\N
+690	120	356	1	1	available	\N	2026-06-26 00:46:33.820142	\N	\N
+691	120	357	1	1	available	\N	2026-06-26 00:46:33.828046	\N	\N
+692	120	369	1	1	available	\N	2026-06-26 00:46:33.836552	\N	\N
+693	120	406	2	2	available	\N	2026-06-26 00:46:33.844405	\N	\N
+694	120	411	2	2	available	\N	2026-06-26 00:46:33.854737	\N	\N
+695	120	422	15	15	available	\N	2026-06-26 00:46:33.863152	\N	\N
+696	121	355	5	5	available	\N	2026-06-26 00:46:33.876022	\N	\N
+697	121	356	1	1	available	\N	2026-06-26 00:46:33.885542	\N	\N
+698	121	357	1	1	available	\N	2026-06-26 00:46:33.893989	\N	\N
+699	121	369	6	6	available	\N	2026-06-26 00:46:33.906262	\N	\N
+700	121	405	2	2	available	\N	2026-06-26 00:46:33.914363	\N	\N
+701	121	411	2	2	available	\N	2026-06-26 00:46:33.923441	\N	\N
+702	121	417	1	1	available	\N	2026-06-26 00:46:33.931746	\N	\N
+703	121	422	15	15	available	\N	2026-06-26 00:46:33.940382	\N	\N
+704	122	355	5	5	available	\N	2026-06-26 00:46:33.955751	\N	\N
+705	122	357	1	1	available	\N	2026-06-26 00:46:33.96387	\N	\N
+706	122	369	2	2	available	\N	2026-06-26 00:46:33.972393	\N	\N
+707	122	391	3	3	available	\N	2026-06-26 00:46:33.980858	\N	\N
+708	122	417	1	1	available	\N	2026-06-26 00:46:33.989845	\N	\N
+709	122	422	10	10	available	\N	2026-06-26 00:46:33.998519	\N	\N
+710	123	355	5	5	available	\N	2026-06-26 00:46:34.011403	\N	\N
+711	123	357	1	\N	partial	\N	2026-06-26 00:46:34.021071	\N	\N
+712	123	369	3	\N	partial	\N	2026-06-26 00:46:34.023477	\N	\N
+713	123	388	3	3	available	\N	2026-06-26 00:46:34.026232	\N	\N
+714	123	391	2	2	available	\N	2026-06-26 00:46:34.034496	\N	\N
+715	123	397	3	3	available	\N	2026-06-26 00:46:34.049905	\N	\N
+716	123	398	3	3	available	\N	2026-06-26 00:46:34.058484	\N	\N
+717	123	417	2	2	available	\N	2026-06-26 00:46:34.067389	\N	\N
+718	123	422	14	14	available	\N	2026-06-26 00:46:34.075841	\N	\N
+719	124	355	1	1	available	\N	2026-06-26 00:46:34.093286	\N	\N
+720	124	375	3	3	available	\N	2026-06-26 00:46:34.102427	\N	\N
+721	124	383	3	3	available	\N	2026-06-26 00:46:34.110836	\N	\N
+722	124	388	3	3	available	\N	2026-06-26 00:46:34.1196	\N	\N
+723	124	397	2	2	available	\N	2026-06-26 00:46:34.128024	\N	\N
+724	124	401	2	2	available	\N	2026-06-26 00:46:34.136955	\N	\N
+725	124	422	10	10	available	\N	2026-06-26 00:46:34.146074	\N	\N
+726	125	369	2	2	available	\N	2026-06-26 00:46:34.158254	\N	\N
+727	125	389	3	3	available	\N	2026-06-26 00:46:34.166974	\N	\N
+728	125	400	3	3	available	\N	2026-06-26 00:46:34.175369	\N	\N
+729	125	416	2	2	available	\N	2026-06-26 00:46:34.184156	\N	\N
+730	125	422	10	10	available	\N	2026-06-26 00:46:34.193371	\N	\N
+731	126	369	7	7	available	\N	2026-06-26 00:46:34.205633	\N	\N
+732	126	388	5	5	available	\N	2026-06-26 00:46:34.214537	\N	\N
+733	126	408	3	3	available	\N	2026-06-26 00:46:34.398645	\N	\N
+734	126	411	3	3	available	\N	2026-06-26 00:46:34.408216	\N	\N
+735	126	416	3	3	available	\N	2026-06-26 00:46:34.417229	\N	\N
+736	126	419	3	3	available	\N	2026-06-26 00:46:34.427408	\N	\N
+737	126	421	3	3	available	\N	2026-06-26 00:46:34.436193	\N	\N
+738	126	422	15	15	available	\N	2026-06-26 00:46:34.445119	\N	\N
+739	127	391	2	\N	pending	\N	2026-06-26 00:46:34.458071	\N	\N
+740	128	419	3	3	available	\N	2026-06-26 00:46:34.465752	\N	\N
+741	128	421	2	2	available	\N	2026-06-26 00:46:34.478858	\N	\N
+742	128	422	10	10	available	\N	2026-06-26 00:46:34.488133	\N	\N
+743	129	420	4	4	available	\N	2026-06-26 00:46:34.501176	\N	\N
+744	129	422	15	15	available	\N	2026-06-26 00:46:34.509458	\N	\N
+745	169	887	1	1	available	\N	2026-06-26 00:46:34.838657	\N	\N
+746	169	855	12	12	available	\N	2026-06-26 00:46:34.848052	\N	\N
+747	169	867	6	6	available	\N	2026-06-26 00:46:34.857202	\N	\N
+748	169	871	5	5	available	\N	2026-06-26 00:46:34.865605	\N	\N
+749	169	880	20	20	available	\N	2026-06-26 00:46:34.874225	\N	\N
+750	169	900	6	6	available	\N	2026-06-26 00:46:34.883009	\N	\N
+751	169	901	6	6	available	\N	2026-06-26 00:46:34.891292	\N	\N
+752	170	865	8	8	available	\N	2026-06-26 00:46:34.904784	\N	\N
+753	170	903	3	3	available	\N	2026-06-26 00:46:34.913717	\N	\N
+754	171	894	2	2	available	\N	2026-06-26 00:46:34.926945	\N	\N
+755	171	894	2	2	available	\N	2026-06-26 00:46:34.935548	\N	\N
+756	171	894	2	2	available	\N	2026-06-26 00:46:34.944729	\N	\N
+757	171	894	4	4	available	\N	2026-06-26 00:46:34.954664	\N	\N
+758	171	899	10	10	available	\N	2026-06-26 00:46:34.963924	\N	\N
+759	171	855	8	8	available	\N	2026-06-26 00:46:34.972889	\N	\N
+760	171	869	6	6	available	\N	2026-06-26 00:46:34.986746	\N	\N
+761	171	871	8	8	available	\N	2026-06-26 00:46:34.996602	\N	\N
+762	171	888	8	8	available	\N	2026-06-26 00:46:35.005635	\N	\N
+763	171	900	10	10	available	\N	2026-06-26 00:46:35.015456	\N	\N
+764	171	872	3	3	available	\N	2026-06-26 00:46:35.025247	\N	\N
+765	171	882	8	8	available	\N	2026-06-26 00:46:35.034217	\N	\N
+766	171	883	8	8	available	\N	2026-06-26 00:46:35.044835	\N	\N
+767	171	901	4	4	available	\N	2026-06-26 00:46:35.053437	\N	\N
+768	172	894	1	1	available	\N	2026-06-26 00:46:35.065494	\N	\N
+769	172	894	2	2	available	\N	2026-06-26 00:46:35.073691	\N	\N
+770	172	899	8	8	available	\N	2026-06-26 00:46:35.082121	\N	\N
+771	172	855	4	4	available	\N	2026-06-26 00:46:35.090575	\N	\N
+772	172	865	6	6	available	\N	2026-06-26 00:46:35.100483	\N	\N
+773	172	867	6	6	available	\N	2026-06-26 00:46:35.108132	\N	\N
+774	172	871	3	3	available	\N	2026-06-26 00:46:35.115871	\N	\N
+775	172	871	8	8	available	\N	2026-06-26 00:46:35.12375	\N	\N
+776	172	871	8	8	available	\N	2026-06-26 00:46:35.132035	\N	\N
+777	172	888	4	4	available	\N	2026-06-26 00:46:35.139732	\N	\N
+778	172	900	8	8	available	\N	2026-06-26 00:46:35.149215	\N	\N
+779	173	899	6	6	available	\N	2026-06-26 00:46:35.161928	\N	\N
+780	173	866	6	6	available	\N	2026-06-26 00:46:35.170491	\N	\N
+781	173	867	6	6	available	\N	2026-06-26 00:46:35.179762	\N	\N
+782	173	871	10	10	available	\N	2026-06-26 00:46:35.18986	\N	\N
+783	173	871	10	10	available	\N	2026-06-26 00:46:35.204113	\N	\N
+784	173	900	10	10	available	\N	2026-06-26 00:46:35.213075	\N	\N
+785	173	884	3	3	available	\N	2026-06-26 00:46:35.221539	\N	\N
+786	173	901	2	2	available	\N	2026-06-26 00:46:35.230532	\N	\N
+787	173	901	2	2	available	\N	2026-06-26 00:46:35.238828	\N	\N
+788	174	887	2	2	available	\N	2026-06-26 00:46:35.251783	\N	\N
+789	174	871	10	10	available	\N	2026-06-26 00:46:35.259752	\N	\N
+790	174	888	10	10	available	\N	2026-06-26 00:46:35.267294	\N	\N
+791	174	901	6	6	available	\N	2026-06-26 00:46:35.275815	\N	\N
+792	175	887	2	2	available	\N	2026-06-26 00:46:35.287173	\N	\N
+793	175	894	2	\N	partial	\N	2026-06-26 00:46:35.29488	\N	\N
+794	175	894	2	2	available	\N	2026-06-26 00:46:35.297202	\N	\N
+795	175	894	3	3	available	\N	2026-06-26 00:46:35.304881	\N	\N
+796	175	894	2	\N	partial	\N	2026-06-26 00:46:35.313454	\N	\N
+797	175	855	8	8	available	\N	2026-06-26 00:46:35.316728	\N	\N
+798	175	871	12	12	available	\N	2026-06-26 00:46:35.324651	\N	\N
+799	175	900	20	20	available	\N	2026-06-26 00:46:35.333141	\N	\N
+800	176	894	2	\N	partial	\N	2026-06-26 00:46:35.346903	\N	\N
+801	176	894	2	\N	partial	\N	2026-06-26 00:46:35.349519	\N	\N
+802	176	894	2	\N	partial	\N	2026-06-26 00:46:35.352254	\N	\N
+803	176	855	10	10	available	\N	2026-06-26 00:46:35.354702	\N	\N
+804	176	865	6	6	available	\N	2026-06-26 00:46:35.364876	\N	\N
+805	176	866	8	8	available	\N	2026-06-26 00:46:35.373424	\N	\N
+806	176	868	4	\N	partial	\N	2026-06-26 00:46:35.381746	\N	\N
+807	176	869	8	8	available	\N	2026-06-26 00:46:35.384191	\N	\N
+808	176	900	6	6	available	\N	2026-06-26 00:46:35.392741	\N	\N
+809	176	900	10	10	available	\N	2026-06-26 00:46:35.400998	\N	\N
+810	177	894	1	1	available	\N	2026-06-26 00:46:35.413679	\N	\N
+811	177	894	1	1	available	\N	2026-06-26 00:46:35.423149	\N	\N
+812	177	894	3	3	available	\N	2026-06-26 00:46:35.43214	\N	\N
+813	177	894	2	2	available	\N	2026-06-26 00:46:35.440571	\N	\N
+814	177	894	3	3	available	\N	2026-06-26 00:46:35.450039	\N	\N
+815	177	899	8	8	available	\N	2026-06-26 00:46:35.459234	\N	\N
+816	177	855	6	6	available	\N	2026-06-26 00:46:35.467766	\N	\N
+817	177	865	6	6	available	\N	2026-06-26 00:46:35.476287	\N	\N
+818	177	868	6	6	available	\N	2026-06-26 00:46:35.485377	\N	\N
+819	177	871	10	10	available	\N	2026-06-26 00:46:35.493797	\N	\N
+820	177	871	10	10	available	\N	2026-06-26 00:46:35.502879	\N	\N
+821	177	900	25	25	available	\N	2026-06-26 00:46:35.511192	\N	\N
+822	177	900	15	15	available	\N	2026-06-26 00:46:35.519383	\N	\N
+823	177	902	6	6	available	\N	2026-06-26 00:46:35.530522	\N	\N
+824	177	879	2	2	available	\N	2026-06-26 00:46:35.538056	\N	\N
+825	177	883	4	4	available	\N	2026-06-26 00:46:35.546327	\N	\N
+826	177	901	3	3	available	\N	2026-06-26 00:46:35.55501	\N	\N
+827	177	901	3	3	available	\N	2026-06-26 00:46:35.562758	\N	\N
+828	178	894	2	2	available	\N	2026-06-26 00:46:35.574404	\N	\N
+829	178	894	4	4	available	\N	2026-06-26 00:46:35.582253	\N	\N
+830	178	899	10	10	available	\N	2026-06-26 00:46:35.590412	\N	\N
+831	178	855	10	10	available	\N	2026-06-26 00:46:35.59818	\N	\N
+832	178	869	6	6	available	\N	2026-06-26 00:46:35.605995	\N	\N
+833	178	871	6	6	available	\N	2026-06-26 00:46:35.614209	\N	\N
+834	178	900	10	10	available	\N	2026-06-26 00:46:35.622374	\N	\N
+835	178	882	4	4	available	\N	2026-06-26 00:46:35.631818	\N	\N
+836	178	883	39	39	available	\N	2026-06-26 00:46:35.639202	\N	\N
+837	179	894	3	3	available	\N	2026-06-26 00:46:35.65022	\N	\N
+838	179	899	8	8	available	\N	2026-06-26 00:46:35.657986	\N	\N
+839	179	855	6	6	available	\N	2026-06-26 00:46:35.675886	\N	\N
+840	179	869	6	6	available	\N	2026-06-26 00:46:35.684441	\N	\N
+841	179	900	10	10	available	\N	2026-06-26 00:46:35.697359	\N	\N
+842	179	900	6	6	available	\N	2026-06-26 00:46:35.705753	\N	\N
+843	179	879	6	6	available	\N	2026-06-26 00:46:35.714624	\N	\N
+844	179	901	6	6	available	\N	2026-06-26 00:46:35.724138	\N	\N
+845	180	894	2	2	available	\N	2026-06-26 00:46:35.738691	\N	\N
+846	180	894	3	3	available	\N	2026-06-26 00:46:35.747354	\N	\N
+847	180	855	12	12	available	\N	2026-06-26 00:46:35.756283	\N	\N
+848	180	901	4	4	available	\N	2026-06-26 00:46:35.764964	\N	\N
+849	180	901	4	4	available	\N	2026-06-26 00:46:35.774236	\N	\N
+850	181	894	2	\N	pending	\N	2026-06-26 00:46:35.788686	\N	\N
+851	181	855	6	\N	pending	\N	2026-06-26 00:46:35.791766	\N	\N
+852	181	865	8	\N	pending	\N	2026-06-26 00:46:35.79468	\N	\N
+853	181	871	15	\N	pending	\N	2026-06-26 00:46:35.798188	\N	\N
+854	181	900	10	\N	pending	\N	2026-06-26 00:46:35.801039	\N	\N
+855	181	900	15	\N	pending	\N	2026-06-26 00:46:35.803813	\N	\N
+856	181	883	10	\N	pending	\N	2026-06-26 00:46:35.806662	\N	\N
+857	181	901	3	\N	pending	\N	2026-06-26 00:46:35.809627	\N	\N
+858	182	894	4	4	available	\N	2026-06-26 00:46:35.816188	\N	\N
+859	182	899	10	10	available	\N	2026-06-26 00:46:35.825168	\N	\N
+860	182	855	8	8	available	\N	2026-06-26 00:46:35.834832	\N	\N
+861	182	867	8	8	available	\N	2026-06-26 00:46:35.844599	\N	\N
+862	182	900	12	12	available	\N	2026-06-26 00:46:35.853791	\N	\N
+863	182	901	6	6	available	\N	2026-06-26 00:46:35.862525	\N	\N
+864	182	889	6	6	available	\N	2026-06-26 00:46:35.871601	\N	\N
+865	183	894	2	2	available	\N	2026-06-26 00:46:35.885497	\N	\N
+866	183	859	6	6	available	\N	2026-06-26 00:46:35.894867	\N	\N
+867	183	866	10	10	available	\N	2026-06-26 00:46:35.904476	\N	\N
+868	183	869	8	8	available	\N	2026-06-26 00:46:35.913839	\N	\N
+869	183	888	8	8	available	\N	2026-06-26 00:46:35.925184	\N	\N
+870	183	900	15	15	available	\N	2026-06-26 00:46:35.936031	\N	\N
+871	183	900	10	10	available	\N	2026-06-26 00:46:35.945258	\N	\N
+872	183	901	6	6	available	\N	2026-06-26 00:46:35.954988	\N	\N
+873	184	900	35	35	available	\N	2026-06-26 00:46:35.968943	\N	\N
+874	184	879	6	6	available	\N	2026-06-26 00:46:35.97838	\N	\N
+875	185	900	20	20	available	\N	2026-06-26 00:46:35.993217	\N	\N
+876	185	879	3	3	available	\N	2026-06-26 00:46:36.002639	\N	\N
+877	186	866	6	6	available	\N	2026-06-26 00:46:36.018152	\N	\N
+878	186	869	6	6	available	\N	2026-06-26 00:46:36.026632	\N	\N
+879	186	900	15	15	available	\N	2026-06-26 00:46:36.035629	\N	\N
+880	186	900	15	15	available	\N	2026-06-26 00:46:36.043767	\N	\N
+881	186	889	4	4	available	\N	2026-06-26 00:46:36.052219	\N	\N
+882	187	899	8	8	available	\N	2026-06-26 00:46:36.065657	\N	\N
+883	187	869	6	6	available	\N	2026-06-26 00:46:36.074935	\N	\N
+884	187	900	10	10	available	\N	2026-06-26 00:46:36.084146	\N	\N
+885	188	899	51	\N	pending	\N	2026-06-26 00:46:36.096404	\N	\N
+886	188	883	20	\N	pending	\N	2026-06-26 00:46:36.098843	\N	\N
+887	189	855	6	6	available	\N	2026-06-26 00:46:36.106404	\N	\N
+888	189	871	6	6	available	\N	2026-06-26 00:46:36.1155	\N	\N
+889	189	871	8	8	available	\N	2026-06-26 00:46:36.12363	\N	\N
+890	189	879	6	6	available	\N	2026-06-26 00:46:36.132469	\N	\N
+891	189	889	12	12	available	\N	2026-06-26 00:46:36.14043	\N	\N
+892	190	855	6	6	available	\N	2026-06-26 00:46:36.152226	\N	\N
+893	190	867	6	6	available	\N	2026-06-26 00:46:36.160419	\N	\N
+894	190	880	6	6	available	\N	2026-06-26 00:46:36.168911	\N	\N
+895	190	901	3	3	available	\N	2026-06-26 00:46:36.369157	\N	\N
+896	191	867	6	6	available	\N	2026-06-26 00:46:36.38676	\N	\N
+897	191	900	8	8	available	\N	2026-06-26 00:46:36.398115	\N	\N
+898	191	883	10	10	available	\N	2026-06-26 00:46:36.407009	\N	\N
+899	191	901	6	6	available	\N	2026-06-26 00:46:36.416467	\N	\N
+900	192	865	6	6	available	\N	2026-06-26 00:46:36.429293	\N	\N
+901	192	884	4	4	available	\N	2026-06-26 00:46:36.43868	\N	\N
+902	193	881	1	1	available	\N	2026-06-26 00:46:36.451624	\N	\N
+903	194	1311	2	2	available	\N	2026-06-26 00:46:36.610121	\N	\N
+904	194	922	1	1	available	\N	2026-06-26 00:46:36.621337	\N	\N
+905	194	935	2	2	available	\N	2026-06-26 00:46:36.630571	\N	\N
+906	194	958	1	1	available	\N	2026-06-26 00:46:36.64027	\N	\N
+907	194	985	2	2	available	\N	2026-06-26 00:46:36.649419	\N	\N
+908	194	1041	6	6	available	\N	2026-06-26 00:46:36.660102	\N	\N
+909	194	1055	4	4	available	\N	2026-06-26 00:46:36.670726	\N	\N
+910	194	1055	4	4	available	\N	2026-06-26 00:46:36.680395	\N	\N
+911	194	1087	4	4	available	\N	2026-06-26 00:46:36.694458	\N	\N
+912	194	1097	4	4	available	\N	2026-06-26 00:46:36.705689	\N	\N
+913	194	1111	4	4	available	\N	2026-06-26 00:46:36.715245	\N	\N
+914	194	1143	6	6	available	\N	2026-06-26 00:46:36.72707	\N	\N
+915	194	1143	6	6	available	\N	2026-06-26 00:46:36.736903	\N	\N
+916	194	1278	4	4	available	\N	2026-06-26 00:46:36.746415	\N	\N
+917	194	1291	2	2	available	\N	2026-06-26 00:46:36.756309	\N	\N
+918	195	918	2	2	available	\N	2026-06-26 00:46:36.768794	\N	\N
+919	195	922	2	2	available	\N	2026-06-26 00:46:36.776811	\N	\N
+920	195	935	3	3	available	\N	2026-06-26 00:46:36.784628	\N	\N
+921	195	959	1	1	available	\N	2026-06-26 00:46:36.793995	\N	\N
+922	195	958	1	1	available	\N	2026-06-26 00:46:36.801532	\N	\N
+923	195	958	1	1	available	\N	2026-06-26 00:46:36.80979	\N	\N
+924	195	958	2	2	available	\N	2026-06-26 00:46:36.81825	\N	\N
+925	195	1039	6	6	available	\N	2026-06-26 00:46:36.828504	\N	\N
+926	195	1051	4	4	available	\N	2026-06-26 00:46:36.837724	\N	\N
+927	195	1055	24	24	available	\N	2026-06-26 00:46:36.84576	\N	\N
+928	195	1055	6	6	available	\N	2026-06-26 00:46:36.857729	\N	\N
+929	195	1103	6	6	available	\N	2026-06-26 00:46:36.867492	\N	\N
+930	195	1108	8	8	available	\N	2026-06-26 00:46:36.876073	\N	\N
+931	195	1143	6	6	available	\N	2026-06-26 00:46:36.88491	\N	\N
+932	195	1167	6	6	available	\N	2026-06-26 00:46:36.89325	\N	\N
+933	195	1175	10	10	available	\N	2026-06-26 00:46:36.902013	\N	\N
+934	195	1143	4	4	available	\N	2026-06-26 00:46:36.910414	\N	\N
+935	195	1306	2	2	available	\N	2026-06-26 00:46:36.919525	\N	\N
+936	195	1308	2	2	available	\N	2026-06-26 00:46:36.928356	\N	\N
+937	195	1311	8	8	available	\N	2026-06-26 00:46:36.93637	\N	\N
+938	195	1408	2	2	available	\N	2026-06-26 00:46:36.944861	\N	\N
+939	196	918	2	2	available	\N	2026-06-26 00:46:36.958037	\N	\N
+940	196	935	3	3	available	\N	2026-06-26 00:46:36.966664	\N	\N
+941	196	958	3	3	available	\N	2026-06-26 00:46:36.975278	\N	\N
+942	196	973	3	3	available	\N	2026-06-26 00:46:36.983673	\N	\N
+943	196	1055	6	6	available	\N	2026-06-26 00:46:36.9934	\N	\N
+944	196	1055	6	6	available	\N	2026-06-26 00:46:37.002247	\N	\N
+945	196	1088	6	6	available	\N	2026-06-26 00:46:37.010993	\N	\N
+946	196	1097	4	4	available	\N	2026-06-26 00:46:37.020776	\N	\N
+947	196	1143	4	4	available	\N	2026-06-26 00:46:37.029206	\N	\N
+948	196	1342	2	2	available	\N	2026-06-26 00:46:37.040007	\N	\N
+949	196	1323	3	3	available	\N	2026-06-26 00:46:37.048936	\N	\N
+950	197	918	2	2	available	\N	2026-06-26 00:46:37.061006	\N	\N
+951	197	959	3	3	available	\N	2026-06-26 00:46:37.06902	\N	\N
+952	197	973	3	3	available	\N	2026-06-26 00:46:37.077143	\N	\N
+953	197	1021	3	3	available	\N	2026-06-26 00:46:37.085894	\N	\N
+954	197	1087	4	4	available	\N	2026-06-26 00:46:37.094206	\N	\N
+955	197	1111	4	4	available	\N	2026-06-26 00:46:37.10288	\N	\N
+956	197	1278	4	4	available	\N	2026-06-26 00:46:37.112298	\N	\N
+957	197	1342	6	6	available	\N	2026-06-26 00:46:37.120467	\N	\N
+958	197	1323	3	3	available	\N	2026-06-26 00:46:37.128993	\N	\N
+959	198	918	1	1	available	\N	2026-06-26 00:46:37.141253	\N	\N
+960	198	935	2	2	available	\N	2026-06-26 00:46:37.150362	\N	\N
+961	198	959	1	1	available	\N	2026-06-26 00:46:37.160002	\N	\N
+962	198	958	2	2	available	\N	2026-06-26 00:46:37.168209	\N	\N
+963	198	969	2	2	available	\N	2026-06-26 00:46:37.176732	\N	\N
+964	198	983	2	2	available	\N	2026-06-26 00:46:37.185074	\N	\N
+965	198	1039	4	4	available	\N	2026-06-26 00:46:37.194343	\N	\N
+966	198	1033	6	6	available	\N	2026-06-26 00:46:37.203442	\N	\N
+967	198	1054	4	4	available	\N	2026-06-26 00:46:37.212021	\N	\N
+968	198	1055	4	4	available	\N	2026-06-26 00:46:37.22042	\N	\N
+969	198	1055	6	6	available	\N	2026-06-26 00:46:37.228527	\N	\N
+970	198	1097	4	4	available	\N	2026-06-26 00:46:37.238028	\N	\N
+971	198	1108	4	4	available	\N	2026-06-26 00:46:37.248466	\N	\N
+972	198	1119	2	2	available	\N	2026-06-26 00:46:37.256984	\N	\N
+973	198	1143	3	3	available	\N	2026-06-26 00:46:37.265443	\N	\N
+974	198	1148	6	6	available	\N	2026-06-26 00:46:37.27406	\N	\N
+975	198	1156	4	4	available	\N	2026-06-26 00:46:37.282323	\N	\N
+976	198	1167	6	6	available	\N	2026-06-26 00:46:37.290499	\N	\N
+977	198	1175	6	6	available	\N	2026-06-26 00:46:37.298772	\N	\N
+978	198	1176	6	6	available	\N	2026-06-26 00:46:37.308705	\N	\N
+979	198	1177	4	4	available	\N	2026-06-26 00:46:37.316626	\N	\N
+980	198	1263	1	1	available	\N	2026-06-26 00:46:37.33167	\N	\N
+981	198	1271	2	2	available	\N	2026-06-26 00:46:37.340004	\N	\N
+982	198	1278	4	4	available	\N	2026-06-26 00:46:37.347491	\N	\N
+983	198	1306	2	2	available	\N	2026-06-26 00:46:37.356808	\N	\N
+984	198	1308	2	2	available	\N	2026-06-26 00:46:37.364979	\N	\N
+985	198	1342	4	4	available	\N	2026-06-26 00:46:37.373818	\N	\N
+986	198	1342	8	8	available	\N	2026-06-26 00:46:37.382132	\N	\N
+987	198	1365	2	2	available	\N	2026-06-26 00:46:37.391322	\N	\N
+988	198	1394	1	1	available	\N	2026-06-26 00:46:37.399732	\N	\N
+989	198	1408	2	2	available	\N	2026-06-26 00:46:37.408258	\N	\N
+990	199	922	2	2	available	\N	2026-06-26 00:46:37.420791	\N	\N
+991	199	922	2	2	available	\N	2026-06-26 00:46:37.429535	\N	\N
+992	199	945	2	2	available	\N	2026-06-26 00:46:37.437692	\N	\N
+993	199	966	2	2	available	\N	2026-06-26 00:46:37.446404	\N	\N
+994	199	964	4	4	available	\N	2026-06-26 00:46:37.455307	\N	\N
+995	199	1089	6	6	available	\N	2026-06-26 00:46:37.465281	\N	\N
+996	199	1143	8	8	available	\N	2026-06-26 00:46:37.475266	\N	\N
+997	199	1175	8	8	available	\N	2026-06-26 00:46:37.48336	\N	\N
+998	199	1176	8	8	available	\N	2026-06-26 00:46:37.492382	\N	\N
+999	199	1288	3	3	available	\N	2026-06-26 00:46:37.501788	\N	\N
+1000	199	1311	3	3	available	\N	2026-06-26 00:46:37.510222	\N	\N
+1001	199	1368	3	3	available	\N	2026-06-26 00:46:37.518384	\N	\N
+1002	200	922	2	2	available	\N	2026-06-26 00:46:37.530689	\N	\N
+1003	200	958	2	2	available	\N	2026-06-26 00:46:37.539148	\N	\N
+1004	200	975	3	3	available	\N	2026-06-26 00:46:37.547314	\N	\N
+1005	200	1036	6	6	available	\N	2026-06-26 00:46:37.557802	\N	\N
+1006	200	1039	6	6	available	\N	2026-06-26 00:46:37.565984	\N	\N
+1007	200	1055	6	6	available	\N	2026-06-26 00:46:37.575011	\N	\N
+1008	200	1088	8	8	available	\N	2026-06-26 00:46:37.583656	\N	\N
+1009	200	1097	6	6	available	\N	2026-06-26 00:46:37.59665	\N	\N
+1010	200	1108	10	10	available	\N	2026-06-26 00:46:37.604953	\N	\N
+1011	200	1159	6	6	available	\N	2026-06-26 00:46:37.614359	\N	\N
+1012	200	1175	6	6	available	\N	2026-06-26 00:46:37.622753	\N	\N
+1013	200	1176	6	6	available	\N	2026-06-26 00:46:37.631447	\N	\N
+1014	200	1292	6	6	available	\N	2026-06-26 00:46:37.641162	\N	\N
+1015	200	1365	3	3	available	\N	2026-06-26 00:46:37.64999	\N	\N
+1016	201	922	2	2	available	\N	2026-06-26 00:46:37.662264	\N	\N
+1017	201	937	2	2	available	\N	2026-06-26 00:46:37.670962	\N	\N
+1018	201	958	1	1	available	\N	2026-06-26 00:46:37.680151	\N	\N
+1019	201	958	2	2	available	\N	2026-06-26 00:46:37.688571	\N	\N
+1020	201	980	3	3	available	\N	2026-06-26 00:46:37.696737	\N	\N
+1021	201	1023	2	2	available	\N	2026-06-26 00:46:37.705684	\N	\N
+1022	201	1036	4	\N	partial	\N	2026-06-26 00:46:37.714482	\N	\N
+1023	201	1088	10	10	available	\N	2026-06-26 00:46:37.716937	\N	\N
+1024	201	1097	6	6	available	\N	2026-06-26 00:46:37.725424	\N	\N
+1025	201	1108	10	10	available	\N	2026-06-26 00:46:37.733911	\N	\N
+1026	201	1116	6	6	available	\N	2026-06-26 00:46:37.742715	\N	\N
+1027	201	1148	6	6	available	\N	2026-06-26 00:46:37.751057	\N	\N
+1028	201	1159	6	6	available	\N	2026-06-26 00:46:37.761182	\N	\N
+1029	201	1164	8	8	available	\N	2026-06-26 00:46:37.769489	\N	\N
+1030	201	1175	8	8	available	\N	2026-06-26 00:46:37.777417	\N	\N
+1031	201	1176	8	8	available	\N	2026-06-26 00:46:37.785336	\N	\N
+1032	201	1195	8	8	available	\N	2026-06-26 00:46:37.79312	\N	\N
+1033	202	922	1	1	available	\N	2026-06-26 00:46:37.806804	\N	\N
+1034	202	935	2	2	available	\N	2026-06-26 00:46:37.81551	\N	\N
+1035	202	937	2	2	available	\N	2026-06-26 00:46:37.823708	\N	\N
+1036	202	958	3	3	available	\N	2026-06-26 00:46:37.832262	\N	\N
+1037	202	958	2	2	available	\N	2026-06-26 00:46:37.840109	\N	\N
+1038	202	980	2	2	available	\N	2026-06-26 00:46:37.848381	\N	\N
+1039	202	1023	2	2	available	\N	2026-06-26 00:46:37.857028	\N	\N
+1040	202	1036	4	\N	partial	\N	2026-06-26 00:46:37.865041	\N	\N
+1041	202	1088	8	8	available	\N	2026-06-26 00:46:37.867662	\N	\N
+1042	202	1097	4	4	available	\N	2026-06-26 00:46:37.87588	\N	\N
+1043	202	1108	6	6	available	\N	2026-06-26 00:46:37.883866	\N	\N
+1044	202	1114	6	6	available	\N	2026-06-26 00:46:37.891388	\N	\N
+1045	202	1148	6	6	available	\N	2026-06-26 00:46:37.899062	\N	\N
+1046	202	1159	6	6	available	\N	2026-06-26 00:46:37.907093	\N	\N
+1047	202	1164	6	6	available	\N	2026-06-26 00:46:37.914763	\N	\N
+1048	202	1175	8	\N	partial	\N	2026-06-26 00:46:37.922951	\N	\N
+1049	202	1176	8	\N	partial	\N	2026-06-26 00:46:37.926012	\N	\N
+1050	202	1292	2	2	available	\N	2026-06-26 00:46:37.929301	\N	\N
+1051	203	966	3	3	available	\N	2026-06-26 00:46:37.94172	\N	\N
+1052	203	964	3	3	available	\N	2026-06-26 00:46:37.950388	\N	\N
+1053	203	1041	8	8	available	\N	2026-06-26 00:46:37.959554	\N	\N
+1054	203	1091	15	15	available	\N	2026-06-26 00:46:37.967738	\N	\N
+1055	203	1088	90	90	available	\N	2026-06-26 00:46:37.976189	\N	\N
+1056	203	1176	10	10	available	\N	2026-06-26 00:46:37.984621	\N	\N
+1057	203	1311	5	5	available	\N	2026-06-26 00:46:37.993069	\N	\N
+1058	203	1342	15	15	available	\N	2026-06-26 00:46:38.001293	\N	\N
+1059	204	1288	4	4	available	\N	2026-06-26 00:46:38.014402	\N	\N
+1060	205	959	3	3	available	\N	2026-06-26 00:46:38.027403	\N	\N
+1061	205	1087	6	6	available	\N	2026-06-26 00:46:38.036895	\N	\N
+1062	205	1308	4	4	available	\N	2026-06-26 00:46:38.045909	\N	\N
+1063	206	935	2	\N	pending	\N	2026-06-26 00:46:38.0577	\N	\N
+1064	206	973	2	\N	pending	\N	2026-06-26 00:46:38.060101	\N	\N
+1065	206	1042	6	\N	pending	\N	2026-06-26 00:46:38.064046	\N	\N
+1066	206	1288	3	\N	pending	\N	2026-06-26 00:46:38.068111	\N	\N
+1067	206	1306	2	\N	pending	\N	2026-06-26 00:46:38.071557	\N	\N
+1068	206	1323	3	\N	pending	\N	2026-06-26 00:46:38.077393	\N	\N
+1069	206	1408	1	\N	pending	\N	2026-06-26 00:46:38.148994	\N	\N
+1070	207	935	4	4	available	\N	2026-06-26 00:46:38.162503	\N	\N
+1071	207	958	3	3	available	\N	2026-06-26 00:46:38.171091	\N	\N
+1072	207	1088	10	10	available	\N	2026-06-26 00:46:38.183689	\N	\N
+1073	207	1108	10	10	available	\N	2026-06-26 00:46:38.192204	\N	\N
+1074	207	1159	8	8	available	\N	2026-06-26 00:46:38.201368	\N	\N
+1075	207	1175	8	8	available	\N	2026-06-26 00:46:38.209785	\N	\N
+1076	207	1176	8	8	available	\N	2026-06-26 00:46:38.21996	\N	\N
+1077	208	947	1	1	available	\N	2026-06-26 00:46:38.23189	\N	\N
+1078	208	950	2	2	available	\N	2026-06-26 00:46:38.240051	\N	\N
+1079	208	985	1	1	available	\N	2026-06-26 00:46:38.250349	\N	\N
+1080	208	1039	4	4	available	\N	2026-06-26 00:46:38.259518	\N	\N
+1081	208	1048	6	6	available	\N	2026-06-26 00:46:38.267363	\N	\N
+1082	208	1183	3	3	available	\N	2026-06-26 00:46:38.275942	\N	\N
+1083	208	1271	2	2	available	\N	2026-06-26 00:46:38.288876	\N	\N
+1084	208	1314	2	2	available	\N	2026-06-26 00:46:38.304646	\N	\N
+1085	208	1306	2	2	available	\N	2026-06-26 00:46:38.314643	\N	\N
+1086	209	1026	3	3	available	\N	2026-06-26 00:46:38.327537	\N	\N
+1087	210	958	2	2	available	\N	2026-06-26 00:46:38.341918	\N	\N
+1088	210	1055	8	8	available	\N	2026-06-26 00:46:38.351295	\N	\N
+1089	210	1089	8	8	available	\N	2026-06-26 00:46:38.363375	\N	\N
+1090	210	1103	6	6	available	\N	2026-06-26 00:46:38.373319	\N	\N
+1091	210	1108	10	10	available	\N	2026-06-26 00:46:38.381788	\N	\N
+1092	211	958	2	2	available	\N	2026-06-26 00:46:38.401831	\N	\N
+1093	211	1055	6	6	available	\N	2026-06-26 00:46:38.410571	\N	\N
+1094	211	1164	6	6	available	\N	2026-06-26 00:46:38.420318	\N	\N
+1095	212	1108	12	12	available	\N	2026-06-26 00:46:38.43376	\N	\N
+1096	212	1175	8	8	available	\N	2026-06-26 00:46:38.442531	\N	\N
+1097	212	1176	8	8	available	\N	2026-06-26 00:46:38.450889	\N	\N
+1098	212	1342	6	6	available	\N	2026-06-26 00:46:38.459565	\N	\N
+1099	212	1325	6	6	available	\N	2026-06-26 00:46:38.467943	\N	\N
+1100	213	959	2	2	available	\N	2026-06-26 00:46:38.481097	\N	\N
+1101	214	958	4	4	available	\N	2026-06-26 00:46:38.493819	\N	\N
+1102	214	958	3	3	available	\N	2026-06-26 00:46:38.502376	\N	\N
+1103	214	964	2	2	available	\N	2026-06-26 00:46:38.510835	\N	\N
+1104	214	958	2	2	available	\N	2026-06-26 00:46:38.519638	\N	\N
+1105	214	1026	2	2	available	\N	2026-06-26 00:46:38.528817	\N	\N
+1106	214	1023	3	3	available	\N	2026-06-26 00:46:38.536628	\N	\N
+1107	214	1039	6	6	available	\N	2026-06-26 00:46:38.545412	\N	\N
+1108	214	1055	6	6	available	\N	2026-06-26 00:46:38.553475	\N	\N
+1109	214	1055	12	12	available	\N	2026-06-26 00:46:38.565675	\N	\N
+1110	214	1089	8	8	available	\N	2026-06-26 00:46:38.573823	\N	\N
+1111	214	1103	6	6	available	\N	2026-06-26 00:46:38.582312	\N	\N
+1112	214	1143	6	6	available	\N	2026-06-26 00:46:38.594736	\N	\N
+1113	214	1156	6	6	available	\N	2026-06-26 00:46:38.608716	\N	\N
+1114	214	1159	10	10	available	\N	2026-06-26 00:46:38.618665	\N	\N
+1115	214	1167	8	8	available	\N	2026-06-26 00:46:38.626861	\N	\N
+1116	214	1175	6	6	available	\N	2026-06-26 00:46:38.635733	\N	\N
+1117	214	1288	3	3	available	\N	2026-06-26 00:46:38.961423	\N	\N
+1118	214	1308	4	4	available	\N	2026-06-26 00:46:38.971429	\N	\N
+1119	214	1311	3	3	available	\N	2026-06-26 00:46:38.980301	\N	\N
+1120	214	1365	3	3	available	\N	2026-06-26 00:46:38.989791	\N	\N
+1121	215	966	3	3	available	\N	2026-06-26 00:46:39.136736	\N	\N
+1122	215	973	2	2	available	\N	2026-06-26 00:46:39.145432	\N	\N
+1123	215	1041	15	15	available	\N	2026-06-26 00:46:39.156914	\N	\N
+1124	215	1055	8	\N	partial	\N	2026-06-26 00:46:39.166571	\N	\N
+1125	215	1087	6	6	available	\N	2026-06-26 00:46:39.170306	\N	\N
+1126	215	1091	48	48	available	\N	2026-06-26 00:46:39.179247	\N	\N
+1127	215	1088	10	10	available	\N	2026-06-26 00:46:39.188821	\N	\N
+1128	215	1101	6	6	available	\N	2026-06-26 00:46:39.198321	\N	\N
+1129	215	1103	6	6	available	\N	2026-06-26 00:46:39.207774	\N	\N
+1130	215	1111	6	6	available	\N	2026-06-26 00:46:39.217337	\N	\N
+1131	215	1108	10	10	available	\N	2026-06-26 00:46:39.226386	\N	\N
+1132	215	1197	10	10	available	\N	2026-06-26 00:46:39.235331	\N	\N
+1133	215	1159	6	6	available	\N	2026-06-26 00:46:39.244497	\N	\N
+1134	215	1167	8	8	available	\N	2026-06-26 00:46:39.253012	\N	\N
+1135	215	1176	10	10	available	\N	2026-06-26 00:46:39.262925	\N	\N
+1136	215	1143	6	6	available	\N	2026-06-26 00:46:39.271513	\N	\N
+1137	215	1278	6	6	available	\N	2026-06-26 00:46:39.28228	\N	\N
+1138	215	1288	4	4	available	\N	2026-06-26 00:46:39.291772	\N	\N
+1139	215	1311	4	4	available	\N	2026-06-26 00:46:39.300858	\N	\N
+1140	215	1342	20	20	available	\N	2026-06-26 00:46:39.310058	\N	\N
+1141	215	1370	4	4	available	\N	2026-06-26 00:46:39.320706	\N	\N
+1142	217	1055	14	14	available	\N	2026-06-26 00:46:39.33761	\N	\N
+1143	217	1143	2	2	available	\N	2026-06-26 00:46:39.346311	\N	\N
+1144	217	1342	4	4	available	\N	2026-06-26 00:46:39.355503	\N	\N
+1145	217	1323	2	2	available	\N	2026-06-26 00:46:39.366114	\N	\N
+1146	219	1599	3	3	available	\N	2026-06-26 00:46:39.416806	\N	\N
+1147	219	1545	15	15	available	\N	2026-06-26 00:46:39.426912	\N	\N
+1148	219	1612	6	6	available	\N	2026-06-26 00:46:39.435791	\N	\N
+1149	219	1613	8	8	available	\N	2026-06-26 00:46:39.449719	\N	\N
+1150	219	1617	8	8	available	\N	2026-06-26 00:46:39.460784	\N	\N
+1151	219	1585	6	6	available	\N	2026-06-26 00:46:39.470322	\N	\N
+1152	220	1546	6	6	available	\N	2026-06-26 00:46:39.486096	\N	\N
+1153	220	1559	2	2	available	\N	2026-06-26 00:46:39.495106	\N	\N
+1154	220	1599	2	2	available	\N	2026-06-26 00:46:39.504353	\N	\N
+1155	220	1591	2	2	available	\N	2026-06-26 00:46:39.513441	\N	\N
+1156	220	1545	8	8	available	\N	2026-06-26 00:46:39.522624	\N	\N
+1157	220	1636	20	20	available	\N	2026-06-26 00:46:39.532055	\N	\N
+1158	220	1613	6	\N	partial	\N	2026-06-26 00:46:39.541978	\N	\N
+1159	220	1613	8	8	available	\N	2026-06-26 00:46:39.54465	\N	\N
+1160	220	1592	6	6	available	\N	2026-06-26 00:46:39.55405	\N	\N
+1161	221	1559	3	\N	partial	\N	2026-06-26 00:46:39.569214	\N	\N
+1162	221	1585	10	10	available	\N	2026-06-26 00:46:39.573705	\N	\N
+1163	222	1591	2	2	available	\N	2026-06-26 00:46:39.588713	\N	\N
+1164	222	1545	10	10	available	\N	2026-06-26 00:46:39.59882	\N	\N
+1165	222	1612	8	8	available	\N	2026-06-26 00:46:39.608122	\N	\N
+1166	222	1636	30	30	available	\N	2026-06-26 00:46:39.61718	\N	\N
+1167	222	1613	15	15	available	\N	2026-06-26 00:46:39.630626	\N	\N
+1168	222	1613	4	4	available	\N	2026-06-26 00:46:39.640464	\N	\N
+1169	222	1613	6	6	available	\N	2026-06-26 00:46:39.648965	\N	\N
+1170	222	1592	10	10	available	\N	2026-06-26 00:46:39.657004	\N	\N
+1171	222	1637	25	25	available	\N	2026-06-26 00:46:39.665853	\N	\N
+1172	223	1612	6	6	available	\N	2026-06-26 00:46:39.680935	\N	\N
+1173	223	1636	15	15	available	\N	2026-06-26 00:46:39.689495	\N	\N
+1174	223	1613	30	\N	partial	\N	2026-06-26 00:46:39.699318	\N	\N
+1175	223	1613	6	6	available	\N	2026-06-26 00:46:39.701997	\N	\N
+1176	223	1613	6	6	available	\N	2026-06-26 00:46:39.710135	\N	\N
+1393	261	38	5	\N	pending	\N	2026-06-26 00:46:41.89388	\N	\N
+1177	223	1637	10	10	available	\N	2026-06-26 00:46:39.719711	\N	\N
+1178	224	1546	12	12	available	\N	2026-06-26 00:46:39.732445	\N	\N
+1179	224	1546	5	5	available	\N	2026-06-26 00:46:39.74033	\N	\N
+1180	224	1612	6	6	available	\N	2026-06-26 00:46:39.749219	\N	\N
+1181	224	1636	72	72	available	\N	2026-06-26 00:46:39.758204	\N	\N
+1182	224	1613	6	6	available	\N	2026-06-26 00:46:39.76718	\N	\N
+1183	224	1613	6	6	available	\N	2026-06-26 00:46:39.77787	\N	\N
+1184	225	1546	1	\N	pending	\N	2026-06-26 00:46:39.792227	\N	\N
+1185	225	1546	2	\N	pending	\N	2026-06-26 00:46:39.794822	\N	\N
+1186	226	1546	3	\N	partial	\N	2026-06-26 00:46:39.801646	\N	\N
+1187	226	1609	2	2	available	\N	2026-06-26 00:46:39.804458	\N	\N
+1188	226	1599	3	3	available	\N	2026-06-26 00:46:39.812859	\N	\N
+1189	226	1599	3	3	available	\N	2026-06-26 00:46:39.821139	\N	\N
+1190	226	1599	2	2	available	\N	2026-06-26 00:46:39.830144	\N	\N
+1191	226	1626	12	12	available	\N	2026-06-26 00:46:39.843604	\N	\N
+1192	226	1613	6	6	available	\N	2026-06-26 00:46:39.85287	\N	\N
+1193	227	1546	1	1	available	\N	2026-06-26 00:46:39.867491	\N	\N
+1194	227	1635	3	3	available	\N	2026-06-26 00:46:39.878861	\N	\N
+1195	227	1545	25	25	available	\N	2026-06-26 00:46:39.888736	\N	\N
+1196	227	1636	8	8	available	\N	2026-06-26 00:46:39.898205	\N	\N
+1197	227	1613	6	6	available	\N	2026-06-26 00:46:39.90782	\N	\N
+1198	227	1613	8	8	available	\N	2026-06-26 00:46:39.917402	\N	\N
+1199	227	1637	20	20	available	\N	2026-06-26 00:46:39.92771	\N	\N
+1200	228	1559	2	2	available	\N	2026-06-26 00:46:39.944144	\N	\N
+1201	228	1599	2	\N	partial	\N	2026-06-26 00:46:39.954029	\N	\N
+1202	228	1599	2	2	available	\N	2026-06-26 00:46:39.956886	\N	\N
+1203	228	1591	2	2	available	\N	2026-06-26 00:46:39.966211	\N	\N
+1204	228	1545	15	15	available	\N	2026-06-26 00:46:39.976089	\N	\N
+1205	228	1545	6	6	available	\N	2026-06-26 00:46:39.989359	\N	\N
+1206	228	1636	15	15	available	\N	2026-06-26 00:46:39.999684	\N	\N
+1207	228	1626	6	6	available	\N	2026-06-26 00:46:40.010275	\N	\N
+1208	228	1613	12	12	available	\N	2026-06-26 00:46:40.021061	\N	\N
+1209	229	1613	6	6	available	\N	2026-06-26 00:46:40.038689	\N	\N
+1210	230	1599	3	3	available	\N	2026-06-26 00:46:40.058275	\N	\N
+1211	230	1613	6	6	available	\N	2026-06-26 00:46:40.069685	\N	\N
+1212	230	1592	10	10	available	\N	2026-06-26 00:46:40.07962	\N	\N
+1213	231	1545	25	25	available	\N	2026-06-26 00:46:40.094435	\N	\N
+1214	231	1613	6	6	available	\N	2026-06-26 00:46:40.103964	\N	\N
+1215	231	1613	6	6	available	\N	2026-06-26 00:46:40.112644	\N	\N
+1216	232	1609	4	4	available	\N	2026-06-26 00:46:40.128249	\N	\N
+1217	232	1599	2	2	available	\N	2026-06-26 00:46:40.137751	\N	\N
+1218	232	1599	2	2	available	\N	2026-06-26 00:46:40.145842	\N	\N
+1219	232	1626	8	\N	partial	\N	2026-06-26 00:46:40.154527	\N	\N
+1220	233	1612	4	4	available	\N	2026-06-26 00:46:40.163008	\N	\N
+1221	234	1599	4	4	available	\N	2026-06-26 00:46:40.178192	\N	\N
+1222	234	1599	4	4	available	\N	2026-06-26 00:46:40.186596	\N	\N
+1223	234	1599	2	2	available	\N	2026-06-26 00:46:40.195624	\N	\N
+1224	234	1545	12	12	available	\N	2026-06-26 00:46:40.203439	\N	\N
+1225	234	1612	6	6	available	\N	2026-06-26 00:46:40.212491	\N	\N
+1226	234	1613	6	6	available	\N	2026-06-26 00:46:40.223657	\N	\N
+1227	234	1585	6	6	available	\N	2026-06-26 00:46:40.232009	\N	\N
+1228	235	1545	30	30	available	\N	2026-06-26 00:46:40.246282	\N	\N
+1229	235	1592	15	15	available	\N	2026-06-26 00:46:40.258175	\N	\N
+1230	235	1585	8	8	available	\N	2026-06-26 00:46:40.267924	\N	\N
+1231	236	1599	3	3	available	\N	2026-06-26 00:46:40.283643	\N	\N
+1232	236	1545	25	25	available	\N	2026-06-26 00:46:40.293307	\N	\N
+1233	236	1612	6	6	available	\N	2026-06-26 00:46:40.303091	\N	\N
+1234	236	1612	6	6	available	\N	2026-06-26 00:46:40.311858	\N	\N
+1235	236	1584	8	8	available	\N	2026-06-26 00:46:40.322016	\N	\N
+1236	236	1613	6	6	available	\N	2026-06-26 00:46:40.331329	\N	\N
+1237	236	1613	6	6	available	\N	2026-06-26 00:46:40.340066	\N	\N
+1238	236	1585	5	5	available	\N	2026-06-26 00:46:40.350057	\N	\N
+1239	237	1545	6	6	available	\N	2026-06-26 00:46:40.363383	\N	\N
+1240	237	1636	15	15	available	\N	2026-06-26 00:46:40.372137	\N	\N
+1241	237	1613	10	10	available	\N	2026-06-26 00:46:40.382258	\N	\N
+1242	237	1637	15	15	available	\N	2026-06-26 00:46:40.391526	\N	\N
+1243	238	1599	3	3	available	\N	2026-06-26 00:46:40.404272	\N	\N
+1244	238	1545	10	10	available	\N	2026-06-26 00:46:40.414305	\N	\N
+1245	238	1612	6	6	available	\N	2026-06-26 00:46:40.424128	\N	\N
+1246	238	1613	6	6	available	\N	2026-06-26 00:46:40.433909	\N	\N
+1247	238	1613	6	6	available	\N	2026-06-26 00:46:40.442211	\N	\N
+1248	239	1599	6	6	available	\N	2026-06-26 00:46:40.454328	\N	\N
+1249	239	1545	20	20	available	\N	2026-06-26 00:46:40.462544	\N	\N
+1250	239	1637	8	8	available	\N	2026-06-26 00:46:40.472325	\N	\N
+1251	240	1617	6	\N	pending	\N	2026-06-26 00:46:40.493672	\N	\N
+1252	241	1636	8	8	available	\N	2026-06-26 00:46:40.501806	\N	\N
+1253	241	1584	5	5	available	\N	2026-06-26 00:46:40.510504	\N	\N
+1254	241	1613	4	4	available	\N	2026-06-26 00:46:40.518709	\N	\N
+1255	241	1637	8	8	available	\N	2026-06-26 00:46:40.529088	\N	\N
+1256	242	1635	2	2	available	\N	2026-06-26 00:46:40.543695	\N	\N
+1257	242	1636	10	10	available	\N	2026-06-26 00:46:40.553359	\N	\N
+1258	242	1584	6	6	available	\N	2026-06-26 00:46:40.563272	\N	\N
+1259	242	1613	4	4	available	\N	2026-06-26 00:46:40.573966	\N	\N
+1260	242	1637	10	10	available	\N	2026-06-26 00:46:40.584424	\N	\N
+1261	243	1545	10	10	available	\N	2026-06-26 00:46:40.599664	\N	\N
+1262	243	1612	6	6	available	\N	2026-06-26 00:46:40.609798	\N	\N
+1263	243	1613	6	6	available	\N	2026-06-26 00:46:40.624096	\N	\N
+1264	243	1592	4	4	available	\N	2026-06-26 00:46:40.633085	\N	\N
+1265	244	1636	15	15	available	\N	2026-06-26 00:46:40.6482	\N	\N
+1266	244	1613	10	10	available	\N	2026-06-26 00:46:40.657664	\N	\N
+1267	246	1	2	2	available	\N	2026-06-26 00:46:40.692926	\N	\N
+1268	246	3	5	5	available	\N	2026-06-26 00:46:40.702769	\N	\N
+1269	246	16	6	6	available	\N	2026-06-26 00:46:40.711697	\N	\N
+1270	246	18	3	3	available	\N	2026-06-26 00:46:40.721978	\N	\N
+1271	246	24	10	10	available	\N	2026-06-26 00:46:40.731317	\N	\N
+1272	246	27	6	6	available	\N	2026-06-26 00:46:40.741687	\N	\N
+1273	246	30	6	6	available	\N	2026-06-26 00:46:40.750988	\N	\N
+1274	247	1	2	2	available	\N	2026-06-26 00:46:40.767033	\N	\N
+1275	247	3	2	2	available	\N	2026-06-26 00:46:40.776275	\N	\N
+1276	247	18	10	10	available	\N	2026-06-26 00:46:40.785215	\N	\N
+1277	247	24	10	10	available	\N	2026-06-26 00:46:40.795975	\N	\N
+1278	247	29	10	10	available	\N	2026-06-26 00:46:40.806084	\N	\N
+1279	247	36	2	2	available	\N	2026-06-26 00:46:40.819763	\N	\N
+1280	247	37	4	4	available	\N	2026-06-26 00:46:40.829631	\N	\N
+1281	248	1	4	4	available	\N	2026-06-26 00:46:40.843373	\N	\N
+1282	248	3	4	4	available	\N	2026-06-26 00:46:40.852544	\N	\N
+1283	248	13	23	23	available	\N	2026-06-26 00:46:40.86202	\N	\N
+1284	248	21	5	5	available	\N	2026-06-26 00:46:40.871811	\N	\N
+1285	248	24	6	6	available	\N	2026-06-26 00:46:40.881279	\N	\N
+1286	248	36	3	3	available	\N	2026-06-26 00:46:40.894832	\N	\N
+1287	248	37	4	\N	partial	\N	2026-06-26 00:46:40.904409	\N	\N
+1288	249	1	2	2	available	\N	2026-06-26 00:46:40.912093	\N	\N
+1289	249	13	6	6	available	\N	2026-06-26 00:46:40.922731	\N	\N
+1290	249	16	6	6	available	\N	2026-06-26 00:46:40.93258	\N	\N
+1291	249	17	6	6	available	\N	2026-06-26 00:46:40.944097	\N	\N
+1292	249	18	6	6	available	\N	2026-06-26 00:46:40.957861	\N	\N
+1293	249	21	6	6	available	\N	2026-06-26 00:46:40.967906	\N	\N
+1294	249	22	6	6	available	\N	2026-06-26 00:46:40.980613	\N	\N
+1295	249	23	10	10	available	\N	2026-06-26 00:46:40.990367	\N	\N
+1296	249	24	10	10	available	\N	2026-06-26 00:46:40.99953	\N	\N
+1297	249	30	3	3	available	\N	2026-06-26 00:46:41.008198	\N	\N
+1298	250	1	2	2	available	\N	2026-06-26 00:46:41.022182	\N	\N
+1299	250	36	1	1	available	\N	2026-06-26 00:46:41.031623	\N	\N
+1300	250	37	5	\N	partial	\N	2026-06-26 00:46:41.040545	\N	\N
+1301	251	1	2	2	available	\N	2026-06-26 00:46:41.047737	\N	\N
+1302	251	7	6	6	available	\N	2026-06-26 00:46:41.056426	\N	\N
+1303	251	11	4	4	available	\N	2026-06-26 00:46:41.065321	\N	\N
+1304	251	15	5	5	available	\N	2026-06-26 00:46:41.075916	\N	\N
+1305	251	17	5	5	available	\N	2026-06-26 00:46:41.086864	\N	\N
+1306	251	18	5	5	available	\N	2026-06-26 00:46:41.095815	\N	\N
+1307	251	24	10	10	available	\N	2026-06-26 00:46:41.103998	\N	\N
+1308	251	29	5	5	available	\N	2026-06-26 00:46:41.113859	\N	\N
+1309	251	30	3	3	available	\N	2026-06-26 00:46:41.122779	\N	\N
+1310	251	30	3	3	available	\N	2026-06-26 00:46:41.131662	\N	\N
+1311	251	32	3	3	available	\N	2026-06-26 00:46:41.141197	\N	\N
+1312	251	33	3	3	available	\N	2026-06-26 00:46:41.152015	\N	\N
+1313	251	38	5	\N	partial	\N	2026-06-26 00:46:41.161506	\N	\N
+1314	252	1	2	2	available	\N	2026-06-26 00:46:41.169178	\N	\N
+1315	252	4	1	1	available	\N	2026-06-26 00:46:41.179933	\N	\N
+1316	252	13	3	3	available	\N	2026-06-26 00:46:41.189208	\N	\N
+1317	252	14	19	19	available	\N	2026-06-26 00:46:41.200632	\N	\N
+1318	253	1	2	2	available	\N	2026-06-26 00:46:41.215456	\N	\N
+1319	253	18	2	2	available	\N	2026-06-26 00:46:41.225071	\N	\N
+1320	253	24	3	3	available	\N	2026-06-26 00:46:41.236327	\N	\N
+1321	253	36	2	2	available	\N	2026-06-26 00:46:41.246327	\N	\N
+1322	254	1	2	2	available	\N	2026-06-26 00:46:41.26158	\N	\N
+1323	255	1	2	2	available	\N	2026-06-26 00:46:41.276377	\N	\N
+1324	255	36	2	2	available	\N	2026-06-26 00:46:41.289137	\N	\N
+1325	256	1	2	2	available	\N	2026-06-26 00:46:41.303397	\N	\N
+1326	256	4	1	1	available	\N	2026-06-26 00:46:41.315771	\N	\N
+1327	256	9	5	5	available	\N	2026-06-26 00:46:41.328119	\N	\N
+1328	256	678	6	6	available	\N	2026-06-26 00:46:41.337983	\N	\N
+1329	256	7	3	3	available	\N	2026-06-26 00:46:41.348537	\N	\N
+1330	256	16	6	6	available	\N	2026-06-26 00:46:41.361314	\N	\N
+1331	256	7	6	6	available	\N	2026-06-26 00:46:41.372861	\N	\N
+1332	256	7	6	6	available	\N	2026-06-26 00:46:41.384292	\N	\N
+1333	256	27	6	6	available	\N	2026-06-26 00:46:41.394522	\N	\N
+1334	256	28	8	8	available	\N	2026-06-26 00:46:41.40592	\N	\N
+1335	256	29	3	3	available	\N	2026-06-26 00:46:41.416054	\N	\N
+1336	256	32	3	3	available	\N	2026-06-26 00:46:41.426363	\N	\N
+1337	256	35	3	3	available	\N	2026-06-26 00:46:41.435406	\N	\N
+1338	256	36	2	2	available	\N	2026-06-26 00:46:41.444811	\N	\N
+1339	256	37	4	4	available	\N	2026-06-26 00:46:41.453953	\N	\N
+1340	257	1	4	4	available	\N	2026-06-26 00:46:41.467299	\N	\N
+1341	257	4	1	1	available	\N	2026-06-26 00:46:41.476285	\N	\N
+1342	257	9	3	3	available	\N	2026-06-26 00:46:41.485273	\N	\N
+1343	257	7	2	2	available	\N	2026-06-26 00:46:41.495287	\N	\N
+1344	257	7	6	6	available	\N	2026-06-26 00:46:41.504303	\N	\N
+1345	257	27	6	6	available	\N	2026-06-26 00:46:41.513182	\N	\N
+1346	257	30	4	4	available	\N	2026-06-26 00:46:41.521948	\N	\N
+1347	257	32	6	6	available	\N	2026-06-26 00:46:41.531982	\N	\N
+1348	257	36	2	2	available	\N	2026-06-26 00:46:41.540801	\N	\N
+1349	257	37	4	4	available	\N	2026-06-26 00:46:41.55018	\N	\N
+1350	257	39	8	8	available	\N	2026-06-26 00:46:41.558701	\N	\N
+1351	258	1	5	5	available	\N	2026-06-26 00:46:41.571548	\N	\N
+1352	258	4	1	1	available	\N	2026-06-26 00:46:41.579547	\N	\N
+1353	258	9	3	3	available	\N	2026-06-26 00:46:41.588189	\N	\N
+1354	258	13	17	17	available	\N	2026-06-26 00:46:41.596863	\N	\N
+1355	258	7	3	3	available	\N	2026-06-26 00:46:41.605463	\N	\N
+1356	258	7	3	3	available	\N	2026-06-26 00:46:41.613554	\N	\N
+1357	258	27	3	3	available	\N	2026-06-26 00:46:41.621738	\N	\N
+1358	258	28	4	4	available	\N	2026-06-26 00:46:41.630642	\N	\N
+1359	258	30	5	5	available	\N	2026-06-26 00:46:41.640118	\N	\N
+1360	258	32	6	6	available	\N	2026-06-26 00:46:41.64902	\N	\N
+1361	258	36	2	2	available	\N	2026-06-26 00:46:41.65776	\N	\N
+1362	258	37	3	3	available	\N	2026-06-26 00:46:41.665898	\N	\N
+1363	258	39	10	10	available	\N	2026-06-26 00:46:41.673831	\N	\N
+1364	259	1	2	2	available	\N	2026-06-26 00:46:41.68734	\N	\N
+1365	259	6	6	6	available	\N	2026-06-26 00:46:41.696004	\N	\N
+1366	259	9	3	3	available	\N	2026-06-26 00:46:41.704318	\N	\N
+1367	259	13	6	\N	partial	\N	2026-06-26 00:46:41.712616	\N	\N
+1368	259	7	2	2	available	\N	2026-06-26 00:46:41.715796	\N	\N
+1369	259	7	4	4	available	\N	2026-06-26 00:46:41.724268	\N	\N
+1370	259	7	3	3	available	\N	2026-06-26 00:46:41.733104	\N	\N
+1371	259	27	6	6	available	\N	2026-06-26 00:46:41.741443	\N	\N
+1372	259	28	3	3	available	\N	2026-06-26 00:46:41.750516	\N	\N
+1373	259	30	2	\N	partial	\N	2026-06-26 00:46:41.758899	\N	\N
+1374	259	32	4	\N	partial	\N	2026-06-26 00:46:41.761438	\N	\N
+1375	259	34	2	2	available	\N	2026-06-26 00:46:41.764166	\N	\N
+1376	259	30	2	2	available	\N	2026-06-26 00:46:41.772579	\N	\N
+1377	260	5	3	3	available	\N	2026-06-26 00:46:41.785176	\N	\N
+1378	260	13	5	5	available	\N	2026-06-26 00:46:41.793789	\N	\N
+1379	260	16	3	3	available	\N	2026-06-26 00:46:41.803303	\N	\N
+1380	260	18	4	4	available	\N	2026-06-26 00:46:41.812826	\N	\N
+1381	260	20	5	5	available	\N	2026-06-26 00:46:41.821911	\N	\N
+1382	260	23	7	7	available	\N	2026-06-26 00:46:41.829803	\N	\N
+1383	260	28	3	3	available	\N	2026-06-26 00:46:41.83885	\N	\N
+1384	260	29	4	4	available	\N	2026-06-26 00:46:41.847026	\N	\N
+1385	260	37	6	6	available	\N	2026-06-26 00:46:41.855492	\N	\N
+1386	260	39	10	10	available	\N	2026-06-26 00:46:41.866152	\N	\N
+1387	261	6	11	\N	pending	\N	2026-06-26 00:46:41.878405	\N	\N
+1388	261	18	4	\N	pending	\N	2026-06-26 00:46:41.880971	\N	\N
+1389	261	19	4	\N	pending	\N	2026-06-26 00:46:41.883456	\N	\N
+1390	261	23	8	\N	pending	\N	2026-06-26 00:46:41.885854	\N	\N
+1391	261	24	8	\N	pending	\N	2026-06-26 00:46:41.888613	\N	\N
+1392	261	30	2	\N	pending	\N	2026-06-26 00:46:41.891293	\N	\N
+1394	262	8	3	3	available	\N	2026-06-26 00:46:41.900197	\N	\N
+1395	262	9	5	5	available	\N	2026-06-26 00:46:41.909118	\N	\N
+1396	262	10	6	6	available	\N	2026-06-26 00:46:41.917139	\N	\N
+1397	262	11	3	3	available	\N	2026-06-26 00:46:41.925476	\N	\N
+1398	262	13	6	6	available	\N	2026-06-26 00:46:41.933369	\N	\N
+1399	262	16	5	5	available	\N	2026-06-26 00:46:41.942825	\N	\N
+1400	262	21	10	10	available	\N	2026-06-26 00:46:41.952185	\N	\N
+1401	262	23	5	5	available	\N	2026-06-26 00:46:41.961058	\N	\N
+1402	262	24	10	10	available	\N	2026-06-26 00:46:41.969409	\N	\N
+1403	262	26	5	5	available	\N	2026-06-26 00:46:41.97775	\N	\N
+1404	262	28	5	5	available	\N	2026-06-26 00:46:41.989848	\N	\N
+1405	263	8	4	4	available	\N	2026-06-26 00:46:42.004071	\N	\N
+1406	263	9	4	4	available	\N	2026-06-26 00:46:42.012575	\N	\N
+1407	263	12	5	5	available	\N	2026-06-26 00:46:42.021655	\N	\N
+1408	263	17	4	4	available	\N	2026-06-26 00:46:42.029777	\N	\N
+1409	263	18	4	4	available	\N	2026-06-26 00:46:42.037966	\N	\N
+1410	263	25	4	4	available	\N	2026-06-26 00:46:42.046439	\N	\N
+1411	263	28	3	3	available	\N	2026-06-26 00:46:42.055172	\N	\N
+1412	263	32	3	3	available	\N	2026-06-26 00:46:42.063415	\N	\N
+1413	263	33	3	3	available	\N	2026-06-26 00:46:42.071239	\N	\N
+1414	263	34	3	3	available	\N	2026-06-26 00:46:42.080013	\N	\N
+1415	263	35	2	2	available	\N	2026-06-26 00:46:42.088912	\N	\N
+1416	263	36	2	2	available	\N	2026-06-26 00:46:42.097203	\N	\N
+1417	263	37	4	4	available	\N	2026-06-26 00:46:42.105459	\N	\N
+1418	263	38	4	4	available	\N	2026-06-26 00:46:42.116892	\N	\N
+1419	264	7	7	\N	pending	\N	2026-06-26 00:46:42.129685	\N	\N
+1420	265	18	9	9	available	\N	2026-06-26 00:46:42.136106	\N	\N
+1421	265	24	56	56	available	\N	2026-06-26 00:46:42.144776	\N	\N
+1422	266	23	10	10	available	\N	2026-06-26 00:46:42.157276	\N	\N
+1423	267	40	10	10	available	\N	2026-06-26 00:46:42.171313	\N	\N
+1424	268	45	3	3	available	\N	2026-06-26 00:46:42.188196	\N	\N
+1425	268	60	21	21	available	\N	2026-06-26 00:46:42.197888	\N	\N
+1426	269	45	3	3	available	\N	2026-06-26 00:46:42.211193	\N	\N
+1427	269	60	12	12	available	\N	2026-06-26 00:46:42.220427	\N	\N
+1428	270	46	7	7	available	\N	2026-06-26 00:46:42.23332	\N	\N
+1429	270	47	5	5	available	\N	2026-06-26 00:46:42.241736	\N	\N
+1430	270	60	15	15	available	\N	2026-06-26 00:46:42.250428	\N	\N
+1431	272	60	10	10	available	\N	2026-06-26 00:46:42.268741	\N	\N
+1432	273	60	30	30	available	\N	2026-06-26 00:46:42.281359	\N	\N
+1433	274	60	20	20	available	\N	2026-06-26 00:46:42.294792	\N	\N
+1434	275	60	10	10	available	\N	2026-06-26 00:46:42.308054	\N	\N
+1435	277	60	20	20	available	\N	2026-06-26 00:46:42.326459	\N	\N
+1436	279	85	4	4	available	\N	2026-06-26 00:46:42.344924	\N	\N
+1437	280	85	2	2	available	\N	2026-06-26 00:46:42.357653	\N	\N
+1438	280	113	2	2	available	\N	2026-06-26 00:46:42.366501	\N	\N
+1439	280	114	1	1	available	\N	2026-06-26 00:46:42.374505	\N	\N
+1440	280	116	1	1	available	\N	2026-06-26 00:46:42.382857	\N	\N
+1441	280	117	1	1	available	\N	2026-06-26 00:46:42.391225	\N	\N
+1442	280	118	1	1	available	\N	2026-06-26 00:46:42.399863	\N	\N
+1443	280	119	1	1	available	\N	2026-06-26 00:46:42.408829	\N	\N
+1444	280	120	2	2	available	\N	2026-06-26 00:46:42.417329	\N	\N
+1445	281	87	5	5	available	\N	2026-06-26 00:46:42.431894	\N	\N
+1446	281	115	1	1	available	\N	2026-06-26 00:46:42.449046	\N	\N
+1447	281	116	2	2	available	\N	2026-06-26 00:46:42.461734	\N	\N
+1448	281	117	2	2	available	\N	2026-06-26 00:46:42.473297	\N	\N
+1449	281	118	2	2	available	\N	2026-06-26 00:46:42.484071	\N	\N
+1450	281	119	2	2	available	\N	2026-06-26 00:46:42.49282	\N	\N
+1451	282	87	3	3	available	\N	2026-06-26 00:46:42.506422	\N	\N
+1452	282	90	1	1	available	\N	2026-06-26 00:46:42.514723	\N	\N
+1453	282	93	3	3	available	\N	2026-06-26 00:46:42.526477	\N	\N
+1454	282	103	1	1	available	\N	2026-06-26 00:46:42.535327	\N	\N
+1455	282	112	6	6	available	\N	2026-06-26 00:46:42.54477	\N	\N
+1456	282	113	1	1	available	\N	2026-06-26 00:46:42.553876	\N	\N
+1457	282	116	1	1	available	\N	2026-06-26 00:46:42.56229	\N	\N
+1458	283	87	6	6	available	\N	2026-06-26 00:46:42.574761	\N	\N
+1459	284	87	12	12	available	\N	2026-06-26 00:46:42.587834	\N	\N
+1460	284	92	2	2	available	\N	2026-06-26 00:46:42.595792	\N	\N
+1461	284	100	2	2	available	\N	2026-06-26 00:46:42.604402	\N	\N
+1462	284	108	3	3	available	\N	2026-06-26 00:46:42.612954	\N	\N
+1463	284	111	3	3	available	\N	2026-06-26 00:46:42.627101	\N	\N
+1464	284	113	2	2	available	\N	2026-06-26 00:46:42.635836	\N	\N
+1465	284	114	2	2	available	\N	2026-06-26 00:46:42.644145	\N	\N
+1466	284	115	1	1	available	\N	2026-06-26 00:46:42.653218	\N	\N
+1467	284	116	3	3	available	\N	2026-06-26 00:46:42.66116	\N	\N
+1468	284	117	6	6	available	\N	2026-06-26 00:46:42.669525	\N	\N
+1469	284	118	2	2	available	\N	2026-06-26 00:46:42.678616	\N	\N
+1470	284	119	4	4	available	\N	2026-06-26 00:46:42.686603	\N	\N
+1471	284	120	5	5	available	\N	2026-06-26 00:46:42.695478	\N	\N
+1472	285	87	5	5	available	\N	2026-06-26 00:46:42.708006	\N	\N
+1473	285	89	3	3	available	\N	2026-06-26 00:46:42.716321	\N	\N
+1474	285	97	3	3	available	\N	2026-06-26 00:46:42.726017	\N	\N
+1475	285	114	1	1	available	\N	2026-06-26 00:46:42.734188	\N	\N
+1476	285	115	1	1	available	\N	2026-06-26 00:46:42.743707	\N	\N
+1477	285	116	1	1	available	\N	2026-06-26 00:46:42.751863	\N	\N
+1478	285	118	1	1	available	\N	2026-06-26 00:46:42.760302	\N	\N
+1479	285	120	1	1	available	\N	2026-06-26 00:46:42.768892	\N	\N
+1480	286	87	2	2	available	\N	2026-06-26 00:46:42.782212	\N	\N
+1481	286	94	2	2	available	\N	2026-06-26 00:46:42.790044	\N	\N
+1482	286	130	2	2	available	\N	2026-06-26 00:46:42.798235	\N	\N
+1483	287	113	2	2	available	\N	2026-06-26 00:46:42.812059	\N	\N
+1484	287	114	1	1	available	\N	2026-06-26 00:46:42.820599	\N	\N
+1485	287	115	1	1	available	\N	2026-06-26 00:46:42.82955	\N	\N
+1486	287	116	2	2	available	\N	2026-06-26 00:46:42.838344	\N	\N
+1487	287	117	2	2	available	\N	2026-06-26 00:46:42.846898	\N	\N
+1488	287	118	2	2	available	\N	2026-06-26 00:46:42.854975	\N	\N
+1489	287	119	2	2	available	\N	2026-06-26 00:46:42.86376	\N	\N
+1490	287	120	2	2	available	\N	2026-06-26 00:46:42.872911	\N	\N
+1491	288	113	2	2	available	\N	2026-06-26 00:46:42.886124	\N	\N
+1492	288	114	1	1	available	\N	2026-06-26 00:46:42.894689	\N	\N
+1493	288	115	1	1	available	\N	2026-06-26 00:46:42.903123	\N	\N
+1494	288	116	1	1	available	\N	2026-06-26 00:46:42.917201	\N	\N
+1495	288	117	1	1	available	\N	2026-06-26 00:46:42.930288	\N	\N
+1496	288	118	1	1	available	\N	2026-06-26 00:46:42.938679	\N	\N
+1497	288	119	2	2	available	\N	2026-06-26 00:46:42.94711	\N	\N
+1498	288	120	1	1	available	\N	2026-06-26 00:46:42.955422	\N	\N
+1499	289	114	1	1	available	\N	2026-06-26 00:46:42.969176	\N	\N
+1500	289	115	1	1	available	\N	2026-06-26 00:46:42.977952	\N	\N
+1501	289	116	2	2	available	\N	2026-06-26 00:46:42.986182	\N	\N
+1502	289	117	1	1	available	\N	2026-06-26 00:46:42.995024	\N	\N
+1503	289	118	2	2	available	\N	2026-06-26 00:46:43.003884	\N	\N
+1504	289	119	1	1	available	\N	2026-06-26 00:46:43.013118	\N	\N
+1505	289	129	2	2	available	\N	2026-06-26 00:46:43.02253	\N	\N
+1506	289	130	2	2	available	\N	2026-06-26 00:46:43.031175	\N	\N
+1507	290	114	2	2	available	\N	2026-06-26 00:46:43.044279	\N	\N
+1508	290	116	2	2	available	\N	2026-06-26 00:46:43.052542	\N	\N
+1509	290	117	2	2	available	\N	2026-06-26 00:46:43.060541	\N	\N
+1510	290	118	2	2	available	\N	2026-06-26 00:46:43.069353	\N	\N
+1511	290	119	3	3	available	\N	2026-06-26 00:46:43.079993	\N	\N
+1512	290	120	2	2	available	\N	2026-06-26 00:46:43.088253	\N	\N
+1513	290	129	2	2	available	\N	2026-06-26 00:46:43.096345	\N	\N
+1514	290	130	2	2	available	\N	2026-06-26 00:46:43.105983	\N	\N
+1515	291	116	2	2	available	\N	2026-06-26 00:46:43.119319	\N	\N
+1516	291	117	1	1	available	\N	2026-06-26 00:46:43.128193	\N	\N
+1517	291	118	1	1	available	\N	2026-06-26 00:46:43.137046	\N	\N
+1518	291	119	1	1	available	\N	2026-06-26 00:46:43.145889	\N	\N
+1519	291	120	2	2	available	\N	2026-06-26 00:46:43.153998	\N	\N
+1520	292	131	2	2	available	\N	2026-06-26 00:46:43.170373	\N	\N
+1521	292	142	8	8	available	\N	2026-06-26 00:46:43.178858	\N	\N
+1522	293	134	24	24	available	\N	2026-06-26 00:46:43.192537	\N	\N
+1523	293	138	24	24	available	\N	2026-06-26 00:46:43.201224	\N	\N
+1524	293	139	12	12	available	\N	2026-06-26 00:46:43.21018	\N	\N
+1525	293	142	8	8	available	\N	2026-06-26 00:46:43.219464	\N	\N
+1526	293	157	5	5	available	\N	2026-06-26 00:46:43.228233	\N	\N
+1527	293	160	8	8	available	\N	2026-06-26 00:46:43.237366	\N	\N
+1528	293	167	6	6	available	\N	2026-06-26 00:46:43.245624	\N	\N
+1529	293	171	2	2	available	\N	2026-06-26 00:46:43.253864	\N	\N
+1530	294	136	2	2	available	\N	2026-06-26 00:46:43.270699	\N	\N
+1531	294	137	2	2	available	\N	2026-06-26 00:46:43.279799	\N	\N
+1532	294	141	6	6	available	\N	2026-06-26 00:46:43.288768	\N	\N
+1533	294	142	6	6	available	\N	2026-06-26 00:46:43.297875	\N	\N
+1534	294	150	4	4	available	\N	2026-06-26 00:46:43.30669	\N	\N
+1535	294	158	12	12	available	\N	2026-06-26 00:46:43.314986	\N	\N
+1536	294	159	20	20	available	\N	2026-06-26 00:46:43.323467	\N	\N
+1537	294	166	1	1	available	\N	2026-06-26 00:46:43.334846	\N	\N
+1538	295	139	6	6	available	\N	2026-06-26 00:46:43.351818	\N	\N
+1539	295	142	6	6	available	\N	2026-06-26 00:46:43.36221	\N	\N
+1540	296	142	6	6	available	\N	2026-06-26 00:46:43.375839	\N	\N
+1541	296	142	6	6	available	\N	2026-06-26 00:46:43.389507	\N	\N
+1542	296	142	6	6	available	\N	2026-06-26 00:46:43.397946	\N	\N
+1543	296	148	6	6	available	\N	2026-06-26 00:46:43.407666	\N	\N
+1544	297	145	10	10	available	\N	2026-06-26 00:46:43.421035	\N	\N
+1545	297	146	10	10	available	\N	2026-06-26 00:46:43.429476	\N	\N
+1546	297	148	15	15	available	\N	2026-06-26 00:46:43.443239	\N	\N
+1547	297	150	8	8	available	\N	2026-06-26 00:46:43.453837	\N	\N
+1548	297	157	10	10	available	\N	2026-06-26 00:46:43.462496	\N	\N
+1549	297	163	4	4	available	\N	2026-06-26 00:46:43.473657	\N	\N
+1550	298	145	10	10	available	\N	2026-06-26 00:46:43.486521	\N	\N
+1551	298	146	10	10	available	\N	2026-06-26 00:46:43.495435	\N	\N
+1552	298	148	15	15	available	\N	2026-06-26 00:46:43.50373	\N	\N
+1553	298	150	8	8	available	\N	2026-06-26 00:46:43.511842	\N	\N
+1554	298	163	4	4	available	\N	2026-06-26 00:46:43.521562	\N	\N
+1555	299	148	4	4	available	\N	2026-06-26 00:46:43.534737	\N	\N
+1556	299	163	4	4	available	\N	2026-06-26 00:46:43.54395	\N	\N
+1557	299	170	6	6	available	\N	2026-06-26 00:46:43.553121	\N	\N
+1558	300	150	1	1	available	\N	2026-06-26 00:46:43.565998	\N	\N
+1561	302	1554	1	\N	\N	\N	2026-06-30 13:43:14.432248	\N	\N
+1562	302	1626	1	\N	\N	\N	2026-06-30 13:43:14.432248	\N	\N
+\.
+
+
+--
+-- Data for Name: orders; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.orders (id, vendor_id, week_date, ship_date, arrive_date, status, notes, created_at, updated_at, confirm_token, email_sent_at) FROM stdin;
+53	10	06/15/2026	06/15/2026	06/18/2026	received	\N	2026-06-26 00:46:28.999662	2026-06-26 00:46:28.999662	\N	\N
+1	7	05/08/2026	\N	\N	confirmed	\N	2026-05-02 21:21:08.177798	2026-05-02 23:06:18.301	\N	\N
+2	9	05/08/2026	\N	\N	sent	\N	2026-05-02 22:42:03.708308	2026-05-02 23:40:23.687	\N	\N
+54	10	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:29.051852	2026-06-26 00:46:29.051852	\N	\N
+55	10	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:29.11241	2026-06-26 00:46:29.11241	\N	\N
+3	14	06/17/2026	\N	\N	sent	\N	2026-06-11 23:46:40.118109	2026-06-11 23:52:58.817	dc2d627f-2f13-4f02-8b4f-4e68ac8fbfa1	2026-06-11 23:52:58.817
+4	14	06/17/2026	\N	\N	draft	\N	2026-06-12 00:14:45.653189	2026-06-12 00:14:45.653189	\N	\N
+5	14	06/19/2026	\N	\N	draft	\N	2026-06-13 13:54:37.351585	2026-06-13 13:54:37.351585	\N	\N
+56	10	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:29.198764	2026-06-26 00:46:29.198764	\N	\N
+57	10	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:29.232849	2026-06-26 00:46:29.232849	\N	\N
+58	10	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:29.722894	2026-06-26 00:46:29.722894	\N	\N
+59	10	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:29.809133	2026-06-26 00:46:29.809133	\N	\N
+60	10	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:29.828988	2026-06-26 00:46:29.828988	\N	\N
+9	14	06/23/2026	\N	\N	received	\N	2026-06-17 12:26:15.935842	2026-06-20 13:18:19.358	86d01e9c-acbf-49a4-bda1-8592f0cb514e	2026-06-17 12:26:45.139
+61	10	07/20/2026	07/20/2026	07/23/2026	draft	\N	2026-06-26 00:46:29.869416	2026-06-26 00:46:29.869416	\N	\N
+62	10	06/29/2026	06/29/2026	07/02/2026	draft	\N	2026-06-26 00:46:29.876627	2026-06-26 00:46:29.876627	\N	\N
+8	16	06/23/2026	\N	\N	received	\N	2026-06-17 12:04:36.892668	2026-06-26 00:07:10.322	\N	\N
+63	11	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:29.889136	2026-06-26 00:46:29.889136	\N	\N
+64	11	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:29.951677	2026-06-26 00:46:29.951677	\N	\N
+7	8	06/19/2026	\N	\N	received	\N	2026-06-13 14:46:46.670219	2026-06-26 00:10:49.12	\N	\N
+65	11	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:30.005431	2026-06-26 00:46:30.005431	\N	\N
+66	11	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:30.05763	2026-06-26 00:46:30.05763	\N	\N
+6	8	06/19/2026	\N	\N	received	\N	2026-06-13 14:40:48.216936	2026-06-26 00:16:59.222	\N	\N
+10	6	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:45:51.556366	2026-06-26 00:45:51.556366	\N	\N
+11	6	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:09.863431	2026-06-26 00:46:09.863431	\N	\N
+12	6	02/02/2026	02/02/2026	02/05/2026	received	\N	2026-06-26 00:46:26.137404	2026-06-26 00:46:26.137404	\N	\N
+13	6	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:26.172439	2026-06-26 00:46:26.172439	\N	\N
+14	7	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:26.201903	2026-06-26 00:46:26.201903	\N	\N
+15	7	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:26.298806	2026-06-26 00:46:26.298806	\N	\N
+16	7	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:26.411469	2026-06-26 00:46:26.411469	\N	\N
+17	7	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:26.456622	2026-06-26 00:46:26.456622	\N	\N
+18	7	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:26.503046	2026-06-26 00:46:26.503046	\N	\N
+19	7	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:26.523515	2026-06-26 00:46:26.523515	\N	\N
+20	7	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:26.53704	2026-06-26 00:46:26.53704	\N	\N
+21	7	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:26.571897	2026-06-26 00:46:26.571897	\N	\N
+22	7	02/02/2026	02/02/2026	02/05/2026	received	\N	2026-06-26 00:46:26.602033	2026-06-26 00:46:26.602033	\N	\N
+23	7	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:26.665525	2026-06-26 00:46:26.665525	\N	\N
+24	8	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:26.706091	2026-06-26 00:46:26.706091	\N	\N
+25	8	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:26.735469	2026-06-26 00:46:26.735469	\N	\N
+26	8	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:27.064433	2026-06-26 00:46:27.064433	\N	\N
+27	8	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:27.246032	2026-06-26 00:46:27.246032	\N	\N
+28	8	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:27.304048	2026-06-26 00:46:27.304048	\N	\N
+29	8	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:27.32931	2026-06-26 00:46:27.32931	\N	\N
+30	8	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:27.342301	2026-06-26 00:46:27.342301	\N	\N
+31	8	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:27.398054	2026-06-26 00:46:27.398054	\N	\N
+32	8	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:27.428643	2026-06-26 00:46:27.428643	\N	\N
+33	8	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:27.440819	2026-06-26 00:46:27.440819	\N	\N
+34	8	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:27.452072	2026-06-26 00:46:27.452072	\N	\N
+35	8	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:27.499022	2026-06-26 00:46:27.499022	\N	\N
+36	8	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:27.504899	2026-06-26 00:46:27.504899	\N	\N
+37	10	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:27.572342	2026-06-26 00:46:27.572342	\N	\N
+38	10	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:27.602407	2026-06-26 00:46:27.602407	\N	\N
+39	10	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:27.625147	2026-06-26 00:46:27.625147	\N	\N
+40	10	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:27.824964	2026-06-26 00:46:27.824964	\N	\N
+41	10	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:28.087063	2026-06-26 00:46:28.087063	\N	\N
+42	10	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:28.121296	2026-06-26 00:46:28.121296	\N	\N
+43	10	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:28.319992	2026-06-26 00:46:28.319992	\N	\N
+44	10	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:28.370398	2026-06-26 00:46:28.370398	\N	\N
+45	10	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:28.597568	2026-06-26 00:46:28.597568	\N	\N
+46	10	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:28.67954	2026-06-26 00:46:28.67954	\N	\N
+47	10	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:28.690329	2026-06-26 00:46:28.690329	\N	\N
+48	10	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:28.730141	2026-06-26 00:46:28.730141	\N	\N
+49	10	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:28.815296	2026-06-26 00:46:28.815296	\N	\N
+50	10	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:28.890768	2026-06-26 00:46:28.890768	\N	\N
+51	10	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:28.925295	2026-06-26 00:46:28.925295	\N	\N
+52	10	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:28.956844	2026-06-26 00:46:28.956844	\N	\N
+67	11	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:30.090111	2026-06-26 00:46:30.090111	\N	\N
+68	11	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:30.109241	2026-06-26 00:46:30.109241	\N	\N
+69	11	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:30.168916	2026-06-26 00:46:30.168916	\N	\N
+70	11	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:30.232225	2026-06-26 00:46:30.232225	\N	\N
+71	11	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:30.282245	2026-06-26 00:46:30.282245	\N	\N
+72	11	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:30.346633	2026-06-26 00:46:30.346633	\N	\N
+73	11	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:30.390975	2026-06-26 00:46:30.390975	\N	\N
+74	11	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:30.440267	2026-06-26 00:46:30.440267	\N	\N
+75	11	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:30.464831	2026-06-26 00:46:30.464831	\N	\N
+76	11	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:30.497601	2026-06-26 00:46:30.497601	\N	\N
+77	12	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:30.694482	2026-06-26 00:46:30.694482	\N	\N
+78	12	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:30.710602	2026-06-26 00:46:30.710602	\N	\N
+79	12	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:30.753944	2026-06-26 00:46:30.753944	\N	\N
+80	12	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:30.79641	2026-06-26 00:46:30.79641	\N	\N
+81	12	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:30.84542	2026-06-26 00:46:30.84542	\N	\N
+82	12	02/04/2026	02/04/2026	02/09/2026	received	\N	2026-06-26 00:46:30.888511	2026-06-26 00:46:30.888511	\N	\N
+83	12	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:30.924726	2026-06-26 00:46:30.924726	\N	\N
+84	12	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:30.973329	2026-06-26 00:46:30.973329	\N	\N
+85	12	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:31.015044	2026-06-26 00:46:31.015044	\N	\N
+86	12	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:31.057935	2026-06-26 00:46:31.057935	\N	\N
+87	12	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:31.110657	2026-06-26 00:46:31.110657	\N	\N
+88	12	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:31.166923	2026-06-26 00:46:31.166923	\N	\N
+89	12	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:31.210635	2026-06-26 00:46:31.210635	\N	\N
+90	12	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:31.252196	2026-06-26 00:46:31.252196	\N	\N
+91	12	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:31.292888	2026-06-26 00:46:31.292888	\N	\N
+92	12	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:31.33854	2026-06-26 00:46:31.33854	\N	\N
+93	12	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:31.379606	2026-06-26 00:46:31.379606	\N	\N
+94	12	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:31.434325	2026-06-26 00:46:31.434325	\N	\N
+95	12	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:31.490538	2026-06-26 00:46:31.490538	\N	\N
+96	12	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:31.546949	2026-06-26 00:46:31.546949	\N	\N
+97	12	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:31.688098	2026-06-26 00:46:31.688098	\N	\N
+98	12	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:31.73948	2026-06-26 00:46:31.73948	\N	\N
+99	12	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:31.780867	2026-06-26 00:46:31.780867	\N	\N
+100	12	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:31.833487	2026-06-26 00:46:31.833487	\N	\N
+101	12	06/15/2026	06/15/2026	06/18/2026	received	\N	2026-06-26 00:46:31.870204	2026-06-26 00:46:31.870204	\N	\N
+102	12	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:31.906498	2026-06-26 00:46:31.906498	\N	\N
+103	12	06/29/2026	06/29/2026	07/02/2026	draft	\N	2026-06-26 00:46:31.938245	2026-06-26 00:46:31.938245	\N	\N
+104	13	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:31.97546	2026-06-26 00:46:31.97546	\N	\N
+105	13	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:32.015011	2026-06-26 00:46:32.015011	\N	\N
+106	13	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:32.131982	2026-06-26 00:46:32.131982	\N	\N
+107	13	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:32.203515	2026-06-26 00:46:32.203515	\N	\N
+108	13	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:32.272784	2026-06-26 00:46:32.272784	\N	\N
+109	13	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:32.416729	2026-06-26 00:46:32.416729	\N	\N
+110	13	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:32.576202	2026-06-26 00:46:32.576202	\N	\N
+111	13	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:32.653181	2026-06-26 00:46:32.653181	\N	\N
+112	13	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:32.763095	2026-06-26 00:46:32.763095	\N	\N
+113	13	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:32.857101	2026-06-26 00:46:32.857101	\N	\N
+114	13	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:32.988938	2026-06-26 00:46:32.988938	\N	\N
+115	13	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:33.270847	2026-06-26 00:46:33.270847	\N	\N
+116	13	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:33.392954	2026-06-26 00:46:33.392954	\N	\N
+117	13	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:33.502935	2026-06-26 00:46:33.502935	\N	\N
+118	13	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:33.694906	2026-06-26 00:46:33.694906	\N	\N
+119	13	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:33.756731	2026-06-26 00:46:33.756731	\N	\N
+120	13	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:33.807954	2026-06-26 00:46:33.807954	\N	\N
+121	13	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:33.873632	2026-06-26 00:46:33.873632	\N	\N
+122	13	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:33.952737	2026-06-26 00:46:33.952737	\N	\N
+123	13	06/15/2026	06/15/2026	06/18/2026	received	\N	2026-06-26 00:46:34.008903	2026-06-26 00:46:34.008903	\N	\N
+124	13	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:34.090746	2026-06-26 00:46:34.090746	\N	\N
+125	13	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:34.155901	2026-06-26 00:46:34.155901	\N	\N
+126	13	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:34.203106	2026-06-26 00:46:34.203106	\N	\N
+127	13	07/27/2026	07/27/2026	07/30/2026	draft	\N	2026-06-26 00:46:34.454885	2026-06-26 00:46:34.454885	\N	\N
+128	13	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:34.462575	2026-06-26 00:46:34.462575	\N	\N
+129	13	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:34.49792	2026-06-26 00:46:34.49792	\N	\N
+130	14	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:34.524996	2026-06-26 00:46:34.524996	\N	\N
+131	14	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:34.530877	2026-06-26 00:46:34.530877	\N	\N
+132	14	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:34.537746	2026-06-26 00:46:34.537746	\N	\N
+133	14	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:34.545004	2026-06-26 00:46:34.545004	\N	\N
+134	14	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:34.551956	2026-06-26 00:46:34.551956	\N	\N
+135	14	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:34.557853	2026-06-26 00:46:34.557853	\N	\N
+136	14	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:34.563352	2026-06-26 00:46:34.563352	\N	\N
+137	14	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:34.568912	2026-06-26 00:46:34.568912	\N	\N
+138	14	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:34.575534	2026-06-26 00:46:34.575534	\N	\N
+139	14	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:34.581339	2026-06-26 00:46:34.581339	\N	\N
+140	14	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:34.586039	2026-06-26 00:46:34.586039	\N	\N
+141	14	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:34.590528	2026-06-26 00:46:34.590528	\N	\N
+142	14	06/29/2026	06/29/2026	07/02/2026	draft	\N	2026-06-26 00:46:34.599039	2026-06-26 00:46:34.599039	\N	\N
+143	14	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:34.603906	2026-06-26 00:46:34.603906	\N	\N
+144	14	12/29/2025	12/29/2025	01/02/2026	received	\N	2026-06-26 00:46:34.609553	2026-06-26 00:46:34.609553	\N	\N
+145	15	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:34.670242	2026-06-26 00:46:34.670242	\N	\N
+146	15	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:34.687485	2026-06-26 00:46:34.687485	\N	\N
+147	15	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:34.693575	2026-06-26 00:46:34.693575	\N	\N
+148	15	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:34.70217	2026-06-26 00:46:34.70217	\N	\N
+149	15	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:34.706988	2026-06-26 00:46:34.706988	\N	\N
+150	15	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:34.714072	2026-06-26 00:46:34.714072	\N	\N
+151	15	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:34.729942	2026-06-26 00:46:34.729942	\N	\N
+152	15	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:34.73701	2026-06-26 00:46:34.73701	\N	\N
+153	15	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:34.745271	2026-06-26 00:46:34.745271	\N	\N
+154	15	06/29/2026	06/29/2026	07/02/2026	draft	\N	2026-06-26 00:46:34.74895	2026-06-26 00:46:34.74895	\N	\N
+155	15	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:34.753743	2026-06-26 00:46:34.753743	\N	\N
+156	15	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:34.761623	2026-06-26 00:46:34.761623	\N	\N
+157	15	02/04/2026	02/04/2026	02/09/2026	received	\N	2026-06-26 00:46:34.769767	2026-06-26 00:46:34.769767	\N	\N
+158	15	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:34.775604	2026-06-26 00:46:34.775604	\N	\N
+159	15	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:34.779684	2026-06-26 00:46:34.779684	\N	\N
+160	15	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:34.785141	2026-06-26 00:46:34.785141	\N	\N
+161	15	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:34.788918	2026-06-26 00:46:34.788918	\N	\N
+162	15	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:34.792176	2026-06-26 00:46:34.792176	\N	\N
+163	15	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:34.795336	2026-06-26 00:46:34.795336	\N	\N
+164	15	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:34.798844	2026-06-26 00:46:34.798844	\N	\N
+165	15	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:34.803936	2026-06-26 00:46:34.803936	\N	\N
+166	15	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:34.808876	2026-06-26 00:46:34.808876	\N	\N
+167	15	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:34.814602	2026-06-26 00:46:34.814602	\N	\N
+168	15	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:34.819438	2026-06-26 00:46:34.819438	\N	\N
+169	16	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:34.835842	2026-06-26 00:46:34.835842	\N	\N
+170	16	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:34.901764	2026-06-26 00:46:34.901764	\N	\N
+171	16	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:34.923477	2026-06-26 00:46:34.923477	\N	\N
+172	16	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:35.062444	2026-06-26 00:46:35.062444	\N	\N
+173	16	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:35.158627	2026-06-26 00:46:35.158627	\N	\N
+174	16	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:35.248941	2026-06-26 00:46:35.248941	\N	\N
+175	16	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:35.284717	2026-06-26 00:46:35.284717	\N	\N
+176	16	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:35.342511	2026-06-26 00:46:35.342511	\N	\N
+177	16	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:35.410991	2026-06-26 00:46:35.410991	\N	\N
+178	16	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:35.572088	2026-06-26 00:46:35.572088	\N	\N
+179	16	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:35.647952	2026-06-26 00:46:35.647952	\N	\N
+180	16	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:35.735177	2026-06-26 00:46:35.735177	\N	\N
+181	16	06/29/2026	06/29/2026	07/02/2026	draft	\N	2026-06-26 00:46:35.785682	2026-06-26 00:46:35.785682	\N	\N
+182	16	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:35.813506	2026-06-26 00:46:35.813506	\N	\N
+183	16	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:35.882686	2026-06-26 00:46:35.882686	\N	\N
+184	16	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:35.96536	2026-06-26 00:46:35.96536	\N	\N
+185	16	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:35.98936	2026-06-26 00:46:35.98936	\N	\N
+186	16	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:36.01435	2026-06-26 00:46:36.01435	\N	\N
+187	16	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:36.062458	2026-06-26 00:46:36.062458	\N	\N
+188	16	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:36.093465	2026-06-26 00:46:36.093465	\N	\N
+189	16	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:36.103401	2026-06-26 00:46:36.103401	\N	\N
+190	16	06/15/2026	06/15/2026	06/18/2026	received	\N	2026-06-26 00:46:36.149576	2026-06-26 00:46:36.149576	\N	\N
+191	16	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:36.380892	2026-06-26 00:46:36.380892	\N	\N
+192	16	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:36.426656	2026-06-26 00:46:36.426656	\N	\N
+193	16	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:36.448607	2026-06-26 00:46:36.448607	\N	\N
+194	17	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:36.60667	2026-06-26 00:46:36.60667	\N	\N
+195	17	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:36.766153	2026-06-26 00:46:36.766153	\N	\N
+196	17	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:36.95513	2026-06-26 00:46:36.95513	\N	\N
+197	17	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:37.058487	2026-06-26 00:46:37.058487	\N	\N
+198	17	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:37.138767	2026-06-26 00:46:37.138767	\N	\N
+199	17	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:37.418114	2026-06-26 00:46:37.418114	\N	\N
+200	17	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:37.528136	2026-06-26 00:46:37.528136	\N	\N
+201	17	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:37.659742	2026-06-26 00:46:37.659742	\N	\N
+202	17	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:37.804071	2026-06-26 00:46:37.804071	\N	\N
+203	17	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:37.938855	2026-06-26 00:46:37.938855	\N	\N
+204	17	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:38.01038	2026-06-26 00:46:38.01038	\N	\N
+205	17	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:38.023886	2026-06-26 00:46:38.023886	\N	\N
+206	17	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:38.055156	2026-06-26 00:46:38.055156	\N	\N
+207	17	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:38.15955	2026-06-26 00:46:38.15955	\N	\N
+208	17	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:38.229275	2026-06-26 00:46:38.229275	\N	\N
+209	17	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:38.324171	2026-06-26 00:46:38.324171	\N	\N
+210	17	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:38.339019	2026-06-26 00:46:38.339019	\N	\N
+211	17	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:38.398914	2026-06-26 00:46:38.398914	\N	\N
+212	17	06/15/2026	06/15/2026	06/18/2026	received	\N	2026-06-26 00:46:38.430235	2026-06-26 00:46:38.430235	\N	\N
+213	17	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:38.478422	2026-06-26 00:46:38.478422	\N	\N
+214	17	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:38.491139	2026-06-26 00:46:38.491139	\N	\N
+215	17	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:39.133498	2026-06-26 00:46:39.133498	\N	\N
+216	17	02/04/2026	02/04/2026	02/09/2026	received	\N	2026-06-26 00:46:39.330252	2026-06-26 00:46:39.330252	\N	\N
+217	17	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:39.334784	2026-06-26 00:46:39.334784	\N	\N
+218	17	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:39.378972	2026-06-26 00:46:39.378972	\N	\N
+219	18	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:39.41326	2026-06-26 00:46:39.41326	\N	\N
+220	18	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:39.482739	2026-06-26 00:46:39.482739	\N	\N
+221	18	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:39.565878	2026-06-26 00:46:39.565878	\N	\N
+222	18	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:39.585731	2026-06-26 00:46:39.585731	\N	\N
+223	18	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:39.678155	2026-06-26 00:46:39.678155	\N	\N
+224	18	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:39.729819	2026-06-26 00:46:39.729819	\N	\N
+225	18	07/06/2026	07/06/2026	07/09/2026	draft	\N	2026-06-26 00:46:39.789204	2026-06-26 00:46:39.789204	\N	\N
+226	18	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:39.798961	2026-06-26 00:46:39.798961	\N	\N
+227	18	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:39.864385	2026-06-26 00:46:39.864385	\N	\N
+228	18	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:39.940929	2026-06-26 00:46:39.940929	\N	\N
+229	18	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:40.03365	2026-06-26 00:46:40.03365	\N	\N
+230	18	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:40.054269	2026-06-26 00:46:40.054269	\N	\N
+231	18	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:40.091057	2026-06-26 00:46:40.091057	\N	\N
+232	18	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:40.125078	2026-06-26 00:46:40.125078	\N	\N
+233	18	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:40.159761	2026-06-26 00:46:40.159761	\N	\N
+234	18	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:40.175288	2026-06-26 00:46:40.175288	\N	\N
+235	18	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:40.243106	2026-06-26 00:46:40.243106	\N	\N
+236	18	04/27/2026	04/27/2026	04/30/2026	received	\N	2026-06-26 00:46:40.28031	2026-06-26 00:46:40.28031	\N	\N
+237	18	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:40.360303	2026-06-26 00:46:40.360303	\N	\N
+238	18	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:40.401964	2026-06-26 00:46:40.401964	\N	\N
+239	18	06/15/2026	06/15/2026	06/18/2026	received	\N	2026-06-26 00:46:40.451807	2026-06-26 00:46:40.451807	\N	\N
+240	18	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:40.488118	2026-06-26 00:46:40.488118	\N	\N
+241	18	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:40.498888	2026-06-26 00:46:40.498888	\N	\N
+242	18	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:40.540181	2026-06-26 00:46:40.540181	\N	\N
+243	18	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:40.596618	2026-06-26 00:46:40.596618	\N	\N
+244	18	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:40.644124	2026-06-26 00:46:40.644124	\N	\N
+245	18	02/02/2026	02/02/2026	02/05/2026	received	\N	2026-06-26 00:46:40.672407	2026-06-26 00:46:40.672407	\N	\N
+246	1	01/26/2026	01/26/2026	01/29/2026	received	\N	2026-06-26 00:46:40.69011	2026-06-26 00:46:40.69011	\N	\N
+247	1	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:40.763934	2026-06-26 00:46:40.763934	\N	\N
+248	1	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:40.840503	2026-06-26 00:46:40.840503	\N	\N
+249	1	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:40.909115	2026-06-26 00:46:40.909115	\N	\N
+250	1	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:41.019396	2026-06-26 00:46:41.019396	\N	\N
+251	1	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:41.044994	2026-06-26 00:46:41.044994	\N	\N
+252	1	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:41.165946	2026-06-26 00:46:41.165946	\N	\N
+253	1	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:41.212417	2026-06-26 00:46:41.212417	\N	\N
+254	1	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:41.258383	2026-06-26 00:46:41.258383	\N	\N
+255	1	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:41.273385	2026-06-26 00:46:41.273385	\N	\N
+256	1	06/01/2026	06/01/2026	06/04/2026	received	\N	2026-06-26 00:46:41.300363	2026-06-26 00:46:41.300363	\N	\N
+257	1	06/08/2026	06/08/2026	06/11/2026	received	\N	2026-06-26 00:46:41.464481	2026-06-26 00:46:41.464481	\N	\N
+258	1	06/15/2026	06/15/2026	06/18/2026	received	\N	2026-06-26 00:46:41.568866	2026-06-26 00:46:41.568866	\N	\N
+259	1	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:41.684434	2026-06-26 00:46:41.684434	\N	\N
+260	1	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:41.782679	2026-06-26 00:46:41.782679	\N	\N
+261	1	12/29/2026	12/29/2026	01/02/2026	draft	\N	2026-06-26 00:46:41.87582	2026-06-26 00:46:41.87582	\N	\N
+262	1	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:41.897595	2026-06-26 00:46:41.897595	\N	\N
+263	1	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:42.001233	2026-06-26 00:46:42.001233	\N	\N
+264	1	06/29/2026	06/29/2026	07/02/2026	draft	\N	2026-06-26 00:46:42.127152	2026-06-26 00:46:42.127152	\N	\N
+265	1	02/02/2026	02/02/2026	02/05/2026	received	\N	2026-06-26 00:46:42.133415	2026-06-26 00:46:42.133415	\N	\N
+266	1	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:42.154242	2026-06-26 00:46:42.154242	\N	\N
+267	1	02/09/2026	02/09/2026	02/12/2026	received	\N	2026-06-26 00:46:42.168622	2026-06-26 00:46:42.168622	\N	\N
+268	3	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:42.185303	2026-06-26 00:46:42.185303	\N	\N
+269	3	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:42.208539	2026-06-26 00:46:42.208539	\N	\N
+270	3	04/13/2026	04/13/2026	04/16/2026	received	\N	2026-06-26 00:46:42.230686	2026-06-26 00:46:42.230686	\N	\N
+271	3	01/19/2026	01/19/2026	01/22/2026	received	\N	2026-06-26 00:46:42.260886	2026-06-26 00:46:42.260886	\N	\N
+272	3	02/02/2026	02/02/2026	02/05/2026	received	\N	2026-06-26 00:46:42.265706	2026-06-26 00:46:42.265706	\N	\N
+273	3	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:42.278218	2026-06-26 00:46:42.278218	\N	\N
+274	3	02/23/2026	02/23/2026	02/26/2026	received	\N	2026-06-26 00:46:42.291524	2026-06-26 00:46:42.291524	\N	\N
+275	3	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:42.304914	2026-06-26 00:46:42.304914	\N	\N
+276	3	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:42.317743	2026-06-26 00:46:42.317743	\N	\N
+277	3	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:42.322717	2026-06-26 00:46:42.322717	\N	\N
+278	3	06/22/2026	06/22/2026	06/25/2026	received	\N	2026-06-26 00:46:42.335978	2026-06-26 00:46:42.335978	\N	\N
+279	4	05/11/2026	05/11/2026	05/14/2026	received	\N	2026-06-26 00:46:42.342661	2026-06-26 00:46:42.342661	\N	\N
+280	4	05/26/2026	05/26/2026	05/29/2026	received	\N	2026-06-26 00:46:42.355238	2026-06-26 00:46:42.355238	\N	\N
+281	4	01/05/2026	01/05/2026	01/08/2026	received	\N	2026-06-26 00:46:42.42712	2026-06-26 00:46:42.42712	\N	\N
+282	4	01/12/2026	01/12/2026	01/15/2026	received	\N	2026-06-26 00:46:42.50317	2026-06-26 00:46:42.50317	\N	\N
+283	4	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:42.572376	2026-06-26 00:46:42.572376	\N	\N
+284	4	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:42.584134	2026-06-26 00:46:42.584134	\N	\N
+285	4	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:42.705625	2026-06-26 00:46:42.705625	\N	\N
+286	4	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:42.778945	2026-06-26 00:46:42.778945	\N	\N
+287	4	05/04/2026	05/04/2026	05/07/2026	received	\N	2026-06-26 00:46:42.809491	2026-06-26 00:46:42.809491	\N	\N
+288	4	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:42.883558	2026-06-26 00:46:42.883558	\N	\N
+289	4	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:42.966418	2026-06-26 00:46:42.966418	\N	\N
+290	4	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:43.041608	2026-06-26 00:46:43.041608	\N	\N
+291	4	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:43.116884	2026-06-26 00:46:43.116884	\N	\N
+292	5	03/09/2026	03/09/2026	03/12/2026	received	\N	2026-06-26 00:46:43.167881	2026-06-26 00:46:43.167881	\N	\N
+293	5	03/16/2026	03/16/2026	03/19/2026	received	\N	2026-06-26 00:46:43.189547	2026-06-26 00:46:43.189547	\N	\N
+294	5	03/02/2026	03/02/2026	03/05/2026	received	\N	2026-06-26 00:46:43.268108	2026-06-26 00:46:43.268108	\N	\N
+295	5	03/23/2026	03/23/2026	03/26/2026	received	\N	2026-06-26 00:46:43.34898	2026-06-26 00:46:43.34898	\N	\N
+296	5	05/18/2026	05/18/2026	05/21/2026	received	\N	2026-06-26 00:46:43.372226	2026-06-26 00:46:43.372226	\N	\N
+297	5	03/30/2026	03/30/2026	04/02/2026	received	\N	2026-06-26 00:46:43.418125	2026-06-26 00:46:43.418125	\N	\N
+298	5	04/06/2026	04/06/2026	04/09/2026	received	\N	2026-06-26 00:46:43.484272	2026-06-26 00:46:43.484272	\N	\N
+299	5	04/20/2026	04/20/2026	04/23/2026	received	\N	2026-06-26 00:46:43.532236	2026-06-26 00:46:43.532236	\N	\N
+300	5	02/16/2026	02/16/2026	02/19/2026	received	\N	2026-06-26 00:46:43.563015	2026-06-26 00:46:43.563015	\N	\N
+301	14	07/06/2026	\N	\N	sent	\N	2026-06-30 13:40:18.075532	2026-06-30 13:40:57.381	9bbcc5c2-7eca-476f-9ec5-d541c01b4e0f	2026-06-30 13:40:57.381
+302	18	07/06/2026	\N	\N	sent	\N	2026-06-30 13:43:14.426735	2026-06-30 13:43:20.512	f6e8b905-30b8-4aa0-9954-7c331afc9439	2026-06-30 13:43:20.512
+303	16	07/06/2026	\N	\N	sent	\N	2026-06-30 13:44:06.005786	2026-06-30 13:44:10.791	2ba79089-58bb-4bcb-8b4f-fdc7c985bbca	2026-06-30 13:44:10.791
+\.
+
+
+--
+-- Data for Name: price_list_imports; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.price_list_imports (id, vendor_id, triggered_by, source_url, email_from, email_subject, products_updated, products_added, status, error_message, raw_preview, imported_at) FROM stdin;
+3	14	manual	https://us.list-manage.com/D1xPNRppwsQ?e=b55223d9cb&c2id=8b32fd846ed9db86846e2051ac1afd1d	\N	\N	1	56	success	\N	[{"name":"Aglaonema Sapphire","cost":2.95,"rawLine":"Aglaonema Sapphire $2.95"},{"name":"Aglaonema Snow White","cost":2.95,"rawLine":"Aglaonema Snow White $2.95"},{"name":"Aglaonema Siam Red","cost":6,"rawLine":"Aglaonema Siam Red $6.00"},{"name":"Bird Nest Fern","cost":4.25,"rawLine":"Bird Nest Fern $4.25"},{"name":"Calathea Beauty Star","cost":4.5,"rawLine":"Calathea Beauty Star $4.50"},{"name":"Calathea Fasciata","cost":4.5,"rawLine":"Calathea Fasciata $4.50"},{"name":"Calathea Medallion","cost":4.5,"rawLine":"Calathea Medallion $4.50"},{"name":"Calathea Northern Lights","cost":4.5,"rawLine":"Calathea Northern Lights $4.50"},{"name":"Calathea Peacock","cost":4.5,"rawLine":"Calathea Peacock $4.50"},{"name":"Calathea Rufibarba","cost":4.5,"rawLine":"Calathea Rufibarba $4.50"}]	2026-06-11 22:58:42.269723
+4	15	manual	https://drive.google.com/file/d/11rCUsFv8AWpi2wQTHLwBAyLP6TxLUsax/view	\N	\N	1	90	success	\N	[{"name":"Aglaonema Cutlass","cost":7.5,"rawLine":"Aglaonema Cutlass $7.50"},{"name":"Aglaonema Juliette","cost":7.5,"rawLine":"Aglaonema Juliette $7.50"},{"name":"Aglaonema Maria “Emerald Beauty”","cost":7.5,"rawLine":"Aglaonema Maria “Emerald Beauty” $7.50"},{"name":"Aglaonema Red Siam","cost":9.5,"rawLine":"Aglaonema Red Siam $9.50"},{"name":"Aglaonema Red Valentine","cost":9.5,"rawLine":"Aglaonema Red Valentine $9.50"},{"name":"Aglaonema Romeo","cost":7.5,"rawLine":"Aglaonema Romeo $7.50"},{"name":"Aglaonema Silverado","cost":7.5,"rawLine":"Aglaonema Silverado $7.50"},{"name":"Aglaonema Sparkling Sarah","cost":9.5,"rawLine":"Aglaonema Sparkling Sarah $9.50"},{"name":"Aglaonema Tigress","cost":7.5,"rawLine":"Aglaonema Tigress $7.50"},{"name":"Aglaonema Wintery Winehouse","cost":9.5,"rawLine":"Aglaonema Wintery Winehouse $9.50"}]	2026-06-11 23:46:08.217945
+5	1	manual	upload:Availability June 20026.pdf	\N	\N	0	0	success	\N	[]	2026-06-11 23:56:25.926154
+6	1	manual	upload:Availability_June_20026_1781222233621.pdf	\N	\N	0	54	success	\N	[{"name":"2\\" Bromeliad Assorted","cost":0},{"name":"2\\" Bromeliad Assorted in self watering upgrade","cost":0},{"name":"2\\" Bromeliad Assorted in ceramic pot","cost":0},{"name":"4\\" Bromeliad Assorted","cost":0},{"name":"4\\" Bromeliad Assorted in terracotta clay","cost":0},{"name":"4\\" Tillandsia- Summer/ Cynea","cost":0},{"name":"5\\" Pineapple- Ornamental Grow Pot","cost":0},{"name":"5\\" Pineapple- Ornamental in White Ceramic","cost":0},{"name":"6\\" Aechmea Fasciata- Primera","cost":0},{"name":"6\\" Guzmania Deborah","cost":0}]	2026-06-12 00:11:41.114584
+7	1	manual	upload:2026_US_Week24_Updated_PottedPricelist_1781225328787.pdf	\N	\N	1	134	success	\N	[{"name":"Bonsai Mixed Case 1 (2 X 4\\" , 2 X 5\\", 2 X 6\\", 1 X 7\\", 1 X 8\\" Assortment )","cost":260.15,"rawLine":"Bonsai Mixed Case 1 (2 X 4\\" , 2 X 5\\", 2 X 6\\", 1 X 7\\", 1 X 8\\" Assortment ) $260.15"},{"name":"Bonsai Mixed Case 2 (2x4\\" 2x5\\" 2x6\\" 1x7\\" 1x10\\" Assortment)","cost":284.95,"rawLine":"Bonsai Mixed Case 2 (2x4\\" 2x5\\" 2x6\\" 1x7\\" 1x10\\" Assortment) $284.95"},{"name":"Brick Succulent Planter","cost":12.05,"rawLine":"Brick Succulent Planter $12.05"},{"name":"Concrete Log Planter Large (12\\" long x 5\\" wide)","cost":23.4,"rawLine":"Concrete Log Planter Large (12\\" long x 5\\" wide) $23.40"},{"name":"Concrete Rope Succulent Planter","cost":12.05,"rawLine":"Concrete Rope Succulent Planter $12.05"},{"name":"Campfire Songs Large","cost":11.2,"rawLine":"Campfire Songs Large $11.20"},{"name":"Anthurium Moss Bowl Upgrade","cost":15.6,"rawLine":"Anthurium Moss Bowl Upgrade $15.60"},{"name":"Spanish Moss (Box of 6 Bunches)","cost":7.75,"rawLine":"Spanish Moss (Box of 6 Bunches) $7.75"},{"name":"Curley Moss ( Box of 6 Bunches)","cost":10.95,"rawLine":"Curley Moss ( Box of 6 Bunches) $10.95"},{"name":"Tillandsia Filifolia - Giant Ball","cost":9.45,"rawLine":"Tillandsia Filifolia - Giant Ball $9.45"}]	2026-06-12 00:54:30.306975
+8	16	manual	upload:CARTER_ROAD_AVAILABILITY_-_JUNE_9_2026Y__1781226007776.pdf	\N	\N	0	51	success	\N	[{"name":"8\\" Cactus - RIC RAC HB","cost":12.5,"rawLine":"8\\" Cactus - RIC RAC HB $12.50"},{"name":"10\\" Cordyline GLAUCA 3PPP","cost":11.5,"rawLine":"10\\" Cordyline GLAUCA 3PPP $11.50"},{"name":"6\\" Drac. Dragontree LEMON SURPRISE 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree LEMON SURPRISE 1PPP $6.00"},{"name":"6\\" Drac. Dragontree TORNADO 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree TORNADO 1PPP $6.00"},{"name":"6\\" Drac. Dragontree TWIST 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree TWIST 1PPP $6.00"},{"name":"8\\" Drac. ART BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. ART BUSH 2PPP $13.00"},{"name":"8\\" Drac. DORADO BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. DORADO BUSH 2PPP $13.00"},{"name":"8\\" Drac. HAWAIIAN SUNSHINE BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. HAWAIIAN SUNSHINE BUSH 2PPP $13.00"},{"name":"8\\" Drac. LEMON LIME BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. LEMON LIME BUSH 2PPP $13.00"},{"name":"8\\" Drac. LIMELIGHT BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. LIMELIGHT BUSH 2PPP $13.00"}]	2026-06-12 01:08:39.992576
+9	16	manual	upload:CARTER_ROAD_AVAILABILITY_-_JUNE_9_2026Y__1781226007776.pdf	\N	\N	0	0	success	\N	[{"name":"8\\" Cactus - RIC RAC HB","cost":12.5,"rawLine":"8\\" Cactus - RIC RAC HB $12.50"},{"name":"10\\" Cordyline GLAUCA 3PPP","cost":11.5,"rawLine":"10\\" Cordyline GLAUCA 3PPP $11.50"},{"name":"6\\" Drac. Dragontree LEMON SURPRISE 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree LEMON SURPRISE 1PPP $6.00"},{"name":"6\\" Drac. Dragontree TORNADO 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree TORNADO 1PPP $6.00"},{"name":"6\\" Drac. Dragontree TWIST 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree TWIST 1PPP $6.00"},{"name":"8\\" Drac. ART BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. ART BUSH 2PPP $13.00"},{"name":"8\\" Drac. DORADO BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. DORADO BUSH 2PPP $13.00"},{"name":"8\\" Drac. HAWAIIAN SUNSHINE BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. HAWAIIAN SUNSHINE BUSH 2PPP $13.00"},{"name":"8\\" Drac. LEMON LIME BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. LEMON LIME BUSH 2PPP $13.00"},{"name":"8\\" Drac. LIMELIGHT BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. LIMELIGHT BUSH 2PPP $13.00"}]	2026-06-13 13:49:33.03447
+10	16	manual	upload:CARTER_ROAD_AVAILABILITY_-_JUNE_9_2026Y__1781226007776.pdf	\N	\N	2	0	success	\N	[{"name":"8\\" Cactus - RIC RAC HB","cost":12.5,"rawLine":"8\\" Cactus - RIC RAC HB $12.50"},{"name":"10\\" Cordyline GLAUCA 3PPP","cost":11.5,"rawLine":"10\\" Cordyline GLAUCA 3PPP $11.50"},{"name":"6\\" Drac. Dragontree LEMON SURPRISE 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree LEMON SURPRISE 1PPP $6.00"},{"name":"6\\" Drac. Dragontree TORNADO 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree TORNADO 1PPP $6.00"},{"name":"6\\" Drac. Dragontree TWIST 1PPP","cost":6,"rawLine":"6\\" Drac. Dragontree TWIST 1PPP $6.00"},{"name":"8\\" Drac. ART BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. ART BUSH 2PPP $13.00"},{"name":"8\\" Drac. DORADO BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. DORADO BUSH 2PPP $13.00"},{"name":"8\\" Drac. HAWAIIAN SUNSHINE BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. HAWAIIAN SUNSHINE BUSH 2PPP $13.00"},{"name":"8\\" Drac. LEMON LIME BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. LEMON LIME BUSH 2PPP $13.00"},{"name":"8\\" Drac. LIMELIGHT BUSH 2PPP","cost":13,"rawLine":"8\\" Drac. LIMELIGHT BUSH 2PPP $13.00"}]	2026-06-13 13:49:40.244294
+11	17	manual	https://mcusercontent.com/2837d7072a7b6b01b04a1a378/files/e59a456b-428a-4ed2-4d1c-6f039f5e1c5b/JUNE_AVAILABILITY_2026_0612.01.pdf	\N	\N	0	10	success	\N	[{"name":"JANET CRAIG COMPACTA (PK 15)","cost":2.25,"rawLine":"JANET CRAIG COMPACTA (PK 15) $2.25"},{"name":"GOLDSTAR (PK 15)","cost":2.25,"rawLine":"GOLDSTAR (PK 15) $2.25"},{"name":"MINI JADE (PK 15)","cost":2.25,"rawLine":"MINI JADE (PK 15) $2.25"},{"name":"LAETIVIRENS (PK 15)","cost":2.5,"rawLine":"LAETIVIRENS (PK 15) $2.50"},{"name":"ZZ (PK 15)","cost":4.25,"rawLine":"ZZ (PK 15) $4.25"},{"name":"CORAL CACTUS ASST (PK 6)","cost":12.75,"rawLine":"CORAL CACTUS ASST (PK 6) $12.75"},{"name":"ADONIDIA 1PPP & 2PPP","cost":120,"rawLine":"ADONIDIA 1PPP & 2PPP $120.00"},{"name":"• Interest of 1 ½ % per month will be charged on unpaid balances over 30 days. • A twenty percent (20%) restocking charge plus sleeve cost or","cost":100,"rawLine":"• Interest of 1 ½ % per month will be charged on unpaid balances over 30 days. • A twenty percent (20%) restocking charge plus sleeve cost or $100.00"},{"name":"as described within recognized trade tolerances. Sturon Nursery, Inc. gives no other warranty, expressed or implied, and in no way will be liable for more than the invoice value at time of purchase. • Minimum order of","cost":100,"rawLine":"as described within recognized trade tolerances. Sturon Nursery, Inc. gives no other warranty, expressed or implied, and in no way will be liable for more than the invoice value at time of purchase. • Minimum order of $100.00"},{"name":", any order not making the minimum will be subject to a","cost":10,"rawLine":", any order not making the minimum will be subject to a $10.00"}]	2026-06-13 13:58:00.770963
+12	17	manual	https://mcusercontent.com/2837d7072a7b6b01b04a1a378/files/e59a456b-428a-4ed2-4d1c-6f039f5e1c5b/JUNE_AVAILABILITY_2026_0612.01.pdf	\N	\N	11	503	success	\N	[{"name":"4.5\\" ALOE VERA","cost":2.25,"rawLine":"4.5\\" ALOE VERA $2.25"},{"name":"4.5\\" CACTUS PENCIL CACTUS","cost":4.25,"rawLine":"4.5\\" CACTUS PENCIL CACTUS $4.25"},{"name":"4.5\\" CROTON PETRA 2PPP (PK 15 OR PK 30)","cost":2.25,"rawLine":"4.5\\" CROTON PETRA 2PPP (PK 15 OR PK 30) $2.25"},{"name":"4.5\\" DRACAENA JANET CRAIG COMPACTA (PK 15)","cost":2.25,"rawLine":"4.5\\" DRACAENA JANET CRAIG COMPACTA (PK 15) $2.25"},{"name":"4.5\\" DRACAENA GOLDSTAR (PK 15)","cost":2.25,"rawLine":"4.5\\" DRACAENA GOLDSTAR (PK 15) $2.25"},{"name":"4.5\\" DRACAENA TORNADO","cost":3.75,"rawLine":"4.5\\" DRACAENA TORNADO $3.75"},{"name":"4.5\\" PEPEROMIA GINNY (PK15)","cost":2.65,"rawLine":"4.5\\" PEPEROMIA GINNY (PK15) $2.65"},{"name":"4.5\\" PEPEROMIA RED MARGIN (PK15)","cost":2.65,"rawLine":"4.5\\" PEPEROMIA RED MARGIN (PK15) $2.65"},{"name":"4.5\\" PACHIRA PACHIRA BRAID","cost":6.75,"rawLine":"4.5\\" PACHIRA PACHIRA BRAID $6.75"},{"name":"4.5\\" SANSEVIERIA BONZEL AKA/STARFISH (PK 15)","cost":4.25,"rawLine":"4.5\\" SANSEVIERIA BONZEL AKA/STARFISH (PK 15) $4.25"}]	2026-06-13 14:06:09.855001
+13	18	manual	https://www.caprifarms.com/wp-content/uploads/2026/06/June-12-2026-Availability.pdf	\N	\N	35	126	success	\N	[{"name":"Aglaonema Aglaonema","cost":18,"rawLine":"Aglaonema Aglaonema $18.00"},{"name":"Aglaonema","cost":7.25,"rawLine":"Aglaonema $7.25"},{"name":"Jubilee","cost":10.25,"rawLine":"Jubilee $10.25"},{"name":"Siam","cost":16.5,"rawLine":"Siam $16.50"},{"name":"Silver Bay","cost":12,"rawLine":"Silver Bay $12.00"},{"name":"Spring Snow","cost":8.25,"rawLine":"Spring Snow $8.25"},{"name":"Tigress","cost":10.25,"rawLine":"Tigress $10.25"},{"name":"Anthurium Anthurium small flower varieties (Assorted Colors) 6\\"","cost":9,"rawLine":"Anthurium Anthurium small flower varieties (Assorted Colors) 6\\" $9.00"},{"name":"White Only Anthurium small flower varieties (Assorted Colors) 8\\"","cost":14,"rawLine":"White Only Anthurium small flower varieties (Assorted Colors) 8\\" $14.00"},{"name":"Anthurium small flower varieties (Assorted Colors) 10\\"","cost":20,"rawLine":"Anthurium small flower varieties (Assorted Colors) 10\\" $20.00"}]	2026-06-13 14:08:34.601615
+14	18	manual	https://www.caprifarms.com/wp-content/uploads/2026/06/June-12-2026-Availability.pdf	\N	\N	116	96	success	\N	[{"name":"4\\" Assorted (pack 30)","cost":2.5,"rawLine":"4\\" Assorted (pack 30) $2.50"},{"name":"8\\" Aglaonema Assorted grower's choice","cost":18,"rawLine":"8\\" Aglaonema Assorted grower's choice $18.00"},{"name":"6\\" Aglaonema Cleopatra","cost":7.25,"rawLine":"6\\" Aglaonema Cleopatra $7.25"},{"name":"6\\" Jubilee Indo Princess","cost":10.25,"rawLine":"6\\" Jubilee Indo Princess $10.25"},{"name":"10\\" Jubilee","cost":28,"rawLine":"10\\" Jubilee $28.00"},{"name":"14\\" Jubilee","cost":50,"rawLine":"14\\" Jubilee $50.00"},{"name":"8\\" Siam","cost":16.5,"rawLine":"8\\" Siam $16.50"},{"name":"8\\" Silver Bay","cost":12,"rawLine":"8\\" Silver Bay $12.00"},{"name":"10\\" Silver Bay","cost":18,"rawLine":"10\\" Silver Bay $18.00"},{"name":"14\\" Silver Bay","cost":42,"rawLine":"14\\" Silver Bay $42.00"}]	2026-06-13 14:21:47.492626
+15	1	manual	upload:test.csv	\N	\N	0	3	success	\N	[{"name":"Fiddle Leaf Fig 4\\"","cost":12.5,"rawLine":"Fiddle Leaf Fig 4\\" $12.5"},{"name":"Snake Plant 6\\"","cost":8.75,"rawLine":"Snake Plant 6\\" $8.75"},{"name":"Pothos Neon 4\\"","cost":5,"rawLine":"Pothos Neon 4\\" $5"}]	2026-06-13 14:35:54.642099
+16	8	manual	upload:2026 FOB Pricing.xlsx	\N	\N	0	0	success	\N	[]	2026-06-13 14:36:48.590685
+17	8	manual	upload:2026_FOB_Pricing_1781361419044.xlsx	\N	\N	22	190	success	\N	[{"name":"BOSTON FERN - 34 \\" Spread","cost":7.25,"rawLine":"BOSTON FERN - 34 \\" Spread $7.25"},{"name":"SPRENGERII - ASPARAGUS FERN BASKETS","cost":7.25,"rawLine":"SPRENGERII - ASPARAGUS FERN BASKETS $7.25"},{"name":"SUNPATIENS HANGING BASKETS - PINK, RED, PURPLE","cost":9,"rawLine":"SUNPATIENS HANGING BASKETS - PINK, RED, PURPLE $9.00"},{"name":"VINCA WHTE POLKA DOT- HANGING BASKETS","cost":6.75,"rawLine":"VINCA WHTE POLKA DOT- HANGING BASKETS $6.75"},{"name":"BOSTON FERN HANGING BASKET 36\\"- 38\\" SPREAD","cost":9.95,"rawLine":"BOSTON FERN HANGING BASKET 36\\"- 38\\" SPREAD $9.95"},{"name":"DIPLADENIA HANGINF BASKETS BLUEPHORA","cost":10.95,"rawLine":"DIPLADENIA HANGINF BASKETS BLUEPHORA $10.95"},{"name":"DIPLADENIA HANGING BASKETS - CORAL SUNDENIA","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKETS - CORAL SUNDENIA $10.95"},{"name":"DIPLADENIA HANGING BASKETS - PINK BELLA","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKETS - PINK BELLA $10.95"},{"name":"DIPLADENIA HANGING BASKETS - RED BELLA","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKETS - RED BELLA $10.95"},{"name":"DIPLADENIA HANGING BASKET - WHITE","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKET - WHITE $10.95"}]	2026-06-13 14:39:02.014542
+18	8	manual	upload:2026 FOB Pricing.xlsx	\N	\N	19	0	success	\N	[{"name":"BOSTON FERN - 34 \\" Spread","cost":7.25,"rawLine":"BOSTON FERN - 34 \\" Spread $7.25"},{"name":"SPRENGERII - ASPARAGUS FERN BASKETS","cost":7.25,"rawLine":"SPRENGERII - ASPARAGUS FERN BASKETS $7.25"},{"name":"SUNPATIENS HANGING BASKETS - PINK, RED, PURPLE","cost":9,"rawLine":"SUNPATIENS HANGING BASKETS - PINK, RED, PURPLE $9.00"},{"name":"VINCA WHTE POLKA DOT- HANGING BASKETS","cost":6.75,"rawLine":"VINCA WHTE POLKA DOT- HANGING BASKETS $6.75"},{"name":"BOSTON FERN HANGING BASKET 36\\"- 38\\" SPREAD","cost":9.95,"rawLine":"BOSTON FERN HANGING BASKET 36\\"- 38\\" SPREAD $9.95"},{"name":"DIPLADENIA HANGINF BASKETS BLUEPHORA","cost":10.95,"rawLine":"DIPLADENIA HANGINF BASKETS BLUEPHORA $10.95"},{"name":"DIPLADENIA HANGING BASKETS - CORAL SUNDENIA","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKETS - CORAL SUNDENIA $10.95"},{"name":"DIPLADENIA HANGING BASKETS - PINK BELLA","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKETS - PINK BELLA $10.95"},{"name":"DIPLADENIA HANGING BASKETS - RED BELLA","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKETS - RED BELLA $10.95"},{"name":"DIPLADENIA HANGING BASKET - WHITE","cost":10.95,"rawLine":"DIPLADENIA HANGING BASKET - WHITE $10.95"}]	2026-06-13 14:39:35.672223
+19	10	manual	https://files.constantcontact.com/231f8079601/5de1d75e-a3fa-490a-a672-8579bda042b7.pdf?rdr=true	\N	\N	1	22	success	\N	[{"name":"Orchids , Exotics Living Colors Nursery, Inc. Box Charges:","cost":2.5,"rawLine":"Orchids , Exotics Living Colors Nursery, Inc. Box Charges: $2.50"},{"name":"Top-Load","cost":5,"rawLine":"Top-Load $5.00"},{"name":"Guzmania Mirador Grower’s Choice of Ardie, Cotton Candy, Lila, & Tricolor Regular price","cost":3.65,"rawLine":"Guzmania Mirador Grower’s Choice of Ardie, Cotton Candy, Lila, & Tricolor Regular price $3.65"},{"name":"Guzmania Mirador Three stunning bromeliads in an azalea pot TL","cost":15.95,"rawLine":"Guzmania Mirador Three stunning bromeliads in an azalea pot TL $15.95"},{"name":"Guzmania Mirador Three beautiful bromeliads in a bulb pan TL","cost":21.95,"rawLine":"Guzmania Mirador Three beautiful bromeliads in a bulb pan TL $21.95"},{"name":"Guzmania Mirador Variegated w/ Red-Fuchsia center Regular price","cost":9.75,"rawLine":"Guzmania Mirador Variegated w/ Red-Fuchsia center Regular price $9.75"},{"name":"Guzmania Mirador Yellow w/ Red Regular price","cost":7.95,"rawLine":"Guzmania Mirador Yellow w/ Red Regular price $7.95"},{"name":"Guzmania Mirador AVAILABILITY WEEK 25 June 15 th – June 19 th , 2026 Box Charges:","cost":2.5,"rawLine":"Guzmania Mirador AVAILABILITY WEEK 25 June 15 th – June 19 th , 2026 Box Charges: $2.50"},{"name":"Guzmania Mirador Top-Load","cost":5,"rawLine":"Guzmania Mirador Top-Load $5.00"},{"name":"Tillandsia Luminosa Medium Sized Plant Grower’s Choice Assortment | 5-6 buds per plant Regular price","cost":24.5,"rawLine":"Tillandsia Luminosa Medium Sized Plant Grower’s Choice Assortment | 5-6 buds per plant Regular price $24.50"}]	2026-06-13 14:54:26.348945
+20	10	manual	upload:living_colors_test.pdf	\N	\N	0	25	success	\N	[{"name":"6” Aralia Variegated","cost":12.95,"rawLine":"6” Aralia Variegated $12.95"},{"name":"8” Aralia Variegated","cost":24.5,"rawLine":"8” Aralia Variegated $24.5"},{"name":"8” Medinilla myriantha","cost":35,"rawLine":"8” Medinilla myriantha $35"},{"name":"4” Neoregelia Assorted","cost":3.3,"rawLine":"4” Neoregelia Assorted $3.3"},{"name":"10” Medinilla myriantha","cost":45,"rawLine":"10” Medinilla myriantha $45"},{"name":"4” Tillandsia cyanea","cost":3.05,"rawLine":"4” Tillandsia cyanea $3.05"},{"name":"8” Tillandsia Dolce","cost":35,"rawLine":"8” Tillandsia Dolce $35"},{"name":"5” Guzmania Allura (P)","cost":5.25,"rawLine":"5” Guzmania Allura (P) $5.25"},{"name":"8” Tillandsia Luminosa","cost":35,"rawLine":"8” Tillandsia Luminosa $35"},{"name":"5” Guzmania Assorted","cost":5.25,"rawLine":"5” Guzmania Assorted $5.25"}]	2026-06-13 15:00:35.064188
+21	11	manual	upload:availabilitywebsite_1781524905484.pdf	\N	\N	0	55	success	\N	[{"name":"8\\" Aglaonema","cost":0,"rawLine":"8\\" Aglaonema"},{"name":"4\\" Aglaonema - Colored","cost":0,"rawLine":"4\\" Aglaonema - Colored"},{"name":"6\\" Aglaonema - Colored","cost":0,"rawLine":"6\\" Aglaonema - Colored"},{"name":"8\\" Aglaonema - Star Of India","cost":0,"rawLine":"8\\" Aglaonema - Star Of India"},{"name":"4\\" Alocasia","cost":0,"rawLine":"4\\" Alocasia"},{"name":"4\\" Anthurium - W/ Flower","cost":0,"rawLine":"4\\" Anthurium - W/ Flower"},{"name":"6\\" Anthurium - W/ Flower","cost":0,"rawLine":"6\\" Anthurium - W/ Flower"},{"name":"6\\" Anthurium - No Flower","cost":0,"rawLine":"6\\" Anthurium - No Flower"},{"name":"8\\" Anthurium - W/ Flower","cost":0,"rawLine":"8\\" Anthurium - W/ Flower"},{"name":"4\\" Ardisia","cost":0,"rawLine":"4\\" Ardisia"}]	2026-06-15 12:07:07.32841
+22	19	manual	upload:W_and_WB_Availability_June16_2026_1.pdf	\N	\N	0	0	success	\N	[]	2026-06-15 12:08:28.510142
+23	19	manual	upload:W_and_WB_Availability_June16_2026_1_1781525318021.pdf	\N	\N	2	99	success	\N	[{"name":"2 inch Adenium","cost":1.43,"rawLine":"2 inch Adenium $1.43"},{"name":"6 inch Alocasia Low Rider","cost":5.92,"rawLine":"6 inch Alocasia Low Rider $5.92"},{"name":"8 inch Caladium","cost":10.3,"rawLine":"8 inch Caladium $10.3"},{"name":"2 inch African Violet","cost":1.85,"rawLine":"2 inch African Violet $1.85"},{"name":"6 inch Angelonia","cost":4.07,"rawLine":"6 inch Angelonia $4.07"},{"name":"8 inch Celosia Plumosa","cost":8.15,"rawLine":"8 inch Celosia Plumosa $8.15"},{"name":"2 inch Aloe Vera","cost":1.38,"rawLine":"2 inch Aloe Vera $1.38"},{"name":"6 inch Anigozanthos Kang Paw","cost":5.27,"rawLine":"6 inch Anigozanthos Kang Paw $5.27"},{"name":"8 inch Cuphea Sweets Whiskey Barrel","cost":9,"rawLine":"8 inch Cuphea Sweets Whiskey Barrel $9"},{"name":"2 inch Beaucarnea Multi","cost":1.12,"rawLine":"2 inch Beaucarnea Multi $1.12"}]	2026-06-15 12:12:19.034007
+25	11	manual	upload:WEEK_24_AVAILABILITY_JUNE_15_-_JUNE_20_2026_1781526688243.pdf	\N	\N	6	139	success	\N	[{"name":"2\\" Assorted Succulents 64/Flat","cost":44.5,"rawLine":"2\\" Assorted Succulents 64/Flat $44.5"},{"name":"4\\" Aeonium Black Schwarzkopf","cost":2,"rawLine":"4\\" Aeonium Black Schwarzkopf $2"},{"name":"4\\" Agave Quadracolor","cost":3,"rawLine":"4\\" Agave Quadracolor $3"},{"name":"4\\" Aloe Nobilis","cost":3,"rawLine":"4\\" Aloe Nobilis $3"},{"name":"4\\" Cephalophyllum Red Spike","cost":2,"rawLine":"4\\" Cephalophyllum Red Spike $2"},{"name":"4\\" Cotyledon Orbiculata","cost":2.75,"rawLine":"4\\" Cotyledon Orbiculata $2.75"},{"name":"4\\" Cotyledon Tomentosa","cost":2.75,"rawLine":"4\\" Cotyledon Tomentosa $2.75"},{"name":"4\\" Crassula Conjuncta","cost":2.8,"rawLine":"4\\" Crassula Conjuncta $2.8"},{"name":"4\\" Crassula Crosby Jade","cost":2.35,"rawLine":"4\\" Crassula Crosby Jade $2.35"},{"name":"4\\" Crassula Dwarf Hobbit Jade","cost":2.35,"rawLine":"4\\" Crassula Dwarf Hobbit Jade $2.35"}]	2026-06-15 12:38:40.068469
+\.
+
+
+--
+-- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.products (id, vendor_id, name, pack_size, is_active, created_at, cost) FROM stdin;
+1	1	2.5" Bromeliad, UG POTS Pot(s)	30	t	2026-05-02 21:04:58.464359	\N
+2	1	4" Bromeliad	15	t	2026-05-02 21:04:59.855258	\N
+3	1	4" Bromeliad, Guzmania	15	t	2026-05-02 21:05:01.050141	\N
+4	1	4" Tillandsia-Summer/Cynea	15	t	2026-05-02 21:05:02.049915	\N
+5	1	6" Anouk	6	t	2026-05-02 21:05:03.047652	\N
+6	1	6" Aechmea, Fasciata Primera	6	t	2026-05-02 21:05:04.192545	\N
+7	1	6" Guzmania, Athena	6	t	2026-05-02 21:05:05.410914	\N
+8	1	6" Guzmania, Anouk	6	t	2026-05-02 21:05:06.468111	\N
+9	1	6" Guzmania, Brimstone, Red/Orange	6	t	2026-05-02 21:05:07.88717	\N
+10	1	6" Guzmania Claret, red	6	t	2026-05-02 21:05:08.935438	\N
+11	1	6" Guzmania Deborah, white w/purple tips	6	t	2026-05-02 21:05:10.054021	\N
+12	1	6" Guzmania Claire	6	t	2026-05-02 21:05:11.155862	\N
+13	1	6" Guzmania, Emperor, Red	6	t	2026-05-02 21:05:12.030088	\N
+14	1	6" Guzmania, Focus	6	t	2026-05-02 21:05:14.221046	\N
+15	1	6" Guzmania, Ginette	6	t	2026-05-02 21:05:15.256336	\N
+16	1	6" Guzmania, Hilda, Yellow	6	t	2026-05-02 21:05:16.291422	\N
+17	1	6" Guzmania, Indian Night	6	t	2026-05-02 21:05:17.275611	\N
+18	1	6" Guzmania, Luna, Purple	6	t	2026-05-02 21:05:18.24556	\N
+19	1	6" Guzmania, Margo, White/Pink	6	t	2026-05-02 21:05:19.090773	\N
+20	1	6" Guzmania, Nancy, red	6	t	2026-05-02 21:05:20.056773	\N
+21	1	6" Guzmania, Ostara, Orange	6	t	2026-05-02 21:05:21.138706	\N
+22	1	6" Guzmania, Sunnytime, Yellow/Orange	6	t	2026-05-02 21:05:21.945136	\N
+23	1	6" Guzmania Marjan yellow	6	t	2026-05-02 21:05:22.89053	\N
+24	1	6" Guzmania, Passion pink	6	t	2026-05-02 21:05:23.810578	\N
+25	1	6" Guzmania, Nextura	6	t	2026-05-02 21:05:24.746666	\N
+26	1	6" Guzmania, Switch, burgundy	6	t	2026-05-02 21:05:25.919893	\N
+27	1	6" Guzmania, Tatiana, Red	6	t	2026-05-02 21:05:27.145844	\N
+28	1	6" Guzmania, Variada, orange/yellow	6	t	2026-05-02 21:05:27.93362	\N
+29	1	6" Guzmania, Viola, pink	6	t	2026-05-02 21:05:28.758615	\N
+30	1	6" Neoregelia Raphael	6	t	2026-05-02 21:05:29.815017	\N
+31	1	6" Neoregelia, Cotton Candy	6	t	2026-05-02 21:05:30.962585	\N
+32	1	6" Neoregelia, Tricolor	6	t	2026-05-02 21:05:31.856335	\N
+33	1	6" Neoregelia, Magali	6	t	2026-05-02 21:05:32.889944	\N
+34	1	6" Neoregelia, Puppy Love Fuschia	6	t	2026-05-02 21:05:34.418158	\N
+35	1	6" Vriesea, Splenriet, Red	6	t	2026-05-02 21:05:35.558949	\N
+36	1	6" Guzmania Ceramic Combo	6	t	2026-05-02 21:05:36.570569	\N
+37	1	8" Guzmania Ceramic Combo	4	t	2026-05-02 21:05:37.369755	\N
+38	1	8" Bromeliad, Cr Garden, DR CERAMIC Pot(s)	4	t	2026-05-02 21:05:38.615889	\N
+39	1	10" Bromeliad Combo	2	t	2026-05-02 21:05:39.574714	\N
+40	1	10" Bromeliad, Garden	2	t	2026-05-02 21:05:42.484695	\N
+41	2	14" Cereus Peruvians	\N	t	2026-05-02 21:05:44.611252	\N
+42	2	14" Euphorbia Acrurensis	\N	t	2026-05-02 21:05:45.692449	\N
+43	3	6" Asplenium nidus (Bird's Nest)	12	t	2026-05-02 21:05:50.257876	\N
+44	3	6" Neanthebella	12	t	2026-05-02 21:05:51.463016	\N
+45	3	6" Mandevilla sp. (Asst. Bush)	12	t	2026-05-02 21:05:52.272959	\N
+46	3	6" Dipladenia Bush	12	t	2026-05-02 21:05:53.682035	\N
+47	3	6" Hibiscus	12	t	2026-05-02 21:05:54.803676	\N
+48	3	4" Neo Stripes	30	t	2026-05-02 21:05:56.284242	\N
+49	3	4" Neo Diane	30	t	2026-05-02 21:05:57.504345	\N
+50	3	4" Neo Donna	30	t	2026-05-02 21:05:58.531546	\N
+51	3	6" Assorted Guzmania	12	t	2026-05-02 21:05:59.469571	\N
+52	3	6" Assorted Guzmania - Amaretto & Focus	12	t	2026-05-02 21:06:00.589535	\N
+53	3	6" Assorted Neo	12	t	2026-05-02 21:06:01.705047	\N
+54	3	8" Areca SLVD	\N	t	2026-05-02 21:06:02.643911	\N
+55	3	10" Areca SLVD	\N	t	2026-05-02 21:06:03.543983	\N
+56	3	10" Lyrata Coloumn SLVD	\N	t	2026-05-02 21:06:04.396664	\N
+57	3	10" Lyrata STD SLVD	\N	t	2026-05-02 21:06:05.457156	\N
+58	3	10" Majesty Palm SLVD-Multi	\N	t	2026-05-02 21:06:06.742768	\N
+59	3	10" Seifrizti	\N	t	2026-05-02 21:06:09.379444	\N
+60	3	10" White Bird SLVD	\N	t	2026-05-02 21:06:10.261993	\N
+61	3	12" Areca SLVD	\N	t	2026-05-02 21:06:11.593016	\N
+62	3	12" Majesty Multi SLVD	\N	t	2026-05-02 21:06:12.474703	\N
+63	3	12" Ravenea	\N	t	2026-05-02 21:06:13.428959	\N
+64	3	14" Areca SLVD	\N	t	2026-05-02 21:06:14.595045	\N
+65	3	14" Bamboo SLVD	\N	t	2026-05-02 21:06:15.696373	\N
+66	3	14" Burgundy Rubber	\N	t	2026-05-02 21:06:16.838198	\N
+67	3	14" Cat Palm SLVD	\N	t	2026-05-02 21:06:17.817621	\N
+68	3	14" Ficus Altissima St	\N	t	2026-05-02 21:06:18.908861	\N
+69	3	14" Ficus Audrey Bush	\N	t	2026-05-02 21:06:20.017993	\N
+70	3	14" Ficus Audrey Std	\N	t	2026-05-02 21:06:21.146568	\N
+71	3	14" Florida Rhapis SLVD	\N	t	2026-05-02 21:06:22.015494	\N
+72	3	14" Lyrata Bush SLVD	\N	t	2026-05-02 21:06:23.154045	\N
+73	3	14" Lyrata STD SLVD	\N	t	2026-05-02 21:06:24.300141	\N
+74	3	14" Rhapis	\N	t	2026-05-02 21:06:25.382776	\N
+75	3	14" White Bird SLVD	\N	t	2026-05-02 21:06:26.45893	\N
+76	3	14" ZZ DBSL	\N	t	2026-05-02 21:06:27.361949	\N
+77	3	14" ZZ SLV	\N	t	2026-05-02 21:06:28.228737	\N
+78	3	17" Ficus Audrey Std SLVD	\N	t	2026-05-02 21:06:29.352799	\N
+79	3	17" Ficus Audrey St. DBL SLV	\N	t	2026-05-02 21:06:30.136074	\N
+80	3	17" Lyrata Bush DBL SLV	\N	t	2026-05-02 21:06:31.117421	\N
+81	3	17" Lyrata STD DBL SLV	\N	t	2026-05-02 21:06:32.422343	\N
+82	3	17" White Bird DBL SLV	\N	t	2026-05-02 21:06:33.528972	\N
+83	4	1" Tillandsia Ionanthea Magnet/Saucer	45	t	2026-05-02 21:06:36.02538	\N
+84	4	2" Assorted Cryptanthus	25	t	2026-05-02 21:06:37.157263	\N
+85	4	2" Assorted Foliage	90	t	2026-05-02 21:06:38.170154	\N
+86	4	2" Tilliandsia Mini Pot	25	t	2026-05-02 21:06:39.223283	\N
+87	4	2" Terrarium Assorted Foliage	90	t	2026-05-02 21:06:40.087895	\N
+88	4	4" Assorted Cryptanthus	30	t	2026-05-02 21:06:41.277816	\N
+89	4	4" Boston Compacta Fern	30	t	2026-05-02 21:06:42.348258	\N
+90	4	4" Calathea Lancifolia	30	t	2026-05-02 21:06:43.278223	\N
+91	4	4" East Indian Holly Fern	30	t	2026-05-02 21:06:44.084538	\N
+92	4	4" Heart Fern	30	t	2026-05-02 21:06:45.027888	\N
+93	4	4" Hindu Rope	30	t	2026-05-02 21:06:46.864495	\N
+94	4	4" Croc Fern	30	t	2026-05-02 21:06:47.908674	\N
+95	4	4" Holly Fern	30	t	2026-05-02 21:06:48.786121	\N
+96	4	4" Jester Crown Fern	30	t	2026-05-02 21:06:50.080138	\N
+97	4	4" Lemon Button Fern	30	t	2026-05-02 21:06:51.073785	\N
+98	4	4" Pilea Aquamarine	30	t	2026-05-02 21:06:52.146376	\N
+99	4	4" Pilea Depressa	30	t	2026-05-02 21:06:53.139219	\N
+100	4	4" Plumosa Fern	30	t	2026-05-02 21:06:54.247228	\N
+101	4	6" Assorted Nephthytis	12	t	2026-05-02 21:06:55.291972	\N
+102	4	6" Bird's Nest Crissie	12	t	2026-05-02 21:06:56.475767	\N
+103	4	6" Florida Ghost	12	t	2026-05-02 21:06:57.531991	\N
+104	4	6" Nepthytis	12	t	2026-05-02 21:06:58.761042	\N
+105	4	6" Philo Painted Lady	12	t	2026-05-02 21:06:59.743675	\N
+106	4	6" Philodendron Monstera	12	t	2026-05-02 21:07:00.688052	\N
+107	4	6" Rabbit Foot Fern	12	t	2026-05-02 21:07:01.989271	\N
+108	4	6" Staghorn Netherland Fern	12	t	2026-05-02 21:07:03.1548	\N
+109	4	6" Tacca Bat Plant	12	t	2026-05-02 21:07:04.233695	\N
+110	4	6" Whale's Fin (Sansevieria Victoria)	12	t	2026-05-02 21:07:05.23356	\N
+111	4	8" Staghorn Fern H/B	6	t	2026-05-02 21:07:06.160596	\N
+112	4	8" Tacca Bat Plant	6	t	2026-05-02 21:07:07.39406	\N
+113	4	Mini Tillandsia Xerographica	12	t	2026-05-02 21:07:08.319966	\N
+114	4	Assorted Tillandsia Small	100	t	2026-05-02 21:07:09.303203	\N
+115	4	Small Tillandsia Ionantha w/color	100	t	2026-05-02 21:07:10.412236	\N
+116	4	Small Tillandsia Xerographica	10	t	2026-05-02 21:07:11.35377	\N
+117	4	Assorted Tillandsia Medium	50	t	2026-05-02 21:07:12.279148	\N
+118	4	Medium Tillandsia Xerographica	8	t	2026-05-02 21:07:13.144472	\N
+119	4	Assorted Tillandsia Large	25	t	2026-05-02 21:07:14.180483	\N
+120	4	Large Tillandsia Xerographica	6	t	2026-05-02 21:07:15.501882	\N
+121	4	Ex Large Blooming Curly Slim	12	t	2026-05-02 21:07:16.612189	\N
+122	4	Bamboo Tillandsia Garden	15	t	2026-05-02 21:07:17.964028	\N
+123	4	Giant Blooming Curly Slim	24	t	2026-05-02 21:07:18.892555	\N
+124	4	Hanging Airplant (Tillandsia) Charm	30	t	2026-05-02 21:07:19.994671	\N
+125	4	Hanging/Sitting Valentine Heart	12	t	2026-05-02 21:07:21.233591	\N
+126	4	Ionantha Bonsai Tree	12	t	2026-05-02 21:07:22.471832	\N
+127	4	Natural Wood Display Tree	1	t	2026-05-02 21:07:23.758536	\N
+128	4	Pot Pal Hanger	24	t	2026-05-02 21:07:24.674103	\N
+129	4	Turtle Hatchling	6	t	2026-05-02 21:07:27.290331	\N
+130	4	Yoga Frog with Airplant	12	t	2026-05-02 21:07:28.310536	\N
+131	5	6" Dracaena Marginata "Colorama" 3PPP	12	t	2026-05-02 21:07:30.595918	\N
+132	5	6" Dracaena Marginata "Colorama" 3PPP 14-16"	12	t	2026-05-02 21:07:31.420689	\N
+133	5	6" Dracaena Marginata "Green" 3PPP	12	t	2026-05-02 21:07:32.410604	\N
+134	5	6" Dracaena Marginara Magenta 3PP	12	t	2026-05-02 21:07:33.340451	\N
+135	5	6" Pachira Aquatica Money Tree Braid	12	t	2026-05-02 21:07:34.376045	\N
+136	5	6" Pleomele Reflexa 3 PPP 14"	12	t	2026-05-02 21:07:35.464925	\N
+137	5	6" Pleomele 'Song of Jamaica' 3 PPP 14"	12	t	2026-05-02 21:07:36.460592	\N
+138	5	6" Zamioculcas Zamiifolia ZZ	12	t	2026-05-02 21:07:37.369138	\N
+139	5	8" Pachira Aquatica Braid	6	t	2026-05-02 21:07:38.266522	\N
+140	5	10" Alocasia Dwarf Amazonica Polly 1PP	ea	t	2026-05-02 21:07:39.174871	\N
+141	5	10" Burgundy 2PPP Column	ea	t	2026-05-02 21:07:40.172513	\N
+142	5	10" Dracaena Colorama Bush 6ppp	ea	t	2026-05-02 21:07:41.243666	\N
+143	5	10" Dracaena J.C. Compacta Bush 3 PPP 24-28"	ea	t	2026-05-02 21:07:42.357491	\N
+144	5	10" Dracaena J.C. Compacta Cane 3/2/1 3 PPP 4-4.5'	ea	t	2026-05-02 21:07:43.289697	\N
+145	5	10" Dracaena Mass Cane 4-3-2	ea	t	2026-05-02 21:07:44.301845	\N
+146	5	10" Dracaena Mass Cane 3-2-1	ea	t	2026-05-02 21:07:45.445245	\N
+147	5	10" Dracaena Marginata Branched Character Cane 4-5ft	ea	t	2026-05-02 21:07:46.289037	\N
+148	5	10" Dracaena Marginata Staggered Cane	ea	t	2026-05-02 21:07:47.309591	\N
+149	5	10" Euphorbia Lactea White Ghost Cactus	2	t	2026-05-02 21:07:48.333283	\N
+150	5	10" Euphoria Tirucalli "Pencil Cactus"	ea	t	2026-05-02 21:07:49.409936	\N
+151	5	10" Ficus Burgundy Bush	ea	t	2026-05-02 21:07:50.453198	\N
+152	5	10" Ficus Elastica Shivereana 1-2ppp	ea	t	2026-05-02 21:07:51.727027	\N
+153	5	10" Ficus Tineke Bush	ea	t	2026-05-02 21:07:52.924053	\N
+154	5	10" Pleomele Reflexa 6-7 PPP 2.5-3'	ea	t	2026-05-02 21:07:54.027135	\N
+155	5	10" Pleomele Song of India 6-7 PPP 2.5'	ea	t	2026-05-02 21:07:55.268193	\N
+156	5	10" Ponytail (Beaucarnea Guatemalensis) 1 PPP C/B 2-2.5ft	ea	t	2026-05-02 21:07:56.26739	\N
+157	5	10" Pothos Golden HB	ea	t	2026-05-02 21:07:57.239884	\N
+158	5	10" Pothos Golden Scindapsus Pothos Trellis HB	ea	t	2026-05-02 21:07:58.115272	\N
+159	5	10" Sansevieria Laurentii	ea	t	2026-05-02 21:07:59.105549	\N
+160	5	10" Sansevieria Zeylanica	ea	t	2026-05-02 21:08:00.017309	\N
+161	5	10" Yucca 4/3/2 Cane (Elephantipes) 5-5.5'	ea	t	2026-05-02 21:08:01.052939	\N
+162	5	12" Zamioculcas Zamiifolia ZZ	ea	t	2026-05-02 21:08:02.165606	\N
+163	5	14" Cereus Peruvianus Cactus 2pp-3pp 4.5-5.5'	ea	t	2026-05-02 21:08:03.397992	\N
+164	5	14" Eurphobia Cristata Lactea	ea	t	2026-05-02 21:08:04.338548	\N
+165	5	14" Eurphobia Lactea Cristata Cactus Green	ea	t	2026-05-02 21:08:05.608699	\N
+166	5	14" Euphoria Tirucalli Pencil Cactus 3 PPP 5-6.5'	ea	t	2026-05-02 21:08:06.544294	\N
+167	5	14" Ficus Burgundy Column	ea	t	2026-05-02 21:08:08.16168	\N
+168	5	14" Pleomele "Song of Jamaica" Specimen 5-6'	ea	t	2026-05-02 21:08:09.217945	\N
+169	5	14" Pleomele "Reflexa" Specimen 5.5-6'	ea	t	2026-05-02 21:08:11.421371	\N
+170	5	14" Ponytail - Single Neck 1PPP C/B Multi 3-3.5'	ea	t	2026-05-02 21:08:12.483134	\N
+171	5	14" Yucca Tree Form "Branched" (Elephantipes) 5'	ea	t	2026-05-02 21:08:13.32685	\N
+172	6	4" Portulacaria Afra (Dwarf Jade) HEARTS	\N	t	2026-05-02 21:08:15.475485	\N
+173	6	6" Beaucarnea Guatemalensis (Ponytail Palm)	\N	t	2026-05-02 21:08:16.439501	\N
+174	6	6" Portulacaria Afra (Dwarf Jade) HEARTS	\N	t	2026-05-02 21:08:17.339146	\N
+175	6	6" Portulacaria Afra (Dwarf Jade) STD	\N	t	2026-05-02 21:08:18.202349	\N
+176	6	6" Yucca Elephantipes 1'	\N	t	2026-05-02 21:08:19.296941	\N
+177	6	10" Codiaeum Variegatum Fantasy STD TALL	\N	t	2026-05-02 21:08:20.173843	\N
+178	6	10" Dipladenia Splendens 'Pink' BUSH	\N	t	2026-05-02 21:08:21.420914	\N
+179	6	10" Dipladenia Splendens 'Red' BUSH	\N	t	2026-05-02 21:08:22.626627	\N
+180	6	10" Dipladenia Splendens 'White' BUSH	\N	t	2026-05-02 21:08:23.514255	\N
+181	6	10" Echinopsis Peruvians	\N	t	2026-05-02 21:08:24.382923	\N
+182	6	10" Ficus Lyrata STD 5-5.5	\N	t	2026-05-02 21:08:25.229339	\N
+183	6	10" Ficus Maclellandii 'Alii' STD	\N	t	2026-05-02 21:08:26.347208	\N
+184	6	10" Opuntia Romano	\N	t	2026-05-02 21:08:27.158851	\N
+185	6	10" Portulacaria Afra Cone	\N	t	2026-05-02 21:08:28.456222	\N
+186	6	10" Yucca Elephantipes 3/2/1	\N	t	2026-05-02 21:08:29.745972	\N
+187	6	14" Ficus Lyrata STD	\N	t	2026-05-02 21:08:30.651921	\N
+188	6	17" Cycas Revoluta (Sago Palm)	\N	t	2026-05-02 21:08:31.517118	\N
+189	7	4" Gardenia Bush "Veitchii" Trayed	30	t	2026-05-02 21:08:33.656471	\N
+190	7	6" Gardenia "August Beauty" Bush Trayed	12	t	2026-05-02 21:08:34.473159	\N
+191	7	6" Gardenia "Veitchii" Topiary Sleeved	12	t	2026-05-02 21:08:35.380957	\N
+192	7	6" Gardenia "Veitchii" Topiary Trayed	12	t	2026-05-02 21:08:36.306331	\N
+193	7	6" Gardenia "Veitchii" Trayed	12	t	2026-05-02 21:08:37.175785	\N
+194	7	8" Gardenia "Veitchii" Sleeved	ea	t	2026-05-02 21:08:38.301862	\N
+195	7	8" Gardenia "Veitchii" Topiary Sleeved	ea	t	2026-05-02 21:08:39.223226	\N
+196	7	10" Gardenia Sleeved	ea	t	2026-05-02 21:08:40.199493	\N
+197	7	10" Gardenia Topiary Sleeved	ea	t	2026-05-02 21:08:41.16805	\N
+198	7	4" Gardenia Bush Trayed	30	t	2026-05-02 21:08:42.062548	\N
+199	7	6" Gardenia Bush Trayed	12	t	2026-05-02 21:08:43.275864	\N
+200	7	6" Gardenia Topiary Sleeved	12	t	2026-05-02 21:08:44.401386	\N
+201	7	8" Gardenia Sleeved	ea	t	2026-05-02 21:08:45.86863	\N
+202	7	8" Gardenia Topiary Sleeved	ea	t	2026-05-02 21:08:46.959217	\N
+203	8	6" Croton	12	t	2026-05-02 21:08:49.035592	\N
+204	8	6" Dipladenia Bush Pink	12	t	2026-05-02 21:08:50.052161	\N
+205	8	6" Dipladenia Bush - Red Crimson	12	t	2026-05-02 21:08:51.040009	\N
+206	8	6" Dipladenia Bush - White	12	t	2026-05-02 21:08:52.204262	\N
+207	8	6" Foxtail Fern	12	t	2026-05-02 21:08:53.47227	\N
+208	8	6" Hibiscus Asst.	12	t	2026-05-02 21:08:54.342538	\N
+209	8	6" Hibiscus Yellow/red center	12	t	2026-05-02 21:08:55.54925	\N
+210	8	6" Kimberly Queen	12	t	2026-05-02 21:08:56.44294	\N
+211	8	6" Penta - Graffiti Series - Lipstick	12	t	2026-05-02 21:08:57.574298	\N
+212	8	6" Penta - Graffiti Series - Red	12	t	2026-05-02 21:08:58.52883	\N
+213	8	6" Penta - Pink	12	t	2026-05-02 21:08:59.483416	\N
+214	8	6" Penta - Graffiti Series - Violet (Purple)	12	t	2026-05-02 21:09:00.695269	\N
+215	8	6" Penta - Graffiti Series - White	12	t	2026-05-02 21:09:01.966342	\N
+216	8	6" Sprengerri	12	t	2026-05-02 21:09:03.120429	\N
+218	8	10" Banana Ensete Maurelii	ea	t	2026-05-02 21:09:05.041808	\N
+219	8	10" Bird of Paradise - White	ea	t	2026-05-02 21:09:06.149577	\N
+220	8	10" Boston Fern Hanging Basket	ea	t	2026-05-02 21:09:07.247208	\N
+223	8	10" Dipladenia Bush Pk	ea	t	2026-05-02 21:09:10.114757	\N
+224	8	10" Dipladenia Bush Red	ea	t	2026-05-02 21:09:11.344488	\N
+225	8	10" Dipladenia Trellis Pretty Pink	ea	t	2026-05-02 21:09:12.587787	\N
+226	8	10" Dipladenia Trellis Red	ea	t	2026-05-02 21:09:13.348656	\N
+228	8	10" Foxtail Fern	ea	t	2026-05-02 21:09:15.528101	\N
+229	8	10" Hibiscus Bush Red/Pk/Orange asst colors	ea	t	2026-05-02 21:09:16.649468	\N
+230	8	10" Hydrangea Blue	ea	t	2026-05-02 21:09:17.64742	\N
+232	8	10" Monstera Thai Con	ea	t	2026-05-02 21:09:19.67059	\N
+233	8	10" Passion Vine Trellis Purple	ea	t	2026-05-02 21:09:20.809975	\N
+234	8	10" Passion Vine Trellis Red	ea	t	2026-05-02 21:09:21.764235	\N
+236	8	10" Sanseviera Laurentii	ea	t	2026-05-02 21:09:24.009146	\N
+237	8	10" Selloum	ea	t	2026-05-02 21:09:24.978061	\N
+238	8	10" Snow on the Mountain	ea	t	2026-05-02 21:09:26.311761	\N
+239	8	10" Sprengerri Hanging Basket	ea	t	2026-05-02 21:09:27.412197	\N
+240	8	10" Standard Gardenia	ea	t	2026-05-02 21:09:28.65419	\N
+241	8	10" Standard Hibiscus - Double Peach	ea	t	2026-05-02 21:09:29.868063	\N
+242	8	10" Standard Hibiscus - Double Red	ea	t	2026-05-02 21:09:31.043281	\N
+243	8	10" Standard Hibiscus - Ft. Myers Yellow	ea	t	2026-05-02 21:09:31.987987	\N
+244	8	10" Standard Hibiscus - President Red	ea	t	2026-05-02 21:09:33.458885	\N
+245	8	10" Standard Hibiscus - Seminole Pink	ea	t	2026-05-02 21:09:36.466934	\N
+246	8	10" Tractor Plant - Farfugium	ea	t	2026-05-02 21:09:38.276687	\N
+247	8	10" Variegated Ginger	ea	t	2026-05-02 21:09:39.221322	\N
+248	8	12" Boston Fern	ea	t	2026-05-02 21:09:40.252967	\N
+251	8	14" Croton	ea	t	2026-05-02 21:09:43.149744	\N
+253	9	4" Ficus - Gingseng	30	t	2026-05-02 21:09:46.64514	\N
+254	9	4" Monstera - Deliciosa	30	t	2026-05-02 21:09:47.879025	\N
+255	9	4" Pachira - Braid	30	t	2026-05-02 21:09:49.248458	\N
+256	9	4" Peperomia - Obtusifolia	30	t	2026-05-02 21:09:50.141979	\N
+257	9	4" Philodendron - Billietiae	30	t	2026-05-02 21:09:51.37589	\N
+258	9	4" Philodendron - McColley's Finale	30	t	2026-05-02 21:09:53.062368	\N
+259	9	4" Philodendron - Moonlight	30	t	2026-05-02 21:09:54.064891	\N
+260	9	4" ZZ - Zenzi	30	t	2026-05-02 21:09:55.311242	\N
+261	10	4" Dendrobium, Assorted	18	t	2026-05-02 21:09:57.683363	\N
+262	10	4" Guzmania, Assorted	12	t	2026-05-02 21:09:58.876201	\N
+263	10	5" Cryptanthus, Absolute Zero	10	t	2026-05-02 21:10:00.053549	\N
+264	10	5" Cryptanthus Asst	10	t	2026-05-02 21:10:00.992398	\N
+265	10	5" Cryptanthus, Betty	10	t	2026-05-02 21:10:02.026952	\N
+266	10	5" Cryptanthus, 'Red Baron Living Colors'	10	t	2026-05-02 21:10:02.954444	\N
+267	10	5" Cryptanthus, Zebra Star	10	t	2026-05-02 21:10:04.265238	\N
+268	10	5" Dendrobium, Nobile	10	t	2026-05-02 21:10:05.521991	\N
+269	10	5" Guzmania, Assorted	12	t	2026-05-02 21:10:07.907203	\N
+270	10	5" Guzmania, Class	12	t	2026-05-02 21:10:09.037072	\N
+271	10	5" Guzmania, Color Specific	12	t	2026-05-02 21:10:10.178151	\N
+272	10	5" Guzmania, Deseo White	12	t	2026-05-02 21:10:11.530876	\N
+273	10	5" Guzmania, Fire	12	t	2026-05-02 21:10:12.45054	\N
+274	10	5" Guzmania, Hilda	12	t	2026-05-02 21:10:13.486912	\N
+275	10	5" Guzmania, Indian Night	12	t	2026-05-02 21:10:16.346089	\N
+276	10	5" Guzmania, Nextera	12	t	2026-05-02 21:10:17.463173	\N
+277	10	5" Guzmania, Kay	12	t	2026-05-02 21:10:18.414033	\N
+278	10	5" Guzmania, Margo	12	t	2026-05-02 21:10:19.297213	\N
+279	10	5" Guzmania, Mirador	12	t	2026-05-02 21:10:20.521854	\N
+280	10	5" Guzmania, Ostara	12	t	2026-05-02 21:10:21.784613	\N
+281	10	5" Guzmania, Rostara	12	t	2026-05-02 21:10:22.899121	\N
+282	10	5" Guzmania, Suerte White	12	t	2026-05-02 21:10:24.104495	\N
+283	10	5" Guzmania, Tatiana	12	t	2026-05-02 21:10:25.088429	\N
+284	10	5" Guzmania, Voila	12	t	2026-05-02 21:10:26.316397	\N
+285	10	5" Guzmania, Yellow Sun	12	t	2026-05-02 21:10:27.155962	\N
+286	10	5" Oncidium Asst	6	t	2026-05-02 21:10:28.254861	\N
+287	10	5" Phalaenopsis, Assorted	12	t	2026-05-02 21:10:29.27987	\N
+288	10	5" Vriesea, Espada	12	t	2026-05-02 21:10:31.294325	\N
+289	10	6" Guzmania, Color Specific	6	t	2026-05-02 21:10:32.394454	\N
+290	10	6" Guzmania, Allura	6	t	2026-05-02 21:10:33.640772	\N
+291	10	6" Guzmania, Brimstone	6	t	2026-05-02 21:10:34.815991	\N
+292	10	6" Guzmania, Desea White	6	t	2026-05-02 21:10:35.773954	\N
+293	10	6" Guzmania, Hilda	6	t	2026-05-02 21:10:36.752703	\N
+294	10	6" Guzmania, Indian Night	6	t	2026-05-02 21:10:37.774601	\N
+295	10	6" Guzmania, Margo	6	t	2026-05-02 21:10:38.770271	\N
+296	10	6" Guzmania, Marjan	6	t	2026-05-02 21:10:39.923762	\N
+297	10	6" Guzmania, Orangeade	6	t	2026-05-02 21:10:40.993555	\N
+298	10	6" Guzmania, Ostara	6	t	2026-05-02 21:10:42.057918	\N
+299	10	6" Guzmania, Passion	6	t	2026-05-02 21:10:43.192747	\N
+300	10	6" Guzmania, Rostara	6	t	2026-05-02 21:10:44.343951	\N
+301	10	6" Guzmania, Variada	6	t	2026-05-02 21:10:45.586418	\N
+302	10	6" Guzmania, Switch	6	t	2026-05-02 21:10:48.307966	\N
+303	10	6" Guzmania, Yellow Sun	6	t	2026-05-02 21:10:49.628175	\N
+304	10	6" Guzmania, Sanne	6	t	2026-05-02 21:10:50.633922	\N
+305	10	6" Neoregelia, Ardie	6	t	2026-05-02 21:10:51.536826	\N
+306	10	6" Neoregelia, Assorted	6	t	2026-05-02 21:10:52.63345	\N
+307	10	6" Neoregelia, Cotton Candy	6	t	2026-05-02 21:10:53.824749	\N
+308	10	6" Neoregelia, Crimson	6	t	2026-05-02 21:10:54.911142	\N
+309	10	6" Neoregelia, Donna	6	t	2026-05-02 21:10:55.942291	\N
+310	10	6" Neoregelia, Lila	6	t	2026-05-02 21:10:57.82829	\N
+311	10	6" Neoregelia Tricolor	6	t	2026-05-02 21:10:58.839545	\N
+312	10	6" Neoregelia, Raphael	6	t	2026-05-02 21:11:00.242915	\N
+313	10	6" Vriesea, Assorted	6	t	2026-05-02 21:11:02.860497	\N
+314	10	6" Vriesea, Intenso Flame	6	t	2026-05-02 21:11:03.832569	\N
+315	10	6" Vriesea, Happy Yellow	6	t	2026-05-02 21:11:04.956538	\N
+316	10	6" Vriesea, Intenso Peach	6	t	2026-05-02 21:11:05.99026	\N
+317	10	8" Tillandsia Ziva	3	t	2026-05-02 21:11:07.102648	\N
+249	8	12" Macho Fern Hanging Basket	ea	t	2026-05-02 21:09:41.207166	9.95
+227	8	10" Firecracker Bush Red	ea	t	2026-05-02 21:09:14.513013	6.25
+221	8	10" Croton Petra	ea	t	2026-05-02 21:09:08.064382	3.75
+250	8	12" Trellis Dipladenia - Pretty Pink	ea	t	2026-05-02 21:09:42.224988	5.50
+231	8	10" Majesty Palm	ea	t	2026-05-02 21:09:18.840063	27.00
+222	8	10" Croton Petra St.	ea	t	2026-05-02 21:09:08.998569	3.75
+252	8	14" Majesty Palm	ea	t	2026-05-02 21:09:44.606463	27.00
+318	10	8" Bromeliad	4	t	2026-05-02 21:11:08.014593	\N
+319	10	8" Bromeliad Combo	3	t	2026-05-02 21:11:09.096497	\N
+320	10	8" Bromeliad, Triple Combo Azalea Pot	4	t	2026-05-02 21:11:10.038753	\N
+321	10	8" Guzmania, Crown	4	t	2026-05-02 21:11:11.243644	\N
+322	10	8" Guzmania, Rebel	4	t	2026-05-02 21:11:13.76905	\N
+323	10	10" Bromeliad Combo	2	t	2026-05-02 21:11:14.73045	\N
+324	10	10" Bromeliad, Triple Combo	2	t	2026-05-02 21:11:15.637374	\N
+325	10	10" Medinilla Magnifica	ea	t	2026-05-02 21:11:16.664986	\N
+326	10	12" Platycerium, Bifurcatum Plaque Staghorn	2	t	2026-05-02 21:11:18.838507	\N
+327	10	16" Staghorn Plaque	ea	t	2026-05-02 21:11:20.180808	\N
+328	11	4" Calathea Concinna	30	t	2026-05-02 21:11:22.670049	\N
+329	11	4" Dieffenbachia Camille	30	t	2026-05-02 21:11:23.619123	\N
+330	11	4" Dieffenbachia Compacta	30	t	2026-05-02 21:11:24.91564	\N
+331	11	4" Dieffenbachia Hybrid Asst	30	t	2026-05-02 21:11:25.978959	\N
+332	11	4" Ficus Burgundy	30	t	2026-05-02 21:11:27.407071	\N
+333	11	4" Manjula Pothos	30	t	2026-05-02 21:11:30.602792	\N
+334	11	4" Marble Queen Pothos	30	t	2026-05-02 21:11:32.19228	\N
+335	11	4" N'Joy Pothos	30	t	2026-05-02 21:11:33.223009	\N
+336	11	4" Palm	30	t	2026-05-02 21:11:34.297794	\N
+337	11	4" Syngonium	30	t	2026-05-02 21:11:35.179137	\N
+338	11	6" Dieffenbachia Hybrid	12	t	2026-05-02 21:11:36.195384	\N
+339	11	6" Dieffenbachia Hybrid Camo	12	t	2026-05-02 21:11:37.084768	\N
+340	11	6" Dieffenbachia Hybrid Military	12	t	2026-05-02 21:11:38.188913	\N
+341	11	6" Marble Queen Pothos	12	t	2026-05-02 21:11:39.146809	\N
+342	11	6" N'Joy Pothos	12	t	2026-05-02 21:11:40.195785	\N
+343	11	6" Syngonium Pole	12	t	2026-05-02 21:11:43.25352	\N
+344	11	6" Syngonium Red Arrow	12	t	2026-05-02 21:11:44.185849	\N
+345	11	8" Aglaonema Silver Bay	6	t	2026-05-02 21:11:45.071369	\N
+346	11	8" Croton	ea	t	2026-05-02 21:11:46.026007	\N
+347	11	8" Hawaiian Pothos Pole	ea	t	2026-05-02 21:11:47.002358	\N
+348	11	8" Syngonium Pole	ea	t	2026-05-02 21:11:47.826705	\N
+349	12	4" Spath	30	t	2026-05-02 21:11:49.839204	\N
+350	12	4" Spath Platinum Mist	30	t	2026-05-02 21:11:50.94034	\N
+351	12	6" Spath	12	t	2026-05-02 21:11:51.94891	\N
+352	12	6" Spath Platinum Mist	12	t	2026-05-02 21:11:52.822682	\N
+353	12	8" Spath	ea	t	2026-05-02 21:11:54.025783	\N
+354	12	10" Spath	ea	t	2026-05-02 21:11:56.613577	\N
+355	13	4" Assorted Bromeliad	30	t	2026-05-02 21:11:58.810986	\N
+356	13	4" Splenriet	30	t	2026-05-02 21:12:00.094802	\N
+357	13	4" Assorted Neo	30	t	2026-05-02 21:12:01.001018	\N
+358	13	4" Grace	30	t	2026-05-02 21:12:02.330655	\N
+359	13	4" Guacamole	30	t	2026-05-02 21:12:03.351409	\N
+360	13	4" Cyanea	30	t	2026-05-02 21:12:04.397931	\N
+361	13	4" Neo Diane	30	t	2026-05-02 21:12:05.299552	\N
+362	13	4" Neo Donna	30	t	2026-05-02 21:12:06.57643	\N
+363	13	4" Neo Stripes	30	t	2026-05-02 21:12:07.511904	\N
+364	13	6" Assorted Guzmania	12	t	2026-05-02 21:12:09.001033	\N
+365	13	6" Assorted Guzmania - Amaretto & Focus	12	t	2026-05-02 21:12:10.027359	\N
+366	13	6" Assorted Neo	12	t	2026-05-02 21:12:10.976623	\N
+367	13	6" Assorted Vriesea	12	t	2026-05-02 21:12:12.389709	\N
+368	13	6" Double Vriesea	12	t	2026-05-02 21:12:13.449421	\N
+369	13	6" Fasciata	12	t	2026-05-02 21:12:14.646847	\N
+370	13	6" Fredricha	12	t	2026-05-02 21:12:15.780373	\N
+371	13	6" Flame	12	t	2026-05-02 21:12:16.941039	\N
+372	13	6" Guzmania Alerta, pink	12	t	2026-05-02 21:12:20.739281	\N
+373	13	6" Guzmania Amaretto, orange	12	t	2026-05-02 21:12:24.33508	\N
+374	13	6" Guzmania Antonio	12	t	2026-05-02 21:12:25.276607	\N
+375	13	6" Guzmania Brimstone	12	t	2026-05-02 21:12:26.207893	\N
+376	13	6" Guzmania Clair	12	t	2026-05-02 21:12:27.061809	\N
+377	13	6" Guzmania D Red	12	t	2026-05-02 21:12:28.052368	\N
+378	13	6" Guzmania D Pink	12	t	2026-05-02 21:12:29.2973	\N
+379	13	6" Guzmania Dance	12	t	2026-05-02 21:12:30.438347	\N
+380	13	6" Guzmania Deborah	12	t	2026-05-02 21:12:32.289052	\N
+381	13	6" Guzmania Fancy	12	t	2026-05-02 21:12:33.337943	\N
+382	13	6" Guzmania Flo	12	t	2026-05-02 21:12:34.501971	\N
+383	13	6" Guzmania Focus	12	t	2026-05-02 21:12:35.656866	\N
+384	13	6" Guzmania Frambo, red	12	t	2026-05-02 21:12:36.528234	\N
+385	13	6" Guzmania Ginette	12	t	2026-05-02 21:12:37.509567	\N
+386	13	6" Guzmania Hasta	12	t	2026-05-02 21:12:38.965903	\N
+387	13	6" Guzmania Happiness	12	t	2026-05-02 21:12:39.887605	\N
+388	13	6" Guzmania Hilda, yellow	12	t	2026-05-02 21:12:40.889653	\N
+389	13	6" Guzmania Indian Night, dark pink (burg)	12	t	2026-05-02 21:12:44.141798	\N
+390	13	6" Guzmania Jazz	12	t	2026-05-02 21:12:45.477398	\N
+391	13	6" Guzmania Kay	12	t	2026-05-02 21:12:47.363881	\N
+392	13	6" Guzmania Marcella	12	t	2026-05-02 21:12:48.413676	\N
+393	13	6" Guzmania Marjan	12	t	2026-05-02 21:12:49.668192	\N
+394	13	6" Guzmania Michael	12	t	2026-05-02 21:12:51.133648	\N
+395	13	6" Guzmania Nancy	12	t	2026-05-02 21:12:52.21149	\N
+396	13	6" Guzmania Orange Ade	12	t	2026-05-02 21:12:53.294659	\N
+397	13	6" Guzmania Passion	12	t	2026-05-02 21:12:54.687515	\N
+398	13	6" Guzmania Peach	12	t	2026-05-02 21:12:55.613455	\N
+399	13	6" Guzmania Rouch	12	t	2026-05-02 21:12:57.181766	\N
+400	13	6" Guzmania Strawberry	12	t	2026-05-02 21:12:58.0946	\N
+401	13	6" Guzmania Switch	12	t	2026-05-02 21:12:59.363169	\N
+402	13	6" Guzmania Viola	12	t	2026-05-02 21:13:00.677155	\N
+403	13	6" Guzmania Whittmakii	12	t	2026-05-02 21:13:01.881236	\N
+404	13	6" Neo Crimson	12	t	2026-05-02 21:13:02.841869	\N
+405	13	6" Neo Donna	12	t	2026-05-02 21:13:04.197156	\N
+406	13	6" Neo Dreamcycle	12	t	2026-05-02 21:13:05.030605	\N
+407	13	6" Neo Fancy	12	t	2026-05-02 21:13:06.083239	\N
+408	13	6" Neo Franca	12	t	2026-05-02 21:13:07.184643	\N
+409	13	6" Neo Freddy	12	t	2026-05-02 21:13:09.534595	\N
+410	13	6" Neo Raphel	12	t	2026-05-02 21:13:10.640198	\N
+411	13	6" Neo Magali	12	t	2026-05-02 21:13:11.845185	\N
+412	13	6" Neo Vodoo Doll	12	t	2026-05-02 21:13:12.917142	\N
+413	13	6" Passion	12	t	2026-05-02 21:13:13.899262	\N
+414	13	6" Peach Brom	12	t	2026-05-02 21:13:14.809286	\N
+415	13	6" Neo Pink S	12	t	2026-05-02 21:13:15.850384	\N
+416	13	6" Bonsai Garden	9	t	2026-05-02 21:13:17.250953	\N
+417	13	6" Vriesea Double	12	t	2026-05-02 21:13:18.275003	\N
+418	13	6" Vriesea Helena	12	t	2026-05-02 21:13:19.256939	\N
+419	13	8" Bonsai Garden	5	t	2026-05-02 21:13:20.411016	\N
+420	13	10" Brom Combo Garden	4	t	2026-05-02 21:13:21.633355	\N
+421	13	10" Bonsai Garden	3	t	2026-05-02 21:13:26.420904	\N
+422	13	Spanish Moss - Box	ea	t	2026-05-02 21:13:27.39719	\N
+217	8	10" Alocasia Regal Shields	ea	t	2026-05-02 21:09:04.041084	\N
+423	8	Test Plant	30	t	2026-05-02 22:40:42.51804	\N
+546	14	Alocasia Portora 'Low Rider'	\N	t	2026-06-11 22:58:42.163127	9.50
+547	14	Alpinia Zerumbet Variegated Ginger	\N	t	2026-06-11 22:58:42.168897	8.50
+548	14	Cataractarum Palm	\N	t	2026-06-11 22:58:42.172517	7.75
+549	14	Cordyline Auntie Lou	\N	t	2026-06-11 22:58:42.175606	7.50
+550	14	Cordyline Exotica/ Sherbert	\N	t	2026-06-11 22:58:42.178529	7.50
+552	14	Dieffenbachia Camille	\N	t	2026-06-11 22:58:42.184114	9.50
+553	14	Dieffenbachia Marianne	\N	t	2026-06-11 22:58:42.187669	9.50
+554	14	Dieffenbachia Sublime	\N	t	2026-06-11 22:58:42.190336	9.50
+555	14	Dieffenbachia Tropic Snow	\N	t	2026-06-11 22:58:42.193464	9.50
+556	14	Dracaena Golden Heart	\N	t	2026-06-11 22:58:42.196496	7.50
+557	14	Dracaena Hawaiian Sunshine	\N	t	2026-06-11 22:58:42.201335	7.50
+558	14	Dracaena Marginata Kiwi	\N	t	2026-06-11 22:58:42.203997	7.25
+559	14	Dracaena Marginata Magenta	\N	t	2026-06-11 22:58:42.206929	7.25
+560	14	Dracaena Mass Cane Combo	\N	t	2026-06-11 22:58:42.209511	8.50
+561	14	Dracaena Rikki	\N	t	2026-06-11 22:58:42.217272	7.25
+562	14	Dracaena Warneckii Lemon Lime 2PPP	\N	t	2026-06-11 22:58:42.22126	7.25
+563	14	Ficus Burgandy 2PPP	\N	t	2026-06-11 22:58:42.225753	7.25
+564	14	Ficus Lyrata STD	\N	t	2026-06-11 22:58:42.228649	15.00
+565	14	Pachira-"Money Tree" Braid	\N	t	2026-06-11 22:58:42.23184	9.00
+566	14	Philodendron Monstera	\N	t	2026-06-11 22:58:42.234561	6.50
+567	14	Philodendron Xanadu	\N	t	2026-06-11 22:58:42.237113	5.00
+568	14	Sansevieria Fernwood	\N	t	2026-06-11 22:58:42.23975	13.00
+569	14	Spathiphyllum Sensation	\N	t	2026-06-11 22:58:42.243048	9.50
+570	14	White Bird Of Paradise 2PPP	\N	t	2026-06-11 22:58:42.246384	9.50
+571	14	Yucca cane 1PPP	\N	t	2026-06-11 22:58:42.24897	7.25
+551	14	Cordyline Harlequinn Cane	\N	t	2026-06-11 22:58:42.181316	19.50
+572	14	Dracaena Mass Cane 4-3-2	\N	t	2026-06-11 22:58:42.257603	19.50
+573	14	Majesty Palm (RaveneaRivularis)	\N	t	2026-06-11 22:58:42.260976	19.50
+574	14	Spathiphillum Sweet Pablo	\N	t	2026-06-11 22:58:42.263768	19.50
+575	14	Yucca Cane 2ppp	\N	t	2026-06-11 22:58:42.266237	19.50
+666	1	2" Bromeliad Assorted	\N	t	2026-06-12 00:11:40.885475	\N
+667	1	4" Tillandsia- Summer/ Cynea	\N	t	2026-06-12 00:11:40.924105	\N
+668	1	5" Pineapple- Ornamental Grow Pot	\N	t	2026-06-12 00:11:40.936605	\N
+669	1	5" Pineapple- Ornamental in White Ceramic	\N	t	2026-06-12 00:11:40.941134	\N
+670	1	6" Aechmea Fasciata- Primera	\N	t	2026-06-12 00:11:40.946057	\N
+671	1	6" Guzmania Anouk	\N	t	2026-06-12 00:11:40.950676	\N
+672	1	6" Guzmania Hilda/Yellow Sun	\N	t	2026-06-12 00:11:40.956759	\N
+673	1	6" Guzmania Suerte Yellow	\N	t	2026-06-12 00:11:40.961099	\N
+674	1	6" Guzmania Variada	\N	t	2026-06-12 00:11:40.96541	\N
+675	1	6" Guzmania Marjan/ Sunnytime	\N	t	2026-06-12 00:11:40.96991	\N
+676	1	6" Guzmania Focus	\N	t	2026-06-12 00:11:40.974003	\N
+677	1	6" Guzmania Hope	\N	t	2026-06-12 00:11:40.978148	\N
+678	1	6" Guzmania Calypso	\N	t	2026-06-12 00:11:40.982208	\N
+679	1	6" Guzmania Suerte Orange	\N	t	2026-06-12 00:11:40.98634	\N
+680	1	6" Guzmania Orangeade	\N	t	2026-06-12 00:11:40.990292	\N
+681	1	6" Guzmania Michel	\N	t	2026-06-12 00:11:40.993299	\N
+682	1	6" Guzmania Allura	\N	t	2026-06-12 00:11:40.996302	\N
+683	1	6" Guzmania Brimstone	\N	t	2026-06-12 00:11:40.99865	\N
+684	1	6" Guzmania Rostara	\N	t	2026-06-12 00:11:41.001634	\N
+685	1	6" Guzmania Frambo	\N	t	2026-06-12 00:11:41.004132	\N
+686	1	6" Guzmania Tatiana	\N	t	2026-06-12 00:11:41.007197	\N
+687	1	6" Guzmania Flame	\N	t	2026-06-12 00:11:41.009766	\N
+688	1	6" Guzmania Luna	\N	t	2026-06-12 00:11:41.012514	\N
+689	1	6" Guzmania Ace	\N	t	2026-06-12 00:11:41.015164	\N
+690	1	6" Guzmania Nextara	\N	t	2026-06-12 00:11:41.019207	\N
+691	1	6" Guzmania Athena	\N	t	2026-06-12 00:11:41.02173	\N
+692	1	6" Guzmania Ginette	\N	t	2026-06-12 00:11:41.024752	\N
+693	1	6" Guzmania Passion/ Lulu	\N	t	2026-06-12 00:11:41.027599	\N
+694	1	6" Guzmania Voila	\N	t	2026-06-12 00:11:41.030482	\N
+695	1	6" Neoregelia Growers Choice MIX	\N	t	2026-06-12 00:11:41.032929	\N
+696	1	6" Neoregelia Nuance	\N	t	2026-06-12 00:11:41.03601	\N
+697	1	6" Neoregelia Freddy	\N	t	2026-06-12 00:11:41.038936	\N
+698	1	6" Neoregelia Puppy Love	\N	t	2026-06-12 00:11:41.041782	\N
+699	1	6" Neoregelia Magali	\N	t	2026-06-12 00:11:41.044675	\N
+700	1	6" Neoregelia Voodoo Doll	\N	t	2026-06-12 00:11:41.048672	\N
+701	1	6" Neoregelia Donna	\N	t	2026-06-12 00:11:41.052232	\N
+702	1	6" Neoregelia Franca	\N	t	2026-06-12 00:11:41.054531	\N
+703	1	6" Neoregelia Tricolor	\N	t	2026-06-12 00:11:41.05731	\N
+704	1	6" Neoregelia Sangria	\N	t	2026-06-12 00:11:41.061836	\N
+705	1	6" Neoregelia Cotton Candy	\N	t	2026-06-12 00:11:41.065487	\N
+706	1	6" Tillandsia Antonio	\N	t	2026-06-12 00:11:41.06892	\N
+707	1	6" Vriesea Growers Choice MIX	\N	t	2026-06-12 00:11:41.071838	\N
+708	1	6" Vriesea Vogue	\N	t	2026-06-12 00:11:41.075485	\N
+709	1	6" Vriesea Helia	\N	t	2026-06-12 00:11:41.078751	\N
+710	1	6" Vriesea Salmon	\N	t	2026-06-12 00:11:41.081746	\N
+711	1	Aglaonema Etta Rose	\N	t	2026-06-12 00:11:41.084917	\N
+712	1	Aglaonema Pink Splash	\N	t	2026-06-12 00:11:41.089619	\N
+713	1	4" Garden in Colored Clay upgrade, 3- 2" broms	\N	t	2026-06-12 00:11:41.094815	\N
+714	1	4" Garden in White Ceramic , 3- 2" broms	\N	t	2026-06-12 00:11:41.097824	\N
+715	1	4" Garden in White Oval Ceramic , 3- 2" broms	\N	t	2026-06-12 00:11:41.100352	\N
+716	1	8" Garden in Plastic grower pot, 1-6" & 2-4" broms	\N	t	2026-06-12 00:11:41.103432	\N
+717	1	8" Garden in DR Ceramic pot, 1-6" & 2-4" broms	\N	t	2026-06-12 00:11:41.106013	\N
+718	1	10" Garden in Plastic grow pot, 3- 6" Deluxe broms	\N	t	2026-06-12 00:11:41.108606	\N
+719	1	10" Garden in Plastic Sq pot , 3- 6" Large broms	\N	t	2026-06-12 00:11:41.111096	\N
+809	1	Maier Hanging Concrete	\N	t	2026-06-12 00:54:30.174925	9.20
+810	1	Geometric Garden	\N	t	2026-06-12 00:54:30.177229	16.70
+811	1	Graphite Ceramic Mini	\N	t	2026-06-12 00:54:30.180032	5.05
+812	1	Mosaic Ceramic Small	\N	t	2026-06-12 00:54:30.182573	13.70
+813	1	Noelle	\N	t	2026-06-12 00:54:30.18553	13.80
+814	1	Nollan Mini	\N	t	2026-06-12 00:54:30.188096	5.00
+815	1	Austere Ceramic Small	\N	t	2026-06-12 00:54:30.19094	12.40
+816	1	Eva Upgrade	\N	t	2026-06-12 00:54:30.19349	7.30
+817	1	Posy Small Garden	\N	t	2026-06-12 00:54:30.196795	12.50
+818	1	Posy Large Garden	\N	t	2026-06-12 00:54:30.20157	23.85
+819	1	Tess Small Upgrade	\N	t	2026-06-12 00:54:30.205527	7.25
+820	1	Santino Wicker Bowl	\N	t	2026-06-12 00:54:30.208185	28.20
+821	1	Baroque Ming Vase	\N	t	2026-06-12 00:54:30.21115	33.95
+822	1	Ovation Bowl Garden	\N	t	2026-06-12 00:54:30.214363	32.20
+823	1	Ovation Garden	\N	t	2026-06-12 00:54:30.217633	35.15
+824	1	Garden View Tower Glass	\N	t	2026-06-12 00:54:30.220259	29.70
+825	1	Crio Tower	\N	t	2026-06-12 00:54:30.222889	25.30
+826	1	Bevel Slanted Glass	\N	t	2026-06-12 00:54:30.225328	9.70
+827	1	Ambient Glass Bowl Medium	\N	t	2026-06-12 00:54:30.22839	25.35
+828	1	Avatar Glass Jar Large	\N	t	2026-06-12 00:54:30.231245	54.75
+829	1	Hanging Rope Glass	\N	t	2026-06-12 00:54:30.23362	25.15
+830	1	Tower Glass Terrarium	\N	t	2026-06-12 00:54:30.238577	29.70
+831	1	Cove Succulent Garden	\N	t	2026-06-12 00:54:30.241664	14.05
+832	1	Rise Upgrade	\N	t	2026-06-12 00:54:30.244256	11.30
+833	1	Aztec Metal Upgrade Small	\N	t	2026-06-12 00:54:30.246873	9.85
+834	1	Aztec Metal Upgrade Large	\N	t	2026-06-12 00:54:30.249614	20.30
+835	1	Hudson Garden Large	\N	t	2026-06-12 00:54:30.25261	21.80
+836	1	MTSE202-GARDEN Mattise Stand Garden	\N	t	2026-06-12 00:54:30.255527	20.60
+640	15	Dracaena Tips Limelight Bush (4ppp)	\N	t	2026-06-11 23:46:08.139172	40.00
+641	15	Mass Cane (4-3-2)	\N	t	2026-06-11 23:46:08.142223	26.00
+643	15	Mass Cane (5-4-3-2)	\N	t	2026-06-11 23:46:08.147084	40.00
+644	15	Mass Cane (5-4-3) B-GRADE –	\N	t	2026-06-11 23:46:08.149525	15.00
+642	15	Mass Cane Mass Stump Wishbone	\N	t	2026-06-11 23:46:08.144621	90.00
+645	15	Marginata Colorama Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.155655	24.00
+646	15	Marginata Colorama Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.157863	40.00
+647	15	Marginata Open Weave	\N	t	2026-06-11 23:46:08.160101	20.00
+648	15	Reflexa Anita Stump	\N	t	2026-06-11 23:46:08.163281	50.00
+649	15	Ficus Lyrata Standard	\N	t	2026-06-11 23:46:08.165946	50.00
+650	15	Nephrolepis Macho Fern NA	\N	t	2026-06-11 23:46:08.168323	7.00
+651	15	Palms Cardboard Palm (Zamia Furfuracea)	\N	t	2026-06-11 23:46:08.170728	10.00
+652	15	Palms Philodendron Pink Princess	\N	t	2026-06-11 23:46:08.17355	6.00
+653	15	Palms Philodendron White Wizard	\N	t	2026-06-11 23:46:08.176364	6.00
+654	15	Palms Xanadu	\N	t	2026-06-11 23:46:08.178729	37.00
+655	15	Sansevieria Black Coral	\N	t	2026-06-11 23:46:08.18118	6.50
+656	15	Sansevieria Laurenti	\N	t	2026-06-11 23:46:08.184186	12.50
+657	15	Sansevieria Zeylanica	\N	t	2026-06-11 23:46:08.186644	40.00
+658	15	Spathiphyllum Sweet Dario	\N	t	2026-06-11 23:46:08.189135	8.50
+659	15	Spathiphyllum Sensation	\N	t	2026-06-11 23:46:08.191995	16.00
+660	15	Spathiphyllum Sweet Pablo	\N	t	2026-06-11 23:46:08.195194	13.00
+661	15	Spathiphyllum Stephanie	\N	t	2026-06-11 23:46:08.197565	32.00
+662	15	Spathiphyllum White Bird 4ppp	\N	t	2026-06-11 23:46:08.201972	20.00
+663	15	Zamioculcas ZZ Plant	\N	t	2026-06-11 23:46:08.207795	8.25
+664	15	Zamiifolia ZZ Plant	\N	t	2026-06-11 23:46:08.211284	21.75
+665	15	Zamiifolia ZZ “Oscura	\N	t	2026-06-11 23:46:08.215118	9.00
+720	1	Bonsai Mixed Case 1 (2 X 4" , 2 X 5", 2 X 6", 1 X 7", 1 X 8" Assortment )	\N	t	2026-06-12 00:54:29.526546	260.15
+721	1	Bonsai Mixed Case 2 (2x4" 2x5" 2x6" 1x7" 1x10" Assortment)	\N	t	2026-06-12 00:54:29.775607	284.95
+722	1	Brick Succulent Planter	\N	t	2026-06-12 00:54:29.890235	12.05
+723	1	Concrete Log Planter Large (12" long x 5" wide)	\N	t	2026-06-12 00:54:29.894103	23.40
+724	1	Concrete Rope Succulent Planter	\N	t	2026-06-12 00:54:29.898769	12.05
+725	1	Campfire Songs Large	\N	t	2026-06-12 00:54:29.902381	11.20
+726	1	Anthurium Moss Bowl Upgrade	\N	t	2026-06-12 00:54:29.906472	15.60
+727	1	Spanish Moss (Box of 6 Bunches)	\N	t	2026-06-12 00:54:29.909883	7.75
+728	1	Curley Moss ( Box of 6 Bunches)	\N	t	2026-06-12 00:54:29.913774	10.95
+729	1	Tillandsia Filifolia - Giant Ball	\N	t	2026-06-12 00:54:29.917342	9.45
+730	1	Tillandsia (Air Plants) Small Premium	\N	t	2026-06-12 00:54:29.920194	2.00
+731	1	Tillandsia (Air Plants) Medium	\N	t	2026-06-12 00:54:29.927546	2.95
+732	1	Tillandsia (Air Plants) Large	\N	t	2026-06-12 00:54:29.930441	3.70
+733	1	Tillandsia (Air Plants) Mixed Case 5 Large/ 15 Medium/ 25 Small	\N	t	2026-06-12 00:54:29.932863	2.75
+734	1	Tillandsia Assortment (3PPP) in Mesh Display Bag	\N	t	2026-06-12 00:54:29.935971	5.45
+735	1	Aerie Mason	\N	t	2026-06-12 00:54:29.938964	16.30
+736	1	Amsterdam Watering Can	\N	t	2026-06-12 00:54:29.941612	16.25
+737	1	Angie Wicker Medium	\N	t	2026-06-12 00:54:29.944539	47.95
+738	1	Armoire Small	\N	t	2026-06-12 00:54:29.949404	23.50
+739	1	Armoire Large	\N	t	2026-06-12 00:54:29.953969	32.30
+740	1	Awaken Ceramic Garden	\N	t	2026-06-12 00:54:29.956949	24.90
+741	1	Blossom Bag Small	\N	t	2026-06-12 00:54:29.959967	13.15
+742	1	Bluebells Upgrade	\N	t	2026-06-12 00:54:29.963209	9.90
+743	1	Botanic G Sleeve Mix	\N	t	2026-06-12 00:54:29.967263	6.30
+744	1	Chamomile Mini	\N	t	2026-06-12 00:54:29.970495	5.80
+745	1	Chanel Mini Gift	\N	t	2026-06-12 00:54:29.973741	5.65
+746	1	Chiffon Mason Garden	\N	t	2026-06-12 00:54:29.977512	17.05
+747	1	Chloe Large	\N	t	2026-06-12 00:54:29.981961	28.25
+748	1	Dahlia Tea Pot	\N	t	2026-06-12 00:54:29.984925	20.10
+749	1	Delaware 501	\N	t	2026-06-12 00:54:29.987971	23.50
+750	1	Delaware 502	\N	t	2026-06-12 00:54:29.991126	30.35
+751	1	Delaware 503	\N	t	2026-06-12 00:54:29.996295	37.70
+752	1	Fairweather Mason Jar	\N	t	2026-06-12 00:54:29.999178	16.95
+753	1	Fleur Mini	\N	t	2026-06-12 00:54:30.002036	5.65
+754	1	Fleur Drop in	\N	t	2026-06-12 00:54:30.00489	8.20
+755	1	Flutter Garden Small	\N	t	2026-06-12 00:54:30.009148	13.10
+756	1	Flutter Garden Large	\N	t	2026-06-12 00:54:30.011912	18.60
+757	1	Freesia Mini	\N	t	2026-06-12 00:54:30.014519	5.75
+758	1	Garden Party Mini	\N	t	2026-06-12 00:54:30.016964	5.80
+759	1	Helen Ceramic Small	\N	t	2026-06-12 00:54:30.021158	13.80
+760	1	Kew Mini	\N	t	2026-06-12 00:54:30.024494	6.15
+761	1	Linwood White Drawer Small	\N	t	2026-06-12 00:54:30.027309	15.45
+762	1	Lovina Teapot	\N	t	2026-06-12 00:54:30.029964	19.45
+763	1	Lush G Cover Set	\N	t	2026-06-12 00:54:30.033349	5.95
+764	1	Madison Birdhouse	\N	t	2026-06-12 00:54:30.035988	19.20
+765	1	Madison Watering Can- Flora Pack	\N	t	2026-06-12 00:54:30.039524	16.70
+766	1	Mariposa Butterfly Ceramic	\N	t	2026-06-12 00:54:30.042365	14.55
+767	1	Mayfield Upgrade	\N	t	2026-06-12 00:54:30.045366	9.40
+768	1	Moonstone Mini	\N	t	2026-06-12 00:54:30.048543	5.55
+769	1	Peachy Teapot	\N	t	2026-06-12 00:54:30.051516	19.65
+770	1	Rosella Bird Gift Box	\N	t	2026-06-12 00:54:30.05412	6.25
+771	1	Rustic Watering Can	\N	t	2026-06-12 00:54:30.057538	17.25
+772	1	Sparrow Mini	\N	t	2026-06-12 00:54:30.060418	6.55
+773	1	Spring Bloom Watering Can	\N	t	2026-06-12 00:54:30.063024	17.15
+774	1	Spring Fling File Case LG	\N	t	2026-06-12 00:54:30.066456	36.90
+775	1	Spring Jewel Mini	\N	t	2026-06-12 00:54:30.070581	4.95
+776	1	Spring Meadow G Sleeve Garden Small	\N	t	2026-06-12 00:54:30.073091	15.15
+777	1	Spring Rain G Sleeve SM.	\N	t	2026-06-12 00:54:30.075556	15.25
+778	1	Tiny Dancer Butterfly Upg.	\N	t	2026-06-12 00:54:30.078095	8.55
+779	1	Trixy Animal Mini	\N	t	2026-06-12 00:54:30.081109	5.55
+780	1	Tulip Time Gnome	\N	t	2026-06-12 00:54:30.083443	15.50
+781	1	Versailles Mug	\N	t	2026-06-12 00:54:30.08639	16.45
+782	1	Versailles Teapot	\N	t	2026-06-12 00:54:30.088722	20.00
+783	1	Whitehorse Chest Medium	\N	t	2026-06-12 00:54:30.091869	54.60
+784	1	Versailles Mini Tea set	\N	t	2026-06-12 00:54:30.094417	14.95
+785	1	Vintage Rose Mug	\N	t	2026-06-12 00:54:30.097208	15.50
+786	1	Vintage Rose Teapot	\N	t	2026-06-12 00:54:30.100984	19.05
+787	1	Large Willow	\N	t	2026-06-12 00:54:30.104668	20.45
+788	1	Arcadia Planter - Mix Tropical	\N	t	2026-06-12 00:54:30.107738	48.75
+789	1	Luxor Planter - Sansevieria Mix - 11"	\N	t	2026-06-12 00:54:30.110611	44.20
+790	1	Swallowtail Arrow Mini	\N	t	2026-06-12 00:54:30.11339	5.15
+791	1	Sycamore Leaf Garden	\N	t	2026-06-12 00:54:30.116501	15.15
+792	1	Sycamore Leaf Mini	\N	t	2026-06-12 00:54:30.119745	4.95
+793	1	Timber Stand Large	\N	t	2026-06-12 00:54:30.122927	24.50
+794	1	Vincent Small	\N	t	2026-06-12 00:54:30.126101	12.65
+795	1	Vincent Large	\N	t	2026-06-12 00:54:30.131207	17.60
+796	1	Waning Garden Small	\N	t	2026-06-12 00:54:30.133913	15.05
+797	1	DELA501-SYMPATHY Delaware	\N	t	2026-06-12 00:54:30.136748	30.25
+798	1	DELA502-SYMPATHY Delaware	\N	t	2026-06-12 00:54:30.141097	37.45
+799	1	DUNK201-SYMPATHY Dunkirk	\N	t	2026-06-12 00:54:30.144468	40.00
+800	1	DUNK202-SYMPATHY Dunkirk	\N	t	2026-06-12 00:54:30.146831	41.85
+801	1	LUCA302-SYMPATHY Luca	\N	t	2026-06-12 00:54:30.153431	54.20
+802	1	AUKL301-SYMPATHY Aukland Small	\N	t	2026-06-12 00:54:30.15579	33.30
+803	1	CART301-SYMPATHY Carter Wicker	\N	t	2026-06-12 00:54:30.159452	41.00
+804	1	CART302-SYMPATHY Carter Wicker	\N	t	2026-06-12 00:54:30.16168	57.00
+805	1	ANGE303-SYMPATHY ANGIE	\N	t	2026-06-12 00:54:30.164059	52.25
+806	1	Bamboo Garden	\N	t	2026-06-12 00:54:30.166651	25.00
+807	1	Bamboo Upgrade	\N	t	2026-06-12 00:54:30.17023	16.60
+808	1	Becca Garden	\N	t	2026-06-12 00:54:30.172539	14.00
+576	15	Aglaonema Cutlass	\N	t	2026-06-11 23:46:07.92607	7.50
+520	14	Aglaonema Sapphire	\N	t	2026-06-11 22:58:42.045891	2.95
+521	14	Aglaonema Snow White	\N	t	2026-06-11 22:58:42.053494	2.95
+522	14	Aglaonema Siam Red	\N	t	2026-06-11 22:58:42.058577	6.00
+523	14	Bird Nest Fern	\N	t	2026-06-11 22:58:42.062009	4.25
+524	14	Calathea Beauty Star	\N	t	2026-06-11 22:58:42.066309	4.50
+525	14	Calathea Fasciata	\N	t	2026-06-11 22:58:42.070973	4.50
+526	14	Calathea Medallion	\N	t	2026-06-11 22:58:42.078508	4.50
+527	14	Calathea Northern Lights	\N	t	2026-06-11 22:58:42.082789	4.50
+528	14	Calathea Peacock	\N	t	2026-06-11 22:58:42.087909	4.50
+529	14	Calathea Rufibarba	\N	t	2026-06-11 22:58:42.093241	4.50
+530	14	Calathea Setosa	\N	t	2026-06-11 22:58:42.097253	4.50
+531	14	Calathea Silver Plate	\N	t	2026-06-11 22:58:42.108629	4.50
+532	14	Calathea Vitata	\N	t	2026-06-11 22:58:42.112614	4.50
+533	14	Calathea White Star	\N	t	2026-06-11 22:58:42.116506	4.50
+534	14	Dieffenbachia Tiki	\N	t	2026-06-11 22:58:42.119493	4.50
+535	14	Dieffenbachia White Etna	\N	t	2026-06-11 22:58:42.122029	4.50
+536	14	Fern Blue Star	\N	t	2026-06-11 22:58:42.124372	4.25
+537	14	Ficus Lyrata Bambino	\N	t	2026-06-11 22:58:42.127458	4.25
+538	14	Fishtail Fern	\N	t	2026-06-11 22:58:42.130139	4.25
+539	14	Ponytail Palm	\N	t	2026-06-11 22:58:42.133432	6.50
+540	14	Spathiphyllum Flower Bunch	\N	t	2026-06-11 22:58:42.136251	3.75
+541	14	Aglaonema Maria	\N	t	2026-06-11 22:58:42.139412	12.50
+542	14	Aglaonema Silver Bay	\N	t	2026-06-11 22:58:42.142005	12.50
+543	14	Aglaonema Stripe	\N	t	2026-06-11 22:58:42.145427	12.50
+544	14	Alocasia Appaloosa Gold (Variegated)	\N	t	2026-06-11 22:58:42.148475	15.00
+545	14	Alocasia California	\N	t	2026-06-11 22:58:42.152323	9.50
+577	15	Aglaonema Juliette	\N	t	2026-06-11 23:46:07.932318	7.50
+578	15	Aglaonema Maria “Emerald Beauty”	\N	t	2026-06-11 23:46:07.956055	7.50
+579	15	Aglaonema Red Siam	\N	t	2026-06-11 23:46:07.959502	9.50
+580	15	Aglaonema Red Valentine	\N	t	2026-06-11 23:46:07.96238	9.50
+581	15	Aglaonema Romeo	\N	t	2026-06-11 23:46:07.965679	7.50
+582	15	Aglaonema Silverado	\N	t	2026-06-11 23:46:07.968374	7.50
+583	15	Aglaonema Sparkling Sarah	\N	t	2026-06-11 23:46:07.97152	9.50
+584	15	Aglaonema Tigress	\N	t	2026-06-11 23:46:07.974086	7.50
+585	15	Aglaonema Wintery Winehouse	\N	t	2026-06-11 23:46:07.977465	9.50
+586	15	Aglaonema Silver Bay	\N	t	2026-06-11 23:46:07.979675	12.50
+587	15	Cordyline Bolero (4ppp)	\N	t	2026-06-11 23:46:07.982952	11.00
+588	15	Cordyline Florica (4ppp)	\N	t	2026-06-11 23:46:07.988482	11.00
+589	15	Cordyline Jackie (4ppp)	\N	t	2026-06-11 23:46:07.992068	11.00
+590	15	Cordyline Glauca (4ppp)	\N	t	2026-06-11 23:46:07.997135	11.00
+591	15	Cordyline Kiwi (4ppp)	\N	t	2026-06-11 23:46:07.999755	11.00
+592	15	Cordyline Glauca (3ppp)	\N	t	2026-06-11 23:46:08.002312	26.00
+593	15	Dracaena Cane Cintho Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.005274	43.00
+594	15	Dracaena Cane Dorado Single Head (3-2-1)	\N	t	2026-06-11 23:46:08.007582	43.00
+595	15	Dracaena Cane Dorado Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.009956	43.00
+596	15	Dracaena Cane Elegance Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.012174	43.00
+597	15	Dracaena Cane Green Jewel Multi Head (3-2-1)	\N	t	2026-06-11 23:46:08.015178	43.00
+598	15	Dracaena Cane Green Jewel Single Head (3-2-1)	\N	t	2026-06-11 23:46:08.01782	43.00
+599	15	Dracaena Cane Hawaiian Sunshine Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.020213	43.00
+600	15	Dracaena Cane Janet Craig Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.022665	43.00
+601	15	Dracaena Cane Janet Lind Multi Head Cane (4ppp)	\N	t	2026-06-11 23:46:08.025509	43.00
+602	15	Dracaena Cane JC Compacta Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.027829	43.00
+603	15	Dracaena Cane JC Compacta Single Head (3-2-1)	\N	t	2026-06-11 23:46:08.030436	43.00
+604	15	Dracaena Cane Lemon Lime “Gold Star” MH Cane (3 -2-1)	\N	t	2026-06-11 23:46:08.033224	43.00
+605	15	Dracaena Cane Rikki Multi Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.037465	43.00
+606	15	Dracaena Cane REVERTED RIKKI CANE ( 3-2-1)	\N	t	2026-06-11 23:46:08.040015	18.00
+607	15	Dracaena Cane Tornado Single Head (3-2-1)	\N	t	2026-06-11 23:46:08.042407	43.00
+608	15	Dracaena Cane Twister Single Head Cane (3-2-1)	\N	t	2026-06-11 23:46:08.045398	43.00
+609	15	Dracaena Cane Art Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.048493	63.00
+610	15	Dracaena Cane Cintho Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.051103	63.00
+611	15	Dracaena Cane Dorado Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.053842	63.00
+612	15	Dracaena Cane Dorado Single Head (4-3-2-1)	\N	t	2026-06-11 23:46:08.056321	63.00
+613	15	Dracaena Cane Elegance Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.059475	63.00
+614	15	Dracaena Cane Hawaiian Sunshine Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.061918	63.00
+615	15	Dracaena Cane JC Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.064406	63.00
+616	15	Dracaena Cane JC Compacta Multi Head Cane (4-3-2-1)	\N	t	2026-06-11 23:46:08.06711	63.00
+617	15	Dracaena Cane Tornado Single Head Cane ( 4-3-2-1)	\N	t	2026-06-11 23:46:08.070359	63.00
+618	15	Dracaena Cane Elegance Multi Head Cane (5-4-3-2-1)	\N	t	2026-06-11 23:46:08.073277	69.75
+619	15	Dracaena Tips Dorado (1ppp)	\N	t	2026-06-11 23:46:08.075923	6.00
+620	15	Dracaena Tips Emmaline (1ppp)	\N	t	2026-06-11 23:46:08.078487	6.00
+621	15	Dracaena Tips Gold Star (2ppp)	\N	t	2026-06-11 23:46:08.08139	6.00
+622	15	Dracaena Tips Janet Craig (2ppp)	\N	t	2026-06-11 23:46:08.084459	6.00
+623	15	Dracaena Tips Janet Craig Compacta (1ppp)	\N	t	2026-06-11 23:46:08.087084	6.00
+624	15	Dracaena Tips Tornado (1ppp)	\N	t	2026-06-11 23:46:08.09012	6.00
+625	15	Dracaena Tips Art (2ppp)	\N	t	2026-06-11 23:46:08.093336	11.30
+626	15	Dracaena Tips Bronze Bay (2ppp)	\N	t	2026-06-11 23:46:08.096176	11.30
+627	15	Dracaena Tips Dorado (2ppp)	\N	t	2026-06-11 23:46:08.099274	11.30
+628	15	Dracaena Tips Green Jewel (2ppp)	\N	t	2026-06-11 23:46:08.104916	11.30
+629	15	Dracaena Tips Hawaiian Sunshine (2ppp)	\N	t	2026-06-11 23:46:08.110426	11.30
+630	15	Dracaena Tips JC Compacta (2ppp)	\N	t	2026-06-11 23:46:08.113033	11.30
+631	15	Dracaena Tips Kristi (2ppp	\N	t	2026-06-11 23:46:08.115383	11.30
+632	15	Dracaena Tips Art Bush (3ppp)	\N	t	2026-06-11 23:46:08.117787	19.00
+633	15	Dracaena Tips Dorado (3ppp)	\N	t	2026-06-11 23:46:08.121092	19.00
+634	15	Dracaena Tips Green Jewel (3ppp)	\N	t	2026-06-11 23:46:08.12344	19.00
+635	15	Dracaena Tips Hawaiian Sunshine (3ppp)	\N	t	2026-06-11 23:46:08.125904	19.00
+636	15	Dracaena Tips Lemon Lime “Gold Star” Bush (3ppp)	\N	t	2026-06-11 23:46:08.128321	19.00
+637	15	Dracaena Tips Art Bush (4ppp)	\N	t	2026-06-11 23:46:08.131413	40.00
+638	15	Dracaena Tips Gold Star Bush (4ppp)	\N	t	2026-06-11 23:46:08.134113	40.00
+639	15	Dracaena Tips Janet Craig Bush (4ppp)	\N	t	2026-06-11 23:46:08.136898	40.00
+837	1	Posy Fall Garden	\N	t	2026-06-12 00:54:30.258936	11.25
+838	1	Mantra Cotton Hanger Small	\N	t	2026-06-12 00:54:30.262282	9.10
+839	1	Mantra Cotton Hanger Large	\N	t	2026-06-12 00:54:30.265467	15.20
+840	1	Seagrass Basket Upgrade	\N	t	2026-06-12 00:54:30.268012	8.15
+841	1	Trellis Woven Basket Small	\N	t	2026-06-12 00:54:30.270734	8.85
+842	1	Carter Wicker Small	\N	t	2026-06-12 00:54:30.27331	30.55
+843	1	Carter Wicker Medium	\N	t	2026-06-12 00:54:30.276774	38.20
+844	1	Aukland Wicker Small	\N	t	2026-06-12 00:54:30.279966	27.05
+845	1	Aukland Wicker Medium	\N	t	2026-06-12 00:54:30.282371	36.80
+846	1	Dunkirk Wicker Small	\N	t	2026-06-12 00:54:30.284873	32.95
+847	1	Hallmark Lantern	\N	t	2026-06-12 00:54:30.288094	36.20
+848	1	Hadley Lrg. Pyramid w/Stand	\N	t	2026-06-12 00:54:30.290471	26.95
+849	1	Sanford Small Chest	\N	t	2026-06-12 00:54:30.292952	33.10
+850	1	Sanford Medium Chest	\N	t	2026-06-12 00:54:30.295456	47.45
+851	1	Havana Chest Small	\N	t	2026-06-12 00:54:30.298387	36.05
+852	1	Havana Chest Medium	\N	t	2026-06-12 00:54:30.300932	44.40
+853	1	Nora Owl Upgrade	\N	t	2026-06-12 00:54:30.304053	15.43
+856	16	6" Drac. Dragontree LEMON SURPRISE 1PPP	\N	t	2026-06-12 01:08:39.827592	6.00
+857	16	6" Drac. Dragontree TORNADO 1PPP	\N	t	2026-06-12 01:08:39.831999	6.00
+858	16	6" Drac. Dragontree TWIST 1PPP	\N	t	2026-06-12 01:08:39.834907	6.00
+859	16	8" Drac. ART BUSH 2PPP	\N	t	2026-06-12 01:08:39.840512	13.00
+860	16	8" Drac. DORADO BUSH 2PPP	\N	t	2026-06-12 01:08:39.846268	13.00
+861	16	8" Drac. HAWAIIAN SUNSHINE BUSH 2PPP	\N	t	2026-06-12 01:08:39.850279	13.00
+862	16	8" Drac. LEMON LIME BUSH 2PPP	\N	t	2026-06-12 01:08:39.855178	13.00
+863	16	8" Drac. LIMELIGHT BUSH 2PPP	\N	t	2026-06-12 01:08:39.85737	13.00
+864	16	10" Drac. ANITA BUSH 3PPP	\N	t	2026-06-12 01:08:39.860546	11.50
+865	16	10" Drac. ART BUSH 3PPP	\N	t	2026-06-12 01:08:39.863505	19.50
+866	16	10" Drac. DORADO BUSH 3PPP	\N	t	2026-06-12 01:08:39.866356	19.50
+867	16	10" Drac. HAWAIIAN SUNSHINE BUSH 3PPP	\N	t	2026-06-12 01:08:39.87011	19.50
+868	16	10" Drac. KRISTI BUSH 3PPP	\N	t	2026-06-12 01:08:39.872487	19.50
+869	16	10" Drac. LEMON LIME BUSH 3PPP	\N	t	2026-06-12 01:08:39.875451	19.50
+870	16	10" Drac. LIMELIGHT BUSH 3PPP	\N	t	2026-06-12 01:08:39.877667	19.50
+871	16	10" Drac. MARGINATA KIWI BUSH 3PPP	\N	t	2026-06-12 01:08:39.879868	13.00
+872	16	14" Drac. LEMON LIME BUSH 3PPP	\N	t	2026-06-12 01:08:39.885965	39.00
+873	16	10" Drac. JANET LIND CANE 3'2'1'	\N	t	2026-06-12 01:08:39.889055	32.00
+874	16	10" Drac. JANET LIND CANE MULTI 5PPP	\N	t	2026-06-12 01:08:39.891637	42.00
+875	16	14" Drac. JANET LIND CANE 5PPP	\N	t	2026-06-12 01:08:39.89443	56.00
+876	16	10" Drac. LISA/BLACK BEAUTY C/B CANE 3'2'1'	\N	t	2026-06-12 01:08:39.8969	43.50
+877	16	10" Drac. MASSANGEANA CANE 3'2'1'	\N	t	2026-06-12 01:08:39.901316	14.50
+878	16	10" Drac. MASSANGEANA CANE 4'3'2'	\N	t	2026-06-12 01:08:39.904167	26.00
+879	16	14" Drac. MASSANGEANA CANE 5'4'3'2'	\N	t	2026-06-12 01:08:39.906748	38.00
+880	16	10" Ficus BENJAMINA BRAID	\N	t	2026-06-12 01:08:39.909745	14.00
+881	16	14" Ficus ALII STANDARD	\N	t	2026-06-12 01:08:39.913221	35.00
+882	16	14" Ficus BENJAMINA BRAID	\N	t	2026-06-12 01:08:39.915633	42.00
+883	16	14" Ficus BENJAMINA STANDARD	\N	t	2026-06-12 01:08:39.918135	33.00
+884	16	14" Ficus LYRATA - BUSH	\N	t	2026-06-12 01:08:39.921051	44.00
+885	16	14" Ficus LYRATA - STD STANDARD	\N	t	2026-06-12 01:08:39.924169	50.00
+886	16	8" MONSTERA SWISS CHEESE HB	\N	t	2026-06-12 01:08:39.926729	10.00
+887	16	6" PONYTAIL PALM 'GUATEMALENSIS' STUMP	\N	t	2026-06-12 01:08:39.92922	7.00
+888	16	10" PONYTAIL PALM 'GUATEMALENSIS' STUMP	\N	t	2026-06-12 01:08:39.931913	20.00
+889	16	14" PONYTAIL PALM 'GUATEMALENSIS' STUMP	\N	t	2026-06-12 01:08:39.934896	38.50
+890	16	6" POTHOS - HAWAIIAN (PACK12)	\N	t	2026-06-12 01:08:39.937144	5.00
+891	16	8" POTHOS - HAWAIIAN H. BASKET HB	\N	t	2026-06-12 01:08:39.939585	7.50
+892	16	6" POTHOS - NEON QUEEN (PACK12)	\N	t	2026-06-12 01:08:39.942181	5.00
+893	16	8" POTHOS - NEON QUEEN H. BASKET HB	\N	t	2026-06-12 01:08:39.945257	7.50
+894	16	6" Sansevieria 'BLACK DRAGON'	\N	t	2026-06-12 01:08:39.947897	6.00
+895	16	6" Sansevieria 'BLACK GOLD'	\N	t	2026-06-12 01:08:39.951034	6.00
+896	16	6" Sansevieria 'GOLD FLAME'	\N	t	2026-06-12 01:08:39.954027	6.00
+897	16	6" Sansevieria 'MOONSHINE'	\N	t	2026-06-12 01:08:39.957396	6.00
+898	16	6" Sansevieria ZEYLANICA MULTI	\N	t	2026-06-12 01:08:39.960209	6.00
+899	16	8" Sansevieria ZEYLANICA MULTI	\N	t	2026-06-12 01:08:39.963649	10.50
+900	16	10" Sansevieria ZEYLANICA MULTI	\N	t	2026-06-12 01:08:39.966619	12.50
+901	16	14" Sansevieria ZEYLANICA MULTI	\N	t	2026-06-12 01:08:39.970583	40.00
+902	16	10" Schefflera AMATE 2PPP	\N	t	2026-06-12 01:08:39.973315	11.00
+903	16	14" Schefflera AMATE 3PPP	\N	t	2026-06-12 01:08:39.9762	35.50
+904	16	8" Spathiphyllum EMERALD STAR MULTI	\N	t	2026-06-12 01:08:39.988592	8.50
+854	16	8" Cactus - RIC RAC HB	\N	t	2026-06-12 01:08:39.802943	12.50
+855	16	10" Cordyline GLAUCA 3PPP	\N	t	2026-06-12 01:08:39.822664	11.50
+905	17	JANET CRAIG COMPACTA (PK 15)	\N	t	2026-06-13 13:58:00.581987	2.25
+906	17	GOLDSTAR (PK 15)	\N	t	2026-06-13 13:58:00.611293	2.25
+907	17	MINI JADE (PK 15)	\N	t	2026-06-13 13:58:00.619544	2.25
+908	17	LAETIVIRENS (PK 15)	\N	t	2026-06-13 13:58:00.626949	2.50
+909	17	ZZ (PK 15)	\N	t	2026-06-13 13:58:00.634168	4.25
+910	17	CORAL CACTUS ASST (PK 6)	\N	t	2026-06-13 13:58:00.642312	12.75
+911	17	ADONIDIA 1PPP & 2PPP	\N	t	2026-06-13 13:58:00.650711	120.00
+912	17	• Interest of 1 ½ % per month will be charged on unpaid balances over 30 days. • A twenty percent (20%) restocking charge plus sleeve cost or	\N	t	2026-06-13 13:58:00.660104	100.00
+913	17	as described within recognized trade tolerances. Sturon Nursery, Inc. gives no other warranty, expressed or implied, and in no way will be liable for more than the invoice value at time of purchase. • Minimum order of	\N	t	2026-06-13 13:58:00.667259	100.00
+914	17	, any order not making the minimum will be subject to a	\N	t	2026-06-13 13:58:00.763531	10.00
+915	17	4.5" ALOE VERA	\N	t	2026-06-13 14:06:05.747976	2.25
+916	17	4.5" CACTUS PENCIL CACTUS	\N	t	2026-06-13 14:06:05.790737	4.25
+917	17	4.5" CROTON PETRA 2PPP (PK 15 OR PK 30)	\N	t	2026-06-13 14:06:05.808356	2.25
+918	17	4.5" DRACAENA TORNADO	\N	t	2026-06-13 14:06:05.816316	3.75
+919	17	4.5" PEPEROMIA GINNY (PK15)	\N	t	2026-06-13 14:06:05.826644	2.65
+920	17	4.5" PEPEROMIA RED MARGIN (PK15)	\N	t	2026-06-13 14:06:05.83633	2.65
+921	17	4.5" PACHIRA PACHIRA BRAID	\N	t	2026-06-13 14:06:05.844983	6.75
+922	17	4.5" SANSEVIERIA BONZEL AKA/STARFISH (PK 15)	\N	t	2026-06-13 14:06:05.855025	4.25
+923	17	4.5" SANSEVIERIA MIKADO FERNWOOD	\N	t	2026-06-13 14:06:05.862939	4.25
+924	17	4.5" SANSEVIERIA STAR POWER SERIES (PK 15)	\N	t	2026-06-13 14:06:05.871745	3.75
+925	17	4.5" SUCCULENTS-ECHEVERIA ASST GROWERS CHOICE PK15	\N	t	2026-06-13 14:06:05.879388	2.50
+926	17	4.5" SUCCULENTS-ECHEVERIA CRASSULA OVATTA GOLLUM	\N	t	2026-06-13 14:06:05.894699	2.25
+927	17	6" AGLAONEMA AMELIA LANE	\N	t	2026-06-13 14:06:05.904513	9.00
+928	17	6" AGLAONEMA CUTLASS	\N	t	2026-06-13 14:06:05.911855	9.00
+929	17	6" AGLAONEMA EAST RED	\N	t	2026-06-13 14:06:05.91945	9.00
+930	17	6" AGLAONEMA ETTA ROSE	\N	t	2026-06-13 14:06:05.928967	9.00
+931	17	6" AGLAONEMA RED EMERALD	\N	t	2026-06-13 14:06:05.936414	9.00
+932	17	6" AGLAONEMA RED HEART/ VALENTINE	\N	t	2026-06-13 14:06:05.942901	9.00
+933	17	6" AGLAONEMA RED SIAM	\N	t	2026-06-13 14:06:05.95049	9.00
+934	17	6" AGLAONEMA SHADES	\N	t	2026-06-13 14:06:05.956646	7.50
+935	17	6" AGLAONEMA SILVER BAY	\N	t	2026-06-13 14:06:05.968188	7.50
+936	17	6" AGLAONEMA SUPER MARIA	\N	t	2026-06-13 14:06:05.975192	8.00
+937	17	6" AGLAONEMA SPRING SNOW	\N	t	2026-06-13 14:06:05.983696	9.00
+938	17	6" ALOE VERA	\N	t	2026-06-13 14:06:05.98977	4.50
+939	17	6" ANTHURIUM RED	\N	t	2026-06-13 14:06:05.997806	7.50
+940	17	6" ALOCASIA BLACK VELVET	\N	t	2026-06-13 14:06:06.004724	6.75
+941	17	6" ALOCASIA DRAGON'S BREATH	\N	t	2026-06-13 14:06:06.0162	7.50
+942	17	6" ALOCASIA DRAGON'S TOOTH	\N	t	2026-06-13 14:06:06.024075	6.75
+943	17	6" ALOCASIA SILVER DRAGON	\N	t	2026-06-13 14:06:06.030842	6.75
+944	17	6" BANANA TROPICANA	\N	t	2026-06-13 14:06:06.036932	4.00
+945	17	6" CACTUS FIRESTICK	\N	t	2026-06-13 14:06:06.043344	8.00
+946	17	6" CACTUS PENCIL	\N	t	2026-06-13 14:06:06.049768	6.00
+947	17	6" CALATHEA ASST	\N	t	2026-06-13 14:06:06.062321	7.00
+948	17	6" CALATHEA BURLE MARX	\N	t	2026-06-13 14:06:06.068369	6.00
+949	17	6" CALATHEA LANCIFOLIA	\N	t	2026-06-13 14:06:06.074551	7.00
+950	17	6" CORDYLINE ELECTRA	\N	t	2026-06-13 14:06:06.08074	4.50
+951	17	6" CORDYLINE KIWI 3PPP	\N	t	2026-06-13 14:06:06.090628	5.00
+952	17	6" CORDYLINE RED HOT CHILI PEPPER	\N	t	2026-06-13 14:06:06.096792	5.00
+953	17	6" RED STAR	\N	t	2026-06-13 14:06:06.106583	4.50
+954	17	6" CROTON MAMMEY	\N	t	2026-06-13 14:06:06.113433	4.25
+955	17	6" CROTON PETRA	\N	t	2026-06-13 14:06:06.119959	4.25
+956	17	6" CYCAD KING SAGO	\N	t	2026-06-13 14:06:06.125986	10.00
+957	17	6" DIANELLA FLAX LILY	\N	t	2026-06-13 14:06:06.131935	4.25
+958	17	6" DRACAENA ART/CARMEN	\N	t	2026-06-13 14:06:06.138748	5.75
+959	17	6" DRACAENA COLORAMA 3PPP	\N	t	2026-06-13 14:06:06.145928	5.25
+960	17	6" DRACAENA DORADO 1PPP	\N	t	2026-06-13 14:06:06.152511	5.75
+961	17	6" DRACAENA GOLDSTAR 2PPP	\N	t	2026-06-13 14:06:06.159207	5.75
+962	17	6" DRACAENA GREEN JEWEL 1PPP	\N	t	2026-06-13 14:06:06.165939	5.75
+963	17	6" DRACAENA JADE JEWEL 1PPP	\N	t	2026-06-13 14:06:06.172923	5.75
+964	17	6" DRACAENA JANET CRAIG 2PPP	\N	t	2026-06-13 14:06:06.178831	5.75
+965	17	6" DRACAENA JC COMPACTA 1PPP	\N	t	2026-06-13 14:06:06.185302	5.50
+966	17	6" DRACAENA JC COMPACTA 2PPP	\N	t	2026-06-13 14:06:06.193279	5.75
+967	17	6" DRACAENA KIWI/ RAY OF SUNSHINE 3PPP	\N	t	2026-06-13 14:06:06.19987	5.75
+968	17	6" DRACAENA LEMON SURPRISE 1PPP	\N	t	2026-06-13 14:06:06.206851	5.75
+969	17	6" DRACAENA MARGINATA 3PPP	\N	t	2026-06-13 14:06:06.216504	4.75
+970	17	6" DRACAENA MAGENTA 3PPP	\N	t	2026-06-13 14:06:06.224255	4.75
+971	17	6" DRACAENA MARLEY 1PPP	\N	t	2026-06-13 14:06:06.231285	5.75
+972	17	6" DRACAENA SONG OF JAMAICA 3PPP	\N	t	2026-06-13 14:06:06.243189	5.75
+973	17	6" DRACAENA TORNADO	\N	t	2026-06-13 14:06:06.251786	5.75
+974	17	6" DRACAENA TWISTER 1PPP	\N	t	2026-06-13 14:06:06.262907	5.75
+975	17	6" DRACAENA WARNECKII JUMBO 2PPP	\N	t	2026-06-13 14:06:06.269926	5.75
+976	17	6" EUGENIA TOPIARY 2-BALL	\N	t	2026-06-13 14:06:06.27661	11.50
+977	17	6" EUGENIA JAPONICUM GIGANTEUM	\N	t	2026-06-13 14:06:06.283183	6.50
+978	17	6" FERN BIRDNEST VICTORIA	\N	t	2026-06-13 14:06:06.290118	5.75
+979	17	6" FERN FOXTAIL	\N	t	2026-06-13 14:06:06.298061	4.50
+980	17	6" FERN KANGAROO	\N	t	2026-06-13 14:06:06.304816	4.50
+981	17	6" FERN KIMBERLY QUEEN	\N	t	2026-06-13 14:06:06.312503	4.50
+982	17	6" FERN MACHO	\N	t	2026-06-13 14:06:06.320458	4.50
+983	17	6" FERN SPRENGERI	\N	t	2026-06-13 14:06:06.331472	4.50
+984	17	6" FERN STAGHORN	\N	t	2026-06-13 14:06:06.339492	5.50
+985	17	6" FICUS AUDREY	\N	t	2026-06-13 14:06:06.346431	5.50
+986	17	6" FICUS LYRATA 1PPP	\N	t	2026-06-13 14:06:06.354428	5.50
+987	17	6" FICUS LYRATA BAMBINO	\N	t	2026-06-13 14:06:06.361966	5.50
+988	17	6" FLOWERING JASMINE CONFEDERATE TRELLIS	\N	t	2026-06-13 14:06:06.369249	7.00
+989	17	HB WANDERING JEW H/B	\N	t	2026-06-13 14:06:06.377323	4.25
+990	17	HB TRADESCANTHIA PINK PANTHER H/B	\N	t	2026-06-13 14:06:06.385699	4.75
+991	17	HB KALANCHOE LAETIVIRENS H/B	\N	t	2026-06-13 14:06:06.393571	5.75
+992	17	HB LIRIOPE SUPER BIG BLUE	\N	t	2026-06-13 14:06:06.403989	3.50
+993	17	HB MARANTA GREEN	\N	t	2026-06-13 14:06:06.411924	4.50
+995	17	HB PALM PONYTAIL GUATEMELINSIS	\N	t	2026-06-13 14:06:06.432601	8.50
+996	17	HB PALM RHAPIS EXCELSA	\N	t	2026-06-13 14:06:06.442734	10.00
+997	17	HB PEPPEROMIA ECUADOR	\N	t	2026-06-13 14:06:06.450035	5.25
+998	17	HB PEPPEROMIA FROST	\N	t	2026-06-13 14:06:06.459923	5.75
+999	17	HB PEPPEROMIA GINNY VARIEGATED	\N	t	2026-06-13 14:06:06.470259	5.50
+1000	17	HB PHILODENDRON BRASIL	\N	t	2026-06-13 14:06:06.478993	6.75
+1001	17	HB PHILODENDRON CORDATUM	\N	t	2026-06-13 14:06:06.486982	5.50
+1002	17	HB PHILODENDRON MONSTERA	\N	t	2026-06-13 14:06:06.493608	6.75
+1004	17	HB PILEA PEPEROMIOIDES	\N	t	2026-06-13 14:06:06.507879	5.50
+1013	17	HB SANSEVIERIA LAURENTII 3PPP	\N	t	2026-06-13 14:06:06.576667	12.75
+1006	17	HB POTHOS JADE	\N	t	2026-06-13 14:06:06.529357	6.75
+1007	17	HB POTHOS MARBLE QUEEN	\N	t	2026-06-13 14:06:06.53673	6.75
+1008	17	HB POTHOS N'JOY	\N	t	2026-06-13 14:06:06.54372	6.50
+1009	17	HB POTHOS NEON	\N	t	2026-06-13 14:06:06.550753	6.75
+1010	17	HB SANSEVIERIA BANTEL 3PPP	\N	t	2026-06-13 14:06:06.55699	6.00
+1011	17	HB SANSEVIERIA BONZEL AKA/ STARFISH	\N	t	2026-06-13 14:06:06.563587	7.50
+1012	17	HB SANSEVIERIA FUTURA SUPERBA 1PPP	\N	t	2026-06-13 14:06:06.569582	5.50
+1014	17	HB SANSEVIERIA LA RUBIA	\N	t	2026-06-13 14:06:06.583599	6.00
+1015	17	HB SANSEVIERIA MIKADO FERNWOOD	\N	t	2026-06-13 14:06:06.590468	7.50
+1016	17	HB SANSEVIERIA MOONSHINE	\N	t	2026-06-13 14:06:06.597072	5.50
+1017	17	HB SANSEVIERIA ROBUSTA	\N	t	2026-06-13 14:06:06.603923	5.50
+1018	17	HB SANSEVIERIA STAR POWER SERIES	\N	t	2026-06-13 14:06:06.612654	5.50
+1020	17	6" SPATHIPHYLLUM ASST	\N	t	2026-06-13 14:06:06.627955	6.50
+1021	17	6" SPIDER VARIEGATED	\N	t	2026-06-13 14:06:06.636081	4.25
+1022	17	6" STRELEITZA WHITE BIRD 1PPP	\N	t	2026-06-13 14:06:06.644618	5.75
+1023	17	6" SYNGONIUM CONFETTI	\N	t	2026-06-13 14:06:06.651811	5.50
+994	17	HB MARANTA RED	\N	t	2026-06-13 14:06:06.420028	7.00
+1003	17	HB PHILODENDRON ROJO CONGO 2PPP	\N	t	2026-06-13 14:06:06.501359	15.00
+1005	17	HB POTHOS GOLDEN	\N	t	2026-06-13 14:06:06.514536	20.00
+1019	17	HB SANSEVIERIA ZEYLANICA 3PPP	\N	t	2026-06-13 14:06:06.621062	12.75
+1024	17	6" SYNGONIUM PINK PERFECTION	\N	t	2026-06-13 14:06:06.658807	5.50
+1025	17	6" SYNGONIUM SNOW WHITE	\N	t	2026-06-13 14:06:06.666684	4.95
+1026	17	6" SUCCULENTS ASST (3 TO 5 VARI)	\N	t	2026-06-13 14:06:06.672958	6.50
+1027	17	6" SUCCULENTS COMBO	\N	t	2026-06-13 14:06:06.679297	7.80
+1028	17	6" SUCCULENTS CRASSULA JADE	\N	t	2026-06-13 14:06:06.685465	7.50
+1029	17	6" SUCCULENTS CRASSULA OVATTA GOLLUM	\N	t	2026-06-13 14:06:06.69308	7.50
+1030	17	6" SUCCULENTS MINI JADE	\N	t	2026-06-13 14:06:06.700553	6.00
+1031	17	6" SUCCULENTS STRING OF PEARLS HB	\N	t	2026-06-13 14:06:06.707494	7.50
+1032	17	6" ZAMIA RAVEN	\N	t	2026-06-13 14:06:06.713724	9.50
+1033	17	8" AGLAONEMA AMELIA LANE	\N	t	2026-06-13 14:06:06.723043	16.00
+1034	17	8" AGLAONEMA EMERALD BEAUTY MARIA	\N	t	2026-06-13 14:06:06.729742	12.50
+1035	17	8" AGLAONEMA ETTA ROSE	\N	t	2026-06-13 14:06:06.736273	16.00
+1036	17	8" AGLAONEMA JUBILEE	\N	t	2026-06-13 14:06:06.742522	12.50
+1037	17	8" AGLAONEMA RED EMERALD	\N	t	2026-06-13 14:06:06.75093	16.00
+1038	17	8" AGLAONEMA RED HEART	\N	t	2026-06-13 14:06:06.757822	16.00
+1039	17	8" AGLAONEMA SHADES	\N	t	2026-06-13 14:06:06.764568	12.50
+1040	17	8" AGLAONEMA SIAM	\N	t	2026-06-13 14:06:06.771401	16.00
+1041	17	8" AGLAONEMA SILVER BAY	\N	t	2026-06-13 14:06:06.779064	12.00
+1042	17	8" AGLAONEMA SPRING SNOW	\N	t	2026-06-13 14:06:06.786325	16.00
+1043	17	8" AGLAONEMA STRIPES	\N	t	2026-06-13 14:06:06.793503	12.00
+1044	17	8" AGLAONEMA SUPER MARIA	\N	t	2026-06-13 14:06:06.802547	12.50
+1045	17	8" ARALIA HAWAIIAN MING	\N	t	2026-06-13 14:06:06.809819	10.50
+1046	17	8" ARALIA PARSLEY STUMP	\N	t	2026-06-13 14:06:06.815938	10.50
+1047	17	8" ARALIA ROBLE/CELERY LEAF	\N	t	2026-06-13 14:06:06.82256	10.50
+1048	17	8" CALATHEA ASST	\N	t	2026-06-13 14:06:06.828562	12.50
+1049	17	8" CORDYLINE CALYPSO QUEEN	\N	t	2026-06-13 14:06:06.835023	6.50
+1050	17	8" CORDYLINE ELECTRA	\N	t	2026-06-13 14:06:06.841893	6.50
+1051	17	8" CORDYLINE RED STAR	\N	t	2026-06-13 14:06:06.848722	8.00
+1052	17	8" CROTON MAMMEY	\N	t	2026-06-13 14:06:06.855547	6.75
+1053	17	8" CROTON PETRA	\N	t	2026-06-13 14:06:06.861721	6.75
+1054	17	8" DIEFFENBACHIA ASST	\N	t	2026-06-13 14:06:06.867917	12.00
+1055	17	8" DRACAENA CARMEN 2PPP	\N	t	2026-06-13 14:06:06.874308	11.00
+1056	17	8" DRACAENA DORADO 2PPP	\N	t	2026-06-13 14:06:06.881994	11.00
+1057	17	8" DRACAENA GOLDSTAR 2PPP	\N	t	2026-06-13 14:06:06.889179	11.00
+1058	17	8" DRACAENA GREEN JEWEL 2PPP	\N	t	2026-06-13 14:06:06.895947	11.00
+1059	17	8" DRACAENA JADE JEWEL 2PPP	\N	t	2026-06-13 14:06:06.904433	13.50
+1060	17	8" DRACAENA JANET CRAIG 2PPP	\N	t	2026-06-13 14:06:06.911499	11.00
+1061	17	8" DRACAENA JC COMPACTA 2PPP	\N	t	2026-06-13 14:06:06.918231	11.00
+1062	17	8" DRACAENA LIMA	\N	t	2026-06-13 14:06:06.924616	11.00
+1063	17	8" DRACAENA LIMELIGHT 2PPP	\N	t	2026-06-13 14:06:06.93131	11.00
+1064	17	8" DRACAENA MARLEY 1PPP	\N	t	2026-06-13 14:06:06.937076	10.00
+1065	17	8" DRACAENA WARNECKII JUMBO 2PPP	\N	t	2026-06-13 14:06:06.943471	11.00
+1066	17	8" FERN KIMBERLY QUEEN	\N	t	2026-06-13 14:06:06.950646	5.00
+1067	17	HB BOSTON FERN H/B	\N	t	2026-06-13 14:06:06.957846	7.50
+1068	17	HB BRAZIL PHILO H/B	\N	t	2026-06-13 14:06:06.964059	7.50
+1069	17	HB CORDATUM PHILO H/B	\N	t	2026-06-13 14:06:06.970389	7.50
+1070	17	HB FERN LEAF CACTUS H/B	\N	t	2026-06-13 14:06:06.977082	11.50
+1071	17	HB GOLDEN POTHOS H/B	\N	t	2026-06-13 14:06:06.983931	7.00
+1072	17	HB GOLD FISH H/B	\N	t	2026-06-13 14:06:06.990195	7.50
+1073	17	HB LIPSTICK - REGULAR H/B	\N	t	2026-06-13 14:06:06.996586	7.50
+1074	17	HB LIPSTICK - RASTA H/B	\N	t	2026-06-13 14:06:07.002626	8.00
+1075	17	HB JADE POTHOS H/B	\N	t	2026-06-13 14:06:07.010673	7.75
+1076	17	HB MARBLE QUEEN POTHOS H/B	\N	t	2026-06-13 14:06:07.042034	7.75
+1077	17	HB NEON POTHOS H/B	\N	t	2026-06-13 14:06:07.049376	7.75
+1078	17	HB RABBIT FOOT FERN H/B	\N	t	2026-06-13 14:06:07.056913	7.50
+1079	17	HB RIC RAC H/B	\N	t	2026-06-13 14:06:07.064851	11.50
+1080	17	8" SPIDER HAWAIIAN H/B	\N	t	2026-06-13 14:06:07.071875	6.75
+1081	17	8" SPIDER VARIEGATED H/B	\N	t	2026-06-13 14:06:07.078713	6.75
+1082	17	8" STAGHORN H/B	\N	t	2026-06-13 14:06:07.086422	9.00
+1083	17	8" WANDERING JEW H/B	\N	t	2026-06-13 14:06:07.09396	6.25
+1084	17	8" VANILLA ORCHID VINE H/B	\N	t	2026-06-13 14:06:07.100115	11.50
+1085	17	8" LIRIOPE SUPER BLUE	\N	t	2026-06-13 14:06:07.105905	6.75
+1086	17	8" PHILODENDRON GREEN CONGO	\N	t	2026-06-13 14:06:07.116392	10.00
+1087	17	8" PHILODENDRON ROJO CONGO	\N	t	2026-06-13 14:06:07.123186	10.00
+1088	17	8" SANSEVIERIA BANTEL'S SENSATION	\N	t	2026-06-13 14:06:07.129597	12.50
+1089	17	8" SANSEVIERIA FUTURA SUPERBA	\N	t	2026-06-13 14:06:07.138449	10.50
+1090	17	8" SANSEVIERIA FERNWOOD	\N	t	2026-06-13 14:06:07.147204	12.50
+1091	17	8" SANSEVIERIA LAURENTII	\N	t	2026-06-13 14:06:07.153651	10.50
+1092	17	8" SANSEVIERIA MOONSHINE	\N	t	2026-06-13 14:06:07.159762	11.00
+1093	17	8" SANSEVIERIA ROBUSTA	\N	t	2026-06-13 14:06:07.166863	10.00
+1094	17	8" SANSEVIERIA ZEYLANICA	\N	t	2026-06-13 14:06:07.174072	10.50
+1095	17	8" SPATHIPHYLLUM ASST	\N	t	2026-06-13 14:06:07.18053	12.00
+1096	17	8" SUCCULENT COMBO	\N	t	2026-06-13 14:06:07.18725	9.00
+1097	17	10" AGLAONEMA AMELIA LANE	\N	t	2026-06-13 14:06:07.193786	25.00
+1098	17	10" AGLAONEMA B.J. FREEMAN	\N	t	2026-06-13 14:06:07.201178	20.00
+1099	17	10" AGLAONEMA CUTLASS	\N	t	2026-06-13 14:06:07.207638	20.00
+1100	17	10" AGLAONEMA EMERALD BEAUTY	\N	t	2026-06-13 14:06:07.21524	20.00
+1101	17	10" AGLAONEMA EMERALD BAY	\N	t	2026-06-13 14:06:07.221716	20.00
+1102	17	10" AGLAONEMA ETTA ROSE	\N	t	2026-06-13 14:06:07.228351	25.00
+1103	17	10" AGLAONEMA JUBILEE	\N	t	2026-06-13 14:06:07.234266	20.00
+1104	17	10" AGLAONEMA MARY ANN	\N	t	2026-06-13 14:06:07.240312	20.00
+1105	17	10" AGLAONEMA RED EMERALD	\N	t	2026-06-13 14:06:07.247172	25.00
+1106	17	10" AGLAONEMA RED HEART	\N	t	2026-06-13 14:06:07.253563	25.00
+1107	17	10" AGLAONEMA SHADES	\N	t	2026-06-13 14:06:07.259739	21.00
+1108	17	10" AGLAONEMA SILVER BAY	\N	t	2026-06-13 14:06:07.266197	20.00
+1109	17	10" AGLAONEMA SPRING SNOW	\N	t	2026-06-13 14:06:07.272545	25.00
+1110	17	10" AGLAONEMA SPARKLING SARAH	\N	t	2026-06-13 14:06:07.280408	25.00
+1111	17	10" AGLAONEMA STRIPES	\N	t	2026-06-13 14:06:07.286007	20.00
+1112	17	10" AGLAONEMA SUPER MARIA	\N	t	2026-06-13 14:06:07.292737	21.00
+1113	17	10" AGLAONEMA SIAM RED	\N	t	2026-06-13 14:06:07.298946	25.00
+1114	17	10" ALOCASIA CALIDORA	\N	t	2026-06-13 14:06:07.306511	13.00
+1115	17	10" ALOCASIA ODORA	\N	t	2026-06-13 14:06:07.312715	13.00
+1116	17	10" ALOCASIA PORTORA	\N	t	2026-06-13 14:06:07.325511	13.00
+1117	17	10" ALOCASIA REGAL SHIELD	\N	t	2026-06-13 14:06:07.332975	11.50
+1118	17	10" ARALIA BALFOURIANA VAREIGATED BUSH	\N	t	2026-06-13 14:06:07.340529	12.50
+1119	17	10" ARALIA FABIAN BUSH	\N	t	2026-06-13 14:06:07.347352	12.50
+1120	17	10" ARALIA PARSLEY STUMP	\N	t	2026-06-13 14:06:07.35412	16.00
+1121	17	10" ASPIDISTRA ELATIOR	\N	t	2026-06-13 14:06:07.361062	37.50
+1122	17	10" BANANA DWARF CAVENDISH	\N	t	2026-06-13 14:06:07.368275	8.50
+1123	17	10" BANANA ENSETE	\N	t	2026-06-13 14:06:07.37449	11.50
+1124	17	10" BANANA TROPICANA	\N	t	2026-06-13 14:06:07.385513	8.50
+1125	17	10" CACTUS EUPHORBIA TRIGONA RED 3PPP	\N	t	2026-06-13 14:06:07.391795	15.00
+1126	17	10" CACTUS FIRESTICK	\N	t	2026-06-13 14:06:07.401531	18.50
+1127	17	10" CACTUS PENCIL	\N	t	2026-06-13 14:06:07.407831	17.50
+1128	17	10" CLUSIA SMALL LEAF	\N	t	2026-06-13 14:06:07.414254	7.50
+1129	17	10" CORDYLINE AUNTIE LOU 3/4PPP	\N	t	2026-06-13 14:06:07.420957	11.00
+1130	17	10" CORDYLINE FLORIDA 3/4PPP	\N	t	2026-06-13 14:06:07.428801	11.00
+1131	17	10" CORDYLINE GLAUCA 3/4PPPP	\N	t	2026-06-13 14:06:07.43528	11.00
+1132	17	10" CORDYLINE HARLEQUIN 3/4PPP	\N	t	2026-06-13 14:06:07.442673	11.00
+1133	17	10" CORDYLINE KIWI 3/4PPPP	\N	t	2026-06-13 14:06:07.449532	11.00
+1134	17	10" CORDYLINE MARIA 3/4PPP	\N	t	2026-06-13 14:06:07.457092	11.00
+1135	17	10" CORDYLINE RED HOT CHILI PEPPER 3/4PPP	\N	t	2026-06-13 14:06:07.463887	11.00
+1136	17	10" CORDYLINE RED SISTER 3/4PPP	\N	t	2026-06-13 14:06:07.47451	11.00
+1137	17	10" CORDYLINE RED STAR 1PPP	\N	t	2026-06-13 14:06:07.484659	11.00
+1138	17	10" MAMMEY	\N	t	2026-06-13 14:06:07.492742	8.25
+1139	17	10" PETRA	\N	t	2026-06-13 14:06:07.500007	8.25
+1140	17	10" CYCAD KING SAGO	\N	t	2026-06-13 14:06:07.507008	18.50
+1141	17	10" DIANELLA FLAX LILY	\N	t	2026-06-13 14:06:07.513321	8.00
+1142	17	10" DIFFENBACHIA ASST	\N	t	2026-06-13 14:06:07.519899	14.50
+1143	17	10" DRACAENA ARBOREA 1PPP	\N	t	2026-06-13 14:06:07.526706	20.00
+1144	17	10" DRACAENA ART/ CARMEN 3PPP	\N	t	2026-06-13 14:06:07.532923	18.00
+1145	17	10" DRACAENA ART/ CARMEN 3-2-1	\N	t	2026-06-13 14:06:07.539333	41.00
+1146	17	10" DRACAENA ART/CARMEN 24"/12"/6"	\N	t	2026-06-13 14:06:07.548502	25.00
+1147	17	10" DRACAENA ART/CARMEN CAROUSELL	\N	t	2026-06-13 14:06:07.555424	35.00
+1148	17	10" DRACAENA COLORAMA 4-5PPP	\N	t	2026-06-13 14:06:07.562237	9.00
+1149	17	10" DRACAENA DORADO 3PPP	\N	t	2026-06-13 14:06:07.568457	18.00
+1150	17	10" DRACAENA DORADO 3-2-1	\N	t	2026-06-13 14:06:07.580316	41.00
+1151	17	10" DRACAENA ELEGANCE 3-2-1 CUTBACK CANE	\N	t	2026-06-13 14:06:07.588364	41.00
+1152	17	10" DRACAENA GIGANTA 1PPP AKA GOLDEN HEART	\N	t	2026-06-13 14:06:07.595374	13.50
+1153	17	10" DRACAENA GOLDSTAR 3PPP	\N	t	2026-06-13 14:06:07.601685	18.00
+1154	17	10" DRACAENA GOLDSTAR 3-2-1 CUTBACK CANE	\N	t	2026-06-13 14:06:07.608763	41.00
+1155	17	10" DRACAENA GOLDSTAR 24"/12"/6"	\N	t	2026-06-13 14:06:07.614499	25.00
+1156	17	10" DRACAENA GREEN JEWEL 3PPP	\N	t	2026-06-13 14:06:07.622389	18.00
+1157	17	10" DRACAENA GREEN JEWEL 3-2-1 CUTBACK CANE	\N	t	2026-06-13 14:06:07.628664	41.00
+1158	17	10" DRACAENA JADE JEWEL 3-2-1 STAGGERED CANE	\N	t	2026-06-13 14:06:07.635319	41.00
+1159	17	10" DRACAENA JANET CRAIG 3PPP	\N	t	2026-06-13 14:06:07.641917	18.00
+1160	17	10" DRACAENA JANET CRAIG 3/2/1 CUTBACK CANE	\N	t	2026-06-13 14:06:07.648253	41.00
+1161	17	10" DRACAENA JANET CRAIG 24"/12"/6"	\N	t	2026-06-13 14:06:07.65446	25.00
+1162	17	10" DRACAENA JANET CRAIG COMPACTA 3PPP	\N	t	2026-06-13 14:06:07.661166	18.00
+1163	17	10" DRACAENA JANET CRAIG COMPACTA 3-2-1 STAGGERED	\N	t	2026-06-13 14:06:07.668369	41.00
+1164	17	10" DRACAENA JUMBO WARNECKII	\N	t	2026-06-13 14:06:07.674977	41.00
+1165	17	10" DRACAENA KIWI BUSH 4PPP	\N	t	2026-06-13 14:06:07.695054	8.75
+1166	17	10" DRACAENA KIWI 3/2/1 CB CANE	\N	t	2026-06-13 14:06:07.701563	19.00
+1167	17	10" DRACAENA KRISTI 3PPP	\N	t	2026-06-13 14:06:07.707684	16.75
+1168	17	10" DRACAENA LIMA	\N	t	2026-06-13 14:06:07.715	18.00
+1169	17	10" DRACAENA LIMELIGHT 3PPP	\N	t	2026-06-13 14:06:07.72132	18.00
+1170	17	10" DRACAENA MARGINATA BUSH 4/5PPP	\N	t	2026-06-13 14:06:07.728071	8.25
+1171	17	10" DRACAENA MARGINATA 3-2-1 C/B CANE	\N	t	2026-06-13 14:06:07.734528	18.00
+1172	17	10" DRACAENA MARGINATA 4-3-2-1 C/B CANE	\N	t	2026-06-13 14:06:07.741712	26.00
+1173	17	10" DRACAENA MARLEY 1PPP	\N	t	2026-06-13 14:06:07.748828	13.50
+1174	17	10" DRACAENA MARLEY 2PPP	\N	t	2026-06-13 14:06:07.758611	18.00
+1175	17	10" DRACAENA MASS CANE 3-2-1	\N	t	2026-06-13 14:06:07.765274	16.50
+1176	17	10" DRACAENA MASS CANE 4-3-2	\N	t	2026-06-13 14:06:07.772366	27.00
+1177	17	10" DRACAENA REFLEXA	\N	t	2026-06-13 14:06:07.778183	11.00
+1178	17	10" DRACAENA RIKKI 3/2/1 CUTBACK CANE	\N	t	2026-06-13 14:06:07.785171	42.00
+1179	17	10" DRACAENA RIKKI CAROUSELL	\N	t	2026-06-13 14:06:07.791711	45.00
+1180	17	10" DRACAENA SONG OF JAMAICA	\N	t	2026-06-13 14:06:07.798291	11.00
+1181	17	10" DRACAENA TORNADO 3PPP	\N	t	2026-06-13 14:06:07.805354	18.00
+1182	17	10" DRACAENA ULISES 3-2-1 C/B CANE	\N	t	2026-06-13 14:06:07.811529	41.00
+1183	17	10" EUGENIA EUGENIA GLOBE	\N	t	2026-06-13 14:06:07.818661	15.00
+1184	17	10" EUGENIA EUGENIA TOPIARY SPIRAL	\N	t	2026-06-13 14:06:07.825208	24.00
+1185	17	10" EUGENIA EUGENIA TOPIARY CONE	\N	t	2026-06-13 14:06:07.831172	18.50
+1186	17	10" EUGENIA EUGENIA TOPIARY 2 BALL	\N	t	2026-06-13 14:06:07.836925	18.50
+1187	17	10" EUGENIA EUGENIA TOPIARY 3 BALL	\N	t	2026-06-13 14:06:07.843041	24.00
+1188	17	10" FARFUGIUM JAPONICUM GIGANTEUM	\N	t	2026-06-13 14:06:07.850665	15.00
+1189	17	10" FERN AUSTRAILIAN TREE	\N	t	2026-06-13 14:06:07.858701	18.00
+1190	17	10" FERN FOXTAIL	\N	t	2026-06-13 14:06:07.86494	7.50
+1191	17	10" FERN KIMBERLY QUEEN	\N	t	2026-06-13 14:06:07.871043	6.50
+1192	17	10" FERN MACHO	\N	t	2026-06-13 14:06:07.878086	8.00
+1193	17	10" FERN SPRENGERI FERN	\N	t	2026-06-13 14:06:07.885239	7.50
+1194	17	10" FICUS ALII BRAID	\N	t	2026-06-13 14:06:07.892194	15.00
+1195	17	10" FICUS AUDREY BUSH	\N	t	2026-06-13 14:06:07.899247	14.00
+1196	17	10" FICUS BAMBINO BUSH	\N	t	2026-06-13 14:06:07.9083	16.50
+1197	17	10" FICUS BENJI BRAID	\N	t	2026-06-13 14:06:07.916002	15.00
+1198	17	10" FICUS BURGUNDY 3PPP	\N	t	2026-06-13 14:06:07.923073	16.00
+1199	17	10" FICUS DANIELLA BRAID	\N	t	2026-06-13 14:06:07.930038	22.50
+1200	17	10" FICUS DANIELLA BUSH	\N	t	2026-06-13 14:06:07.936747	10.50
+1201	17	10" FICUS GREEN ISLAND	\N	t	2026-06-13 14:06:07.943914	7.50
+1202	17	10" LYRATA BUSH 3PPP	\N	t	2026-06-13 14:06:07.95016	14.00
+1203	17	10" LYRATA COLUMN	\N	t	2026-06-13 14:06:07.956084	12.50
+1204	17	10" LYRATA STANDARD	\N	t	2026-06-13 14:06:07.96382	18.00
+1205	17	10" RUBY 3PPP	\N	t	2026-06-13 14:06:07.970568	16.00
+1206	17	10" TINEKE 3PPP	\N	t	2026-06-13 14:06:07.976401	16.00
+1207	17	10" FLOWERING CONFEDERATE JASMINE TRELLIS	\N	t	2026-06-13 14:06:07.982849	12.00
+1208	17	10" FLOWERING DURANTA SAPPHIRE SHOWERS STD	\N	t	2026-06-13 14:06:07.98942	13.50
+1209	17	10" FLOWERING FIRECRACKER RED	\N	t	2026-06-13 14:06:08.000729	7.50
+1210	17	10" FLOWERING GINGER VARIEGATED	\N	t	2026-06-13 14:06:08.007519	13.00
+1211	17	10" FLOWERING IXORA MAUI YELLOW	\N	t	2026-06-13 14:06:08.017109	7.50
+1212	17	10" FLOWERING JASMINE STAR	\N	t	2026-06-13 14:06:08.023967	7.50
+1213	17	10" FLOWERING MANDEVILLA GIANT PINK TRELLIS	\N	t	2026-06-13 14:06:08.030092	11.50
+1214	17	10" FLOWERING MUHLY	\N	t	2026-06-13 14:06:08.036971	7.50
+1215	17	10" FLOWERING OLEANDER BUSH	\N	t	2026-06-13 14:06:08.044082	7.50
+1216	17	10" FLOWERING PLUMBAGO	\N	t	2026-06-13 14:06:08.050339	7.50
+1217	17	10" FLOWERING RUELLIA PURPLE SHOWERS	\N	t	2026-06-13 14:06:08.056365	7.50
+1218	17	10" FLOWERING RED FOUNTAIN	\N	t	2026-06-13 14:06:08.06318	7.50
+1219	17	10" FLOWERING WHITE FOUNTAIN	\N	t	2026-06-13 14:06:08.069912	7.50
+1220	17	HB SPIDER VARIEGATED H/B	\N	t	2026-06-13 14:06:08.075915	10.50
+1221	17	HB SPRENGERI FERN H/B	\N	t	2026-06-13 14:06:08.082687	8.50
+1223	17	HB PALM ARECA	\N	t	2026-06-13 14:06:08.096324	15.00
+1224	17	HB PALM BOTTLE	\N	t	2026-06-13 14:06:08.102872	18.00
+1225	17	HB PALM CATARACTARUM	\N	t	2026-06-13 14:06:08.110886	11.00
+1226	17	HB PALM CHAMADOREA FLA HYBRID	\N	t	2026-06-13 14:06:08.117069	25.00
+1228	17	HB PALM FOXTAIL 1PPP	\N	t	2026-06-13 14:06:08.130348	12.00
+1229	17	HB PALM FISHTAIL	\N	t	2026-06-13 14:06:08.136031	15.00
+1230	17	HB PALM MAJESTY MULTI	\N	t	2026-06-13 14:06:08.142036	11.00
+1231	17	HB PALM NEATHE BELLA	\N	t	2026-06-13 14:06:08.14906	22.00
+1233	17	HB PALM QUEEN	\N	t	2026-06-13 14:06:08.161614	10.00
+1234	17	HB PALM RED SEALING WAX	\N	t	2026-06-13 14:06:08.167052	187.50
+1235	17	HB PALM WASHINGTONIA	\N	t	2026-06-13 14:06:08.173541	10.00
+1236	17	HB PHILODENDRON GREEN CONGO	\N	t	2026-06-13 14:06:08.18042	12.50
+1237	17	HB PHILODENDRON HOPE/ SELLOUM	\N	t	2026-06-13 14:06:08.186585	11.00
+1238	17	HB PHILODENDRON PRINCE OF ORANGE	\N	t	2026-06-13 14:06:08.194298	15.00
+1239	17	HB PODOCARPUS MAKI	\N	t	2026-06-13 14:06:08.208355	7.50
+1240	17	HB SANSEVIERIA BANTEL'S SENSATION	\N	t	2026-06-13 14:06:08.221485	15.00
+1241	17	HB SANSEVIERIA BLACK GOLD	\N	t	2026-06-13 14:06:08.232052	12.75
+1242	17	HB SANSEVIERIA BONZEL STARFISH	\N	t	2026-06-13 14:06:08.239054	14.00
+1243	17	HB SANSEVIERIA FERNWOOD	\N	t	2026-06-13 14:06:08.247576	17.00
+1244	17	HB SANSEVIERIA SUPERBA	\N	t	2026-06-13 14:06:08.261782	12.00
+1245	17	HB SCHEFFLERA AMATE 3PPP	\N	t	2026-06-13 14:06:08.278891	24.00
+1246	17	HB SCHEFFLERA ARBORICOLA BUSH	\N	t	2026-06-13 14:06:08.286678	7.50
+1247	17	HB SCHEFFLERA GOLD CAPELLA	\N	t	2026-06-13 14:06:08.294561	7.50
+1248	17	HB SCHEFFLERA TRINETTE	\N	t	2026-06-13 14:06:08.301788	7.50
+1249	17	HB SPATHIPHYLLUM ASST	\N	t	2026-06-13 14:06:08.308331	17.50
+1250	17	HB STRELITZIA WHITE BIRD OF PARADISE 3PPP	\N	t	2026-06-13 14:06:08.314764	26.00
+1251	17	HB STROMANTHE TRIOSTAR	\N	t	2026-06-13 14:06:08.321477	12.75
+1252	17	HB SUCCULENT MINI JADE	\N	t	2026-06-13 14:06:08.327739	10.50
+1253	17	HB VARIEGATED GINGER	\N	t	2026-06-13 14:06:08.334199	12.75
+1254	17	HB YUCCA CANE 3/2/1	\N	t	2026-06-13 14:06:08.342708	22.50
+1255	17	12" ALOCASIA CALIDORA	\N	t	2026-06-13 14:06:08.351469	24.50
+1256	17	12" ALOCASIA PORTORA	\N	t	2026-06-13 14:06:08.357634	24.50
+1257	17	12" REGAL SHIELD	\N	t	2026-06-13 14:06:08.365462	27.00
+1258	17	12" CROTON MAMMEY	\N	t	2026-06-13 14:06:08.3746	18.00
+1259	17	12" CROTON PETRA	\N	t	2026-06-13 14:06:08.383179	18.00
+1260	17	12" DRACAENA ART/CARMEN 4-3-2-1	\N	t	2026-06-13 14:06:08.397025	62.00
+1261	17	12" DRACAENA DORADO 4-3-2-1	\N	t	2026-06-13 14:06:08.408099	62.00
+1262	17	12" DRACAENA ELEGANCE 4/3/2/1	\N	t	2026-06-13 14:06:08.41746	62.00
+1263	17	12" DRACAENA GOLDSTAR CANE 4-3-2-1	\N	t	2026-06-13 14:06:08.428712	62.00
+1264	17	12" DRACAENA JADE JEWEL 4/3/2/1	\N	t	2026-06-13 14:06:08.437849	62.00
+1265	17	12" DRACAENA JANET CRAIG CANE 4-3-2-1	\N	t	2026-06-13 14:06:08.445694	62.00
+1266	17	12" DRACAENA JC COMPACTA 4-3-2-1	\N	t	2026-06-13 14:06:08.454484	62.00
+1267	17	12" DRACAENA KRISTI 3PPP	\N	t	2026-06-13 14:06:08.461838	28.00
+1268	17	12" DRACAENA MARLEY 2PPP	\N	t	2026-06-13 14:06:08.46991	24.00
+1269	17	12" DRACAENA MASS STUMP	\N	t	2026-06-13 14:06:08.484492	65.00
+1270	17	12" DRACAENA MIGUELITO 4-3-2-1	\N	t	2026-06-13 14:06:08.49377	62.00
+1271	17	12" DRACAENA RIKKI 4-3-2-1	\N	t	2026-06-13 14:06:08.501193	62.00
+1272	17	12" DRACAENA ULISES 4-3-2-1	\N	t	2026-06-13 14:06:08.508657	62.00
+1273	17	12" DRACAENA WARNECKII JUMBO 4-3-2-1	\N	t	2026-06-13 14:06:08.517334	62.00
+1274	17	12" FLOWERING MANDEVILLA GIANT PINK TEE-PEE	\N	t	2026-06-13 14:06:08.524083	28.00
+1275	17	12" FICUS ALII STD	\N	t	2026-06-13 14:06:08.531716	20.00
+1276	17	12" FICUS BENJI BRAID	\N	t	2026-06-13 14:06:08.539444	27.00
+1277	17	12" FICUS DANIELLA BRAID	\N	t	2026-06-13 14:06:08.550002	37.00
+1278	17	12" FICUS LYRATA COLUMN	\N	t	2026-06-13 14:06:08.558916	26.50
+1222	17	HB PALM ADONIDIA	\N	t	2026-06-13 14:06:08.088923	35.00
+1227	17	HB PALM CHINESE FAN	\N	t	2026-06-13 14:06:08.124532	22.00
+1232	17	HB PALM PHOENIX ROEBELENII MULTI	\N	t	2026-06-13 14:06:08.154991	25.00
+1279	17	HB PALM PONYTAIL GUATAMELINSIS	\N	t	2026-06-13 14:06:08.598175	25.00
+1280	17	HB PALM MAJESTY SINGLE	\N	t	2026-06-13 14:06:08.605808	25.00
+1281	17	HB PALM SPINDLE 1PPP	\N	t	2026-06-13 14:06:08.613424	28.00
+1282	17	HB STRELITZIA WHITE BIRD 3/4PPP	\N	t	2026-06-13 14:06:08.623727	40.00
+1283	17	14" ALOCASIA CALIDORA	\N	t	2026-06-13 14:06:08.630682	34.50
+1284	17	14" ALOCASIA METAL HEAD	\N	t	2026-06-13 14:06:08.637828	37.00
+1285	17	14" ALOCASIA PORTORA	\N	t	2026-06-13 14:06:08.64482	37.00
+1286	17	14" AGLAONEMA AMELIA LANE	\N	t	2026-06-13 14:06:08.652876	45.00
+1287	17	14" AGLAONEMA BJ.FREEMAN	\N	t	2026-06-13 14:06:08.659915	40.00
+1288	17	14" AGLAONEMA EMERALD BAY	\N	t	2026-06-13 14:06:08.668386	42.00
+1289	17	14" AGLAONEMA JUBILEE	\N	t	2026-06-13 14:06:08.674956	42.00
+1290	17	14" AGLAONEMA MARY ANN	\N	t	2026-06-13 14:06:08.683941	42.00
+1291	17	14" AGLAONEMA SHADES	\N	t	2026-06-13 14:06:08.69259	42.00
+1292	17	14" AGLAONEMA SILVER BAY	\N	t	2026-06-13 14:06:08.701862	42.00
+1293	17	14" AGLAONEMA SPRING SNOW	\N	t	2026-06-13 14:06:08.710104	50.00
+1294	17	14" AGLAONEMA STRIPES	\N	t	2026-06-13 14:06:08.719404	42.00
+1295	17	14" AGLAONEMA SUPER MARIA	\N	t	2026-06-13 14:06:08.728076	42.00
+1296	17	14" BANANA DWARF CAVENDISH	\N	t	2026-06-13 14:06:08.881529	26.00
+1297	17	14" BANANA ENSETE	\N	t	2026-06-13 14:06:08.890885	38.00
+1298	17	14" CACTUS FIRESTICK	\N	t	2026-06-13 14:06:08.900294	50.00
+1299	17	14" CACTUS PENCIL	\N	t	2026-06-13 14:06:08.909117	35.00
+1300	17	14" CLUSIA SMALL LEAF	\N	t	2026-06-13 14:06:08.918033	26.50
+1301	17	14" CROTON HARVEST MOON	\N	t	2026-06-13 14:06:08.927003	28.00
+1302	17	14" CROTON MAMMEY	\N	t	2026-06-13 14:06:08.93432	26.00
+1303	17	14" CROTON NORMA	\N	t	2026-06-13 14:06:08.943259	26.00
+1304	17	14" CROTON PETRA	\N	t	2026-06-13 14:06:08.949809	26.00
+1305	17	14" CYCAD KING SAGO	\N	t	2026-06-13 14:06:08.956751	45.00
+1306	17	14" CORDYLINE AUNTIE LOU	\N	t	2026-06-13 14:06:08.964104	26.00
+1307	17	14" CORDYLINE HARLEQUINN	\N	t	2026-06-13 14:06:08.971196	26.00
+1308	17	14" CORDYLINE FLORIDA	\N	t	2026-06-13 14:06:08.977859	26.00
+1309	17	14" CORDYLINE KIWI	\N	t	2026-06-13 14:06:08.985457	26.00
+1310	17	14" CORDYLINE RED SISTER	\N	t	2026-06-13 14:06:08.993234	26.00
+1311	17	14" DRACAENA ARBOREA 1PPP	\N	t	2026-06-13 14:06:09.003174	85.00
+1312	17	14" DRACAENA ARBOREA 3PPP	\N	t	2026-06-13 14:06:09.010482	85.00
+1313	17	14" ART/ CARMEN 4PPP	\N	t	2026-06-13 14:06:09.016482	37.50
+1314	17	14" COLORAMA BUSH	\N	t	2026-06-13 14:06:09.023634	25.00
+1315	17	14" DORADO 4PPP	\N	t	2026-06-13 14:06:09.030559	37.50
+1316	17	14" ELEGANCE CANE 5PPP	\N	t	2026-06-13 14:06:09.041166	75.00
+1317	17	14" GOLDSTAR 4PPP	\N	t	2026-06-13 14:06:09.04827	37.50
+1318	17	14" GREEN JEWEL 4PPP	\N	t	2026-06-13 14:06:09.061749	37.50
+1319	17	14" JANET CRAIG 4PPP	\N	t	2026-06-13 14:06:09.071411	37.50
+1320	17	14" KIWI/ RAY OF SUNSHINE BUSH	\N	t	2026-06-13 14:06:09.0789	28.00
+1321	17	14" KRISTI 4PPP	\N	t	2026-06-13 14:06:09.08648	37.50
+1322	17	14" LIMELIGHT 4PPP	\N	t	2026-06-13 14:06:09.097922	37.50
+1323	17	14" MARGINATA BUSH 5PPP	\N	t	2026-06-13 14:06:09.106608	24.00
+1324	17	14" MARLEY 3PPP	\N	t	2026-06-13 14:06:09.113657	35.00
+1325	17	14" MASS CANE 5-4-3-2	\N	t	2026-06-13 14:06:09.121108	40.00
+1326	17	14" EUGENIA CONE	\N	t	2026-06-13 14:06:09.129347	40.00
+1327	17	14" EUGENIA SPIRAL	\N	t	2026-06-13 14:06:09.137039	60.00
+1328	17	14" EUGENIA TOPIARY 2 BALL	\N	t	2026-06-13 14:06:09.143667	42.00
+1329	17	14" EUGENIA TOPIARY 3 BALL	\N	t	2026-06-13 14:06:09.152026	47.00
+1330	17	14" FERN AUSTRALIAN TREE	\N	t	2026-06-13 14:06:09.15958	45.00
+1331	17	14" FERN FOXTAIL	\N	t	2026-06-13 14:06:09.167518	22.00
+1332	17	14" FERN KIMBERLY QUEEN	\N	t	2026-06-13 14:06:09.174097	19.00
+1333	17	14" FERN MACHO	\N	t	2026-06-13 14:06:09.182832	24.00
+1334	17	14" FICUS ALII STANDARD	\N	t	2026-06-13 14:06:09.190092	32.00
+1335	17	14" FICUS AUDREY BUSH	\N	t	2026-06-13 14:06:09.198022	40.00
+1336	17	14" FICUS BENJI BRAID	\N	t	2026-06-13 14:06:09.206302	45.00
+1337	17	14" FICUS BENJI STANDARD	\N	t	2026-06-13 14:06:09.213449	32.00
+1338	17	14" FICUS BURGUNDY BUSH	\N	t	2026-06-13 14:06:09.22189	42.00
+1339	17	14" FICUS DANIELLA BUSH	\N	t	2026-06-13 14:06:09.229815	30.00
+1340	17	14" FICUS DANIELLA BRAID	\N	t	2026-06-13 14:06:09.237303	60.00
+1341	17	14" FICUS DANIELLA STANDARD	\N	t	2026-06-13 14:06:09.244854	50.00
+1342	17	14" FICUS LYRATA BUSH	\N	t	2026-06-13 14:06:09.252845	40.00
+1343	17	14" FICUS LYRATA STANDARD	\N	t	2026-06-13 14:06:09.260593	50.00
+1344	17	14" FICUS CONFEDERATE JASMINE TRELLIS	\N	t	2026-06-13 14:06:09.268927	28.00
+1345	17	14" PALM ADONIDIA MULTI	\N	t	2026-06-13 14:06:09.276051	65.00
+1346	17	14" PALM ARECA	\N	t	2026-06-13 14:06:09.284651	38.50
+1347	17	14" PALM BOTTLE	\N	t	2026-06-13 14:06:09.291445	38.50
+1348	17	14" PALM BISMARCK	\N	t	2026-06-13 14:06:09.299883	50.00
+1349	17	14" PALM CAT PALM	\N	t	2026-06-13 14:06:09.30769	30.00
+1350	17	14" PALM CHAMADOREA	\N	t	2026-06-13 14:06:09.315858	60.00
+1351	17	14" PALM CHINESE FAN	\N	t	2026-06-13 14:06:09.324211	35.00
+1352	17	14" PALM FISHTAIL	\N	t	2026-06-13 14:06:09.333424	38.50
+1353	17	14" PALM FOXTAIL 1PPP	\N	t	2026-06-13 14:06:09.342042	30.00
+1354	17	14" PALM MAJESTY 1PPP	\N	t	2026-06-13 14:06:09.35405	30.00
+1355	17	14" PALM MAJESTY MULTI	\N	t	2026-06-13 14:06:09.364505	35.00
+1356	17	14" PALM NEANTHE BELLA	\N	t	2026-06-13 14:06:09.372004	54.00
+1357	17	14" PALM PHOENIX ROEBELENII MULTI	\N	t	2026-06-13 14:06:09.379323	30.00
+1358	17	14" PALM PACHYPODIUM MADAGASCAR MULTI	\N	t	2026-06-13 14:06:09.388114	60.00
+1359	17	14" PALM PONYTAIL - MEXICAN 1PPP	\N	t	2026-06-13 14:06:09.395637	30.00
+1360	17	14" PALM QUEEN	\N	t	2026-06-13 14:06:09.403476	24.50
+1361	17	14" PALM RED SEALING WAX	\N	t	2026-06-13 14:06:09.411918	335.00
+1362	17	14" PALM RHAPIS	\N	t	2026-06-13 14:06:09.419622	168.00
+1363	17	14" PALM SPINDLE 1PPP OR MULTI	\N	t	2026-06-13 14:06:09.425604	35.00
+1364	17	14" PALM WASHINGTONIA	\N	t	2026-06-13 14:06:09.433238	35.00
+1365	17	14" PHILODENDRON CONGO	\N	t	2026-06-13 14:06:09.444784	35.00
+1366	17	14" PHILODENDRON MONSTERA	\N	t	2026-06-13 14:06:09.453342	35.00
+1367	17	14" PHILODENDRON ROJO CONGO	\N	t	2026-06-13 14:06:09.465197	35.00
+1368	17	14" PHILODENDRON SELLOUM/HOPE	\N	t	2026-06-13 14:06:09.472033	35.00
+1369	17	14" PODOCARPUS MAKI BUSH	\N	t	2026-06-13 14:06:09.479613	26.00
+1370	17	14" SANSEVIERIA FERNWOOD	\N	t	2026-06-13 14:06:09.487486	40.00
+1371	17	14" SANSEVIERIA LAURENTII	\N	t	2026-06-13 14:06:09.495023	40.00
+1372	17	14" SANSEVIERIA ZEYLANICA	\N	t	2026-06-13 14:06:09.502914	40.00
+1373	17	14" SCHEFFLERA ARBORICOLA BUSH	\N	t	2026-06-13 14:06:09.511166	32.00
+1374	17	14" SCHEFFLERA ARBORICOLA BRAID	\N	t	2026-06-13 14:06:09.520692	50.00
+1375	17	14" SCHEFFLERA TRINETTE	\N	t	2026-06-13 14:06:09.527527	32.00
+1376	17	14" STRELITZIA WHITE BIRD 3/4PPP	\N	t	2026-06-13 14:06:09.533986	69.00
+1377	17	14" ZAMIA ZZ	\N	t	2026-06-13 14:06:09.540911	42.00
+1378	17	17" ALOCASIA CALIDORA	\N	t	2026-06-13 14:06:09.548429	65.00
+1379	17	17" ALOCASIA PORTORA	\N	t	2026-06-13 14:06:09.555519	65.00
+1380	17	17" BANANA DWARF CAVENDISH	\N	t	2026-06-13 14:06:09.562063	50.00
+1381	17	17" BANANA ENSETE	\N	t	2026-06-13 14:06:09.569931	80.00
+1382	17	17" CLUSIA SMALL LEAF	\N	t	2026-06-13 14:06:09.577293	65.00
+1383	17	17" CROTON MAMMEY	\N	t	2026-06-13 14:06:09.583619	50.00
+1384	17	17" DRACAENA ARBOREA 1PPP	\N	t	2026-06-13 14:06:09.589514	125.00
+1385	17	17" DRACAENA ARBOREA MULTI	\N	t	2026-06-13 14:06:09.596778	125.00
+1386	17	17" DRACAENA MARGINATA STAGGERED CUTBACK	\N	t	2026-06-13 14:06:09.606103	67.50
+1387	17	17" EUGENIA CONE	\N	t	2026-06-13 14:06:09.613954	80.00
+1388	17	17" EUGENIA SPIRAL	\N	t	2026-06-13 14:06:09.621061	120.00
+1389	17	17" FERN AUSTRALIAN TREE	\N	t	2026-06-13 14:06:09.627436	90.00
+1390	17	17" FICUS ALII STANDARD	\N	t	2026-06-13 14:06:09.635043	90.00
+1391	17	17" FICUS BENJI STANDARD	\N	t	2026-06-13 14:06:09.641525	90.00
+1392	17	17" FICUS DANIELLA STANDARD	\N	t	2026-06-13 14:06:09.648003	150.00
+1393	17	17" FICUS LYRATA STANDARD	\N	t	2026-06-13 14:06:09.654642	100.00
+1394	17	17" FICUS LYRATA BUSH	\N	t	2026-06-13 14:06:09.662083	80.00
+1395	17	17" PALM ADONIDIA 3PPP	\N	t	2026-06-13 14:06:09.670871	135.00
+1396	17	17" PALM ARECA	\N	t	2026-06-13 14:06:09.677978	100.00
+1397	17	17" PALM BISMARCK	\N	t	2026-06-13 14:06:09.685616	100.00
+1398	17	17" PALM BOTTLE	\N	t	2026-06-13 14:06:09.693898	100.00
+1399	17	17" PALM CHINESE FAN PALM	\N	t	2026-06-13 14:06:09.702184	70.00
+1400	17	17" PALM FISHTAIL	\N	t	2026-06-13 14:06:09.708918	80.00
+1401	17	17" PALM FOXTAIL 1PPP	\N	t	2026-06-13 14:06:09.715476	80.00
+1402	17	17" PALM MAJESTY 1PPP OR MULTI	\N	t	2026-06-13 14:06:09.722108	75.00
+1403	17	17" PALM QUEEN	\N	t	2026-06-13 14:06:09.728417	60.00
+1404	17	17" PALM PHOENIX ROEBELENII 3PPP OR 1PPP	\N	t	2026-06-13 14:06:09.738544	85.00
+1405	17	17" PALM PONYTAIL-MEXICAN	\N	t	2026-06-13 14:06:09.745394	50.00
+1406	17	17" PALM RHAPIS	\N	t	2026-06-13 14:06:09.753324	175.00
+1407	17	17" PALM SPINDLE 1PPP	\N	t	2026-06-13 14:06:09.759694	75.00
+1408	17	17" STRELITZIA WHITE BIRD 3/4PPP	\N	t	2026-06-13 14:06:09.766694	130.00
+1409	17	24" CLUSIA SMALL LEAF	\N	t	2026-06-13 14:06:09.773029	150.00
+1410	17	24" CYCAD KING SAGO	\N	t	2026-06-13 14:06:09.789214	187.50
+1411	17	24" FICUS LYRATA STD	\N	t	2026-06-13 14:06:09.796679	175.00
+1412	17	24" PALMS ADONIDIA 1-2PPP	\N	t	2026-06-13 14:06:09.80321	225.00
+1413	17	24" PALMS ADONIDIA 3-4PPP	\N	t	2026-06-13 14:06:09.810588	300.00
+1414	17	24" PALMS FOXTAIL 1PPP	\N	t	2026-06-13 14:06:09.820412	125.00
+1415	17	24" PALMS PHOENIX ROEBELENII 3PPP	\N	t	2026-06-13 14:06:09.826565	125.00
+1416	17	24" PALMS PONYTAIL 1PPP	\N	t	2026-06-13 14:06:09.833115	150.00
+1417	17	24" PALMS QUEEN	\N	t	2026-06-13 14:06:09.839635	125.00
+1418	18	Aglaonema Aglaonema	\N	t	2026-06-13 14:08:33.241948	7.25
+1420	18	Siam	\N	t	2026-06-13 14:08:33.270262	16.50
+1425	18	White Only Anthurium small flower varieties (Assorted Colors) 8"	\N	t	2026-06-13 14:08:33.31628	14.00
+1426	18	Anthurium small flower varieties (Assorted Colors) 10"	\N	t	2026-06-13 14:08:33.326823	20.00
+1427	18	Anthurium Large Hybrid Flower Varieties (Assorted Colors) 6"	\N	t	2026-06-13 14:08:33.33346	11.25
+1430	18	Black Aralia	\N	t	2026-06-13 14:08:33.361741	73.50
+1429	18	Aralias Balfour L. Lime Stagg. Cane	\N	t	2026-06-13 14:08:33.354918	73.50
+1431	18	Ming Aralia	\N	t	2026-06-13 14:08:33.373861	73.50
+1432	18	Aspidistra Aspidistra ( Green )	\N	t	2026-06-13 14:08:33.383909	25.00
+1433	18	Bromeliads	\N	t	2026-06-13 14:08:33.390565	50.00
+1434	18	Fabian Staggered Cane Crystal Bay Norfolk Pine Guzmanias	\N	t	2026-06-13 14:08:33.397997	11.00
+1435	18	Neoregelia	\N	t	2026-06-13 14:08:33.418506	11.25
+1436	18	Cactus Canada Restricted Cites required for Canada Coral Cactus	\N	t	2026-06-13 14:08:33.426092	12.75
+1439	18	Canes Arborea	\N	t	2026-06-13 14:08:33.449058	225.00
+1445	18	Marginata ( Cut Back ) Braid	\N	t	2026-06-13 14:08:33.530836	25.00
+1451	18	Pleomele Anita ( Branch )	\N	t	2026-06-13 14:08:33.617942	60.00
+1453	18	Dracaena Bush Art/Carmen	\N	t	2026-06-13 14:08:33.638511	18.00
+1455	18	Dorado	\N	t	2026-06-13 14:08:33.66264	6.75
+1441	18	Goldstar/Lemon Lime (Cut Back)	\N	t	2026-06-13 14:08:33.472716	62.00
+1457	18	Green Jewel	\N	t	2026-06-13 14:08:33.686741	5.00
+1458	18	Jade Jewel	\N	t	2026-06-13 14:08:33.709557	6.75
+1477	18	Palms Adonidia (Lethal Yellowing: TX, LA, & AZ) 14"	\N	t	2026-06-13 14:08:33.899405	10.75
+1443	18	Janet Craig Compacta (Single Head)	\N	t	2026-06-13 14:08:33.497119	95.00
+1463	18	Song Of India	\N	t	2026-06-13 14:08:33.768676	245.00
+1461	18	Limelight	\N	t	2026-06-13 14:08:33.756323	38.00
+1464	18	Ficus Lyrata Bonsai	\N	t	2026-06-13 14:08:33.789067	20.00
+1465	18	Audrey Braid	\N	t	2026-06-13 14:08:33.802972	25.00
+1473	18	Little Fiddle Standard	\N	t	2026-06-13 14:08:33.864024	45.00
+1474	18	Lyrata Bush or Columns	\N	t	2026-06-13 14:08:33.877096	50.00
+1476	18	Triangularis STD	\N	t	2026-06-13 14:08:33.890829	18.00
+1478	18	Adonidia (Lethal Yellowing: TX, LA, & AZ) 17"	\N	t	2026-06-13 14:08:33.907742	155.00
+1479	18	Adonidia (Lethal Yellowing: TX, LA, & AZ) 24"	\N	t	2026-06-13 14:08:33.916991	415.00
+1484	18	Chinese Fan Palm (Lethal Yellowing: TX, LA & AZ) 10"	\N	t	2026-06-13 14:08:33.955799	14.50
+1485	18	Chinese Fan Palm (Lethal Yellowing: TX, LA & AZ) 14"	\N	t	2026-06-13 14:08:33.964847	56.00
+1487	18	King Sago (NA- Cites requiered for Canada) 6"	\N	t	2026-06-13 14:08:33.999061	10.00
+1488	18	King Sago (NA- Cites requiered for Canada) 10"	\N	t	2026-06-13 14:08:34.006274	20.00
+1489	18	Majesty Palm, 1-3ppp (NA-Cites requiered for Canada) 10"	\N	t	2026-06-13 14:08:34.015687	15.50
+1490	18	Majesty Palm, 1-3ppp (NA-Cites requiered for Canada) 12"	\N	t	2026-06-13 14:08:34.022933	30.50
+1491	18	Majesty Palm, 1-3ppp (NA-Cites requiered for Canada) 14"	\N	t	2026-06-13 14:08:34.029805	40.00
+1492	18	Majesty Palm, 1-3ppp (NA-Cites requiered for Canada) 17"	\N	t	2026-06-13 14:08:34.036778	90.00
+1493	18	Neanthebella	\N	t	2026-06-13 14:08:34.045547	22.00
+1494	18	Phoenix Roebelenii (Phyto requiered for Louisiana) 10"	\N	t	2026-06-13 14:08:34.057033	9.00
+1495	18	Phoenix Roebelenii (Phyto requiered for Louisiana) 12"	\N	t	2026-06-13 14:08:34.064595	18.00
+1496	18	Phoenix Roebelenii (Phyto requiered for Louisiana) 14"	\N	t	2026-06-13 14:08:34.071045	25.00
+1497	18	Phoenix Roebelenii (Phyto requiered for Louisiana) 17"	\N	t	2026-06-13 14:08:34.077777	75.00
+1498	18	Ponytail Cutback Stumps- (Canada Restricted) 6"	\N	t	2026-06-13 14:08:34.083583	9.50
+1424	18	Anthurium Anthurium small flower varieties (Assorted Colors) 6"	\N	t	2026-06-13 14:08:33.308085	17.50
+1437	18	Firestick Cactus	\N	t	2026-06-13 14:08:33.433233	38.00
+1419	18	Jubilee	\N	t	2026-06-13 14:08:33.261185	50.00
+1422	18	Spring Snow	\N	t	2026-06-13 14:08:33.290619	50.00
+1421	18	Silver Bay	\N	t	2026-06-13 14:08:33.277919	42.00
+1440	18	Elegance (Cut Back)	\N	t	2026-06-13 14:08:33.464849	75.00
+1423	18	Tigress	\N	t	2026-06-13 14:08:33.298322	28.00
+1442	18	Janet Craig Compacta Pom Pom	\N	t	2026-06-13 14:08:33.483521	95.00
+1438	18	Pencil Cactus	\N	t	2026-06-13 14:08:33.4412	71.50
+1448	18	Marginata Zulu Weave	\N	t	2026-06-13 14:08:33.571984	53.00
+1446	18	Marginata Character	\N	t	2026-06-13 14:08:33.547943	127.50
+1444	18	Janet Craig Lind (Cut Back)	\N	t	2026-06-13 14:08:33.512781	65.00
+1447	18	Marginata Cutback Staggered	\N	t	2026-06-13 14:08:33.562663	36.00
+1449	18	Marginata Tarzan	\N	t	2026-06-13 14:08:33.581027	495.00
+1452	18	Warneckii Ulises ( Cut Back )	\N	t	2026-06-13 14:08:33.630857	62.00
+1450	18	Massangeana	\N	t	2026-06-13 14:08:33.589954	27.00
+1470	18	Benjamina Standard	\N	t	2026-06-13 14:08:33.841505	90.00
+1454	18	Bronze Bay	\N	t	2026-06-13 14:08:33.652962	27.00
+1456	18	Giganta	\N	t	2026-06-13 14:08:33.671183	38.00
+1462	18	Song Of Jamaica	\N	t	2026-06-13 14:08:33.762701	245.00
+1466	18	Alii Braid	\N	t	2026-06-13 14:08:33.809801	45.00
+1469	18	Benjamina Braid	\N	t	2026-06-13 14:08:33.833267	42.00
+1459	18	Kristi	\N	t	2026-06-13 14:08:33.739614	15.00
+1460	18	Lemon Surprise	\N	t	2026-06-13 14:08:33.748916	75.00
+1467	18	Alii Standard	\N	t	2026-06-13 14:08:33.816241	90.00
+1480	18	Areca	\N	t	2026-06-13 14:08:33.926363	110.00
+1468	18	Little Fiddle (Bambino)	\N	t	2026-06-13 14:08:33.824531	12.00
+1471	18	Daniella Braid	\N	t	2026-06-13 14:08:33.849767	64.00
+1472	18	Daniella Standard	\N	t	2026-06-13 14:08:33.85626	150.00
+1475	18	Lyrata Standard	\N	t	2026-06-13 14:08:33.883274	140.00
+1481	18	Bamboo (Florida Hybrid)	\N	t	2026-06-13 14:08:33.933696	67.25
+1482	18	Bamboo (Seifrizii)	\N	t	2026-06-13 14:08:33.940749	230.00
+1483	18	Cat Palm	\N	t	2026-06-13 14:08:33.94823	52.50
+1486	18	Fishtail Palm	\N	t	2026-06-13 14:08:33.989823	180.00
+1499	18	Ponytail Cutback Stumps- (Canada Restricted) 10"	\N	t	2026-06-13 14:08:34.091183	17.50
+1506	18	Prince Of Orange	\N	t	2026-06-13 14:08:34.184123	35.00
+1501	18	Spindle (Singles) (Lethal Yellowing: TX, AZ, LA, MS & NV) 10"	\N	t	2026-06-13 14:08:34.127006	33.50
+1502	18	Spindle (Singles) (Lethal Yellowing: TX, AZ, LA, MS & NV) 12"	\N	t	2026-06-13 14:08:34.133244	63.50
+1503	18	Spindle (Singles) (Lethal Yellowing: TX, AZ, LA, MS & NV) 14"	\N	t	2026-06-13 14:08:34.140744	77.50
+1568	18	6" Janet Craig	\N	t	2026-06-13 14:21:46.404695	5.25
+1504	18	Philodendron Mc Colley Finale	\N	t	2026-06-13 14:08:34.147315	6.50
+1509	18	Full Head Brazil	\N	t	2026-06-13 14:08:34.206451	9.75
+1508	18	Vining Tubs & Hanging Baskets Brazil	\N	t	2026-06-13 14:08:34.199688	12.00
+1572	18	6" Lyrata Bonsai Audrey Bush	\N	t	2026-06-13 14:21:46.566349	5.00
+1574	18	21" Ficus Audrey Standard	\N	t	2026-06-13 14:21:46.582445	350.00
+1573	18	10" Ficus	\N	t	2026-06-13 14:21:46.574198	22.50
+1512	18	Full Head Jade Pothos	\N	t	2026-06-13 14:08:34.266572	9.50
+1513	18	Marble Queen Pothos	\N	t	2026-06-13 14:08:34.280283	12.00
+1514	18	Full Head / LTD Neon Pothos	\N	t	2026-06-13 14:08:34.294091	7.50
+1515	18	Full Head Neon Pothos	\N	t	2026-06-13 14:08:34.300842	9.75
+1510	18	Cordatum	\N	t	2026-06-13 14:08:34.219748	9.75
+1517	18	Full Head Monstera Minima Ginny	\N	t	2026-06-13 14:08:34.322875	9.75
+1518	18	Full Head Swiss Cheese	\N	t	2026-06-13 14:08:34.331276	9.75
+1519	18	Spider (Hawaiian, Bonnie or Variegated) 8"	\N	t	2026-06-13 14:08:34.347732	8.75
+1520	18	Full Head Spider (Hawaiian, Bonnie or Variegated) 10"	\N	t	2026-06-13 14:08:34.355256	10.00
+1516	18	Full Head Philodendron Lemon Lime	\N	t	2026-06-13 14:08:34.315674	7.50
+1521	18	Full Head Hanging Baskets	\N	t	2026-06-13 14:08:34.371063	10.00
+1525	18	Futura Superba	\N	t	2026-06-13 14:08:34.414558	40.00
+1522	18	Full Head Totem Swiss Cheese	\N	t	2026-06-13 14:08:34.385749	35.00
+1524	18	Full / Extra Nice Laurentii	\N	t	2026-06-13 14:08:34.399772	5.50
+1523	18	Sansevieria Laurentii	\N	t	2026-06-13 14:08:34.3921	12.00
+1526	18	Wintergreen	\N	t	2026-06-13 14:08:34.420589	13.50
+1528	18	Schefflera Amate	\N	t	2026-06-13 14:08:34.435286	69.75
+1529	18	Spathiphyllum Assorted	\N	t	2026-06-13 14:08:34.452445	13.00
+1531	18	Philodendron Lemon Lime Philodendron Micans Silver Satin White Bird of Paradise	\N	t	2026-06-13 14:08:34.477457	31.50
+1532	18	Succulents	\N	t	2026-06-13 14:08:34.492164	7.50
+1535	18	Combo 5ppp	\N	t	2026-06-13 14:08:34.522014	6.75
+1536	18	Full / Extra Nice Zamioculcas Zamifolia ZZ Plant	\N	t	2026-06-13 14:08:34.530073	14.50
+1537	18	Misc. Calathea Peacock	\N	t	2026-06-13 14:08:34.548276	14.50
+1538	18	Poly Wrap Wax Tray	\N	t	2026-06-13 14:08:34.554923	2.50
+1539	18	Shipping & Handling per CC Rack	\N	t	2026-06-13 14:08:34.56352	5.00
+1541	18	Local Delivery Fee	\N	t	2026-06-13 14:08:34.579311	30.00
+1542	18	Export Phyto Certificates	\N	t	2026-06-13 14:08:34.587645	65.00
+1544	18	4" Assorted (pack 30)	\N	t	2026-06-13 14:21:45.877979	2.50
+1545	18	8" Aglaonema Assorted grower's choice	\N	t	2026-06-13 14:21:45.895752	18.00
+1546	18	6" Aglaonema Cleopatra	\N	t	2026-06-13 14:21:45.903768	7.25
+1547	18	6" Anthurium small flower varieties (Assorted Colors)	\N	t	2026-06-13 14:21:45.964285	9.00
+1548	18	8" Anthurium small flower varieties (Assorted Colors)	\N	t	2026-06-13 14:21:45.976203	14.00
+1549	18	10" Anthurium small flower varieties (Assorted Colors)	\N	t	2026-06-13 14:21:46.072745	20.00
+1550	18	6" Anthurium Large Hybrid Flower Varieties (Assorted Colors)	\N	t	2026-06-13 14:21:46.080571	11.25
+1552	18	6" Canes Hookeri	\N	t	2026-06-13 14:21:46.095759	7.20
+1551	18	4" Canes	\N	t	2026-06-13 14:21:46.088854	40.00
+1553	18	14" Balfour L. Lime Stagg. Cane	\N	t	2026-06-13 14:21:46.109545	90.00
+1554	18	10" Aralias Fabian Staggered Cane	\N	t	2026-06-13 14:21:46.119487	73.50
+1555	18	14" Aralias	\N	t	2026-06-13 14:21:46.128083	97.50
+1556	18	10" Aspidistra ( Green )	\N	t	2026-06-13 14:21:46.134849	25.00
+1557	18	5" Guzmanias	\N	t	2026-06-13 14:21:46.141474	7.75
+1558	18	6" Guzmanias	\N	t	2026-06-13 14:21:46.147718	11.00
+1559	18	6" Coral Cactus	\N	t	2026-06-13 14:21:46.153683	12.75
+1560	18	14" Arborea	\N	t	2026-06-13 14:21:46.188168	126.25
+1561	18	17" Arborea	\N	t	2026-06-13 14:21:46.194177	225.00
+1562	18	8" Art/Carmen Dracaena Bush	\N	t	2026-06-13 14:21:46.334084	11.00
+1563	18	10" Art/Carmen	\N	t	2026-06-13 14:21:46.34047	18.00
+1564	18	14" Art/Carmen	\N	t	2026-06-13 14:21:46.346207	38.00
+1565	18	6" Goldstar/Lemon Lime	\N	t	2026-06-13 14:21:46.380588	6.00
+1566	18	8" Goldstar/Lemon Lime	\N	t	2026-06-13 14:21:46.387505	11.00
+1567	18	14" Goldstar/Lemon Lime	\N	t	2026-06-13 14:21:46.398393	38.00
+1569	18	8" Janet Craig	\N	t	2026-06-13 14:21:46.411258	11.00
+1570	18	10" Janet Craig	\N	t	2026-06-13 14:21:46.41852	18.00
+1571	18	14" Janet Craig	\N	t	2026-06-13 14:21:46.425541	38.00
+1575	18	17" Ficus	\N	t	2026-06-13 14:21:46.709998	285.00
+1576	18	10" Triangularis Variegated Braid	\N	t	2026-06-13 14:21:46.730942	22.00
+1577	18	14" Adonidia (Lethal Yellowing: TX, LA, & AZ)	\N	t	2026-06-13 14:21:46.738879	71.50
+1578	18	17" Adonidia (Lethal Yellowing: TX, LA, & AZ)	\N	t	2026-06-13 14:21:46.746333	155.00
+1579	18	24" Adonidia (Lethal Yellowing: TX, LA, & AZ)	\N	t	2026-06-13 14:21:46.752686	415.00
+1580	18	10" Chinese Fan Palm (Lethal Yellowing: TX, LA & AZ)	\N	t	2026-06-13 14:21:46.812049	14.50
+1581	18	14" Chinese Fan Palm (Lethal Yellowing: TX, LA & AZ)	\N	t	2026-06-13 14:21:46.817921	56.00
+1582	18	6" King Sago (NA- Cites requiered for Canada)	\N	t	2026-06-13 14:21:46.848168	10.00
+1583	18	10" King Sago (NA- Cites requiered for Canada)	\N	t	2026-06-13 14:21:46.855057	20.00
+1584	18	10" Majesty Palm, 1-3ppp (NA-Cites requiered for Canada)	\N	t	2026-06-13 14:21:46.86163	15.50
+1585	18	12" Majesty Palm, 1-3ppp (NA-Cites requiered for Canada)	\N	t	2026-06-13 14:21:46.869158	30.50
+1586	18	17" Majesty Palm, 1-3ppp (NA-Cites requiered for Canada)	\N	t	2026-06-13 14:21:46.877588	90.00
+1587	18	10" Phoenix Roebelenii (Phyto requiered for Louisiana) Phoenix Roebelenii Sun	\N	t	2026-06-13 14:21:46.883929	9.00
+1588	18	12" Phoenix Roebelenii (Phyto requiered for Louisiana)	\N	t	2026-06-13 14:21:46.89079	18.00
+1589	18	14" Phoenix Roebelenii (Phyto requiered for Louisiana)	\N	t	2026-06-13 14:21:46.897724	25.00
+1500	18	Rhapis (Florida)	\N	t	2026-06-13 14:08:34.109005	350.00
+1505	18	Moonlight	\N	t	2026-06-13 14:08:34.160993	35.00
+1511	18	Golden Pothos	\N	t	2026-06-13 14:08:34.241456	35.00
+1507	18	Selloum	\N	t	2026-06-13 14:08:34.191014	35.00
+1527	18	Zeylanica	\N	t	2026-06-13 14:08:34.426498	40.00
+1530	18	Sensation	\N	t	2026-06-13 14:08:34.470424	36.00
+1534	18	Assorted Growers Choice	\N	t	2026-06-13 14:08:34.506396	2.35
+1590	18	17" Phoenix Roebelenii (Phyto requiered for Louisiana)	\N	t	2026-06-13 14:21:46.904605	75.00
+1591	18	6" Ponytail Cutback Stumps- (Canada Restricted)	\N	t	2026-06-13 14:21:46.911889	9.50
+1592	18	10" Ponytail Cutback Stumps- (Canada Restricted)	\N	t	2026-06-13 14:21:46.923592	17.50
+1593	18	10" Spindle (Singles) (Lethal Yellowing: TX, AZ, LA, MS & NV) Spindle ( Multi )	\N	t	2026-06-13 14:21:46.956281	33.50
+1594	18	12" Spindle (Singles) (Lethal Yellowing: TX, AZ, LA, MS & NV)	\N	t	2026-06-13 14:21:46.963981	63.50
+1595	18	14" Spindle (Singles) (Lethal Yellowing: TX, AZ, LA, MS & NV)	\N	t	2026-06-13 14:21:46.971075	77.50
+1596	18	6" Mc Colley Finale McColley's Finale	\N	t	2026-06-13 14:21:46.978463	5.50
+1597	18	8" Mc Colley Finale	\N	t	2026-06-13 14:21:46.990635	10.00
+1598	18	10" Mc Colley Finale	\N	t	2026-06-13 14:21:46.99723	13.00
+1599	18	6" Philodendron	\N	t	2026-06-13 14:21:47.021449	6.50
+1600	18	8" Palms	\N	t	2026-06-13 14:21:47.028557	10.75
+1601	18	10" Palms	\N	t	2026-06-13 14:21:47.035833	12.00
+1602	18	14" Palms	\N	t	2026-06-13 14:21:47.046679	35.00
+1603	18	6" Brazil	\N	t	2026-06-13 14:21:47.091837	7.50
+1604	18	8" Brazil	\N	t	2026-06-13 14:21:47.100975	9.75
+1605	18	10" Brazil	\N	t	2026-06-13 14:21:47.107319	12.00
+1606	18	6" Jade Pothos	\N	t	2026-06-13 14:21:47.168958	6.75
+1607	18	8" Jade Pothos	\N	t	2026-06-13 14:21:47.175461	9.50
+1608	18	10" Jade Pothos	\N	t	2026-06-13 14:21:47.182438	12.00
+1609	18	6" Neon Pothos	\N	t	2026-06-13 14:21:47.201224	7.50
+1610	18	8" Neon Pothos	\N	t	2026-06-13 14:21:47.206994	9.75
+1611	18	10" Neon Pothos	\N	t	2026-06-13 14:21:47.213326	12.00
+1612	18	8" Philodendron Lemon Lime	\N	t	2026-06-13 14:21:47.223169	9.75
+1613	18	10" Philodendron Lemon Lime	\N	t	2026-06-13 14:21:47.230627	12.00
+1614	18	8" Monstera Minima Ginny Philodendron Micans	\N	t	2026-06-13 14:21:47.237106	9.75
+1615	18	6" Swiss Cheese	\N	t	2026-06-13 14:21:47.243616	6.50
+1616	18	8" Swiss Cheese	\N	t	2026-06-13 14:21:47.251293	9.75
+1617	18	10" Swiss Cheese	\N	t	2026-06-13 14:21:47.263922	12.60
+1618	18	8" Spider (Hawaiian, Bonnie or Variegated) Spider ( Assorted 3 Varieties)	\N	t	2026-06-13 14:21:47.270676	8.75
+1619	18	10" Spider (Hawaiian, Bonnie or Variegated)	\N	t	2026-06-13 14:21:47.276855	10.00
+1620	18	8" Hanging Baskets Silver Satin	\N	t	2026-06-13 14:21:47.284356	10.00
+1621	18	4" Laurentii Fernwood Sansevieria	\N	t	2026-06-13 14:21:47.298177	3.50
+1622	18	6" Laurentii	\N	t	2026-06-13 14:21:47.304207	5.50
+1623	18	8" Laurentii	\N	t	2026-06-13 14:21:47.315364	12.00
+1624	18	10" Laurentii	\N	t	2026-06-13 14:21:47.32195	20.00
+1625	18	14" Laurentii	\N	t	2026-06-13 14:21:47.328052	45.00
+1626	18	10" Amate Schefflera	\N	t	2026-06-13 14:21:47.364947	24.00
+1627	18	17" Amate	\N	t	2026-06-13 14:21:47.37237	285.00
+1628	18	14" Ficus Natal Mahogany	\N	t	2026-06-13 14:21:47.378717	45.00
+1629	18	8" Assorted Spathiphyllum	\N	t	2026-06-13 14:21:47.388283	13.00
+1630	18	10" Assorted	\N	t	2026-06-13 14:21:47.39665	17.50
+1631	18	10" White Bird of Paradise	\N	t	2026-06-13 14:21:47.413607	19.25
+1632	18	12" White Bird of Paradise	\N	t	2026-06-13 14:21:47.420296	31.50
+1633	18	14" White Bird of Paradise	\N	t	2026-06-13 14:21:47.426904	55.00
+1634	18	17" White Bird of Paradise	\N	t	2026-06-13 14:21:47.434535	135.00
+1635	18	6" ZZ Plant Zamioculcas Zamifolia Portulacaria	\N	t	2026-06-13 14:21:47.455682	7.75
+1636	18	8" ZZ Plant	\N	t	2026-06-13 14:21:47.462877	14.50
+1637	18	10" ZZ Plant	\N	t	2026-06-13 14:21:47.469874	21.00
+1638	18	14" ZZ Plant	\N	t	2026-06-13 14:21:47.477415	40.00
+1639	18	8" Calathea Peacock Misc.	\N	t	2026-06-13 14:21:47.485304	14.50
+1640	1	Fiddle Leaf Fig 4"	\N	t	2026-06-13 14:35:54.612081	12.50
+1641	1	Snake Plant 6"	\N	t	2026-06-13 14:35:54.62637	8.75
+1642	1	Pothos Neon 4"	\N	t	2026-06-13 14:35:54.63366	5.00
+1643	8	BOSTON FERN - 34 " Spread	\N	t	2026-06-13 14:39:00.316554	7.25
+1644	8	SPRENGERII - ASPARAGUS FERN BASKETS	\N	t	2026-06-13 14:39:00.360676	7.25
+1645	8	SUNPATIENS HANGING BASKETS - PINK, RED, PURPLE	\N	t	2026-06-13 14:39:00.368216	9.00
+1646	8	VINCA WHTE POLKA DOT- HANGING BASKETS	\N	t	2026-06-13 14:39:00.386565	6.75
+1647	8	BOSTON FERN HANGING BASKET 36"- 38" SPREAD	\N	t	2026-06-13 14:39:00.394026	9.95
+1648	8	DIPLADENIA HANGINF BASKETS BLUEPHORA	\N	t	2026-06-13 14:39:00.401921	10.95
+1649	8	DIPLADENIA HANGING BASKETS - CORAL SUNDENIA	\N	t	2026-06-13 14:39:00.409285	10.95
+1650	8	DIPLADENIA HANGING BASKETS - PINK BELLA	\N	t	2026-06-13 14:39:00.418016	10.95
+1651	8	DIPLADENIA HANGING BASKETS - RED BELLA	\N	t	2026-06-13 14:39:00.426017	10.95
+1652	8	DIPLADENIA HANGING BASKET - WHITE	\N	t	2026-06-13 14:39:00.435099	10.95
+1653	8	DIPLADENIA HANGING BASKETS - YELLOW SUN BEAM	\N	t	2026-06-13 14:39:00.441719	10.95
+1654	8	KANGAROO FERN HANGING BASKET	\N	t	2026-06-13 14:39:00.45109	10.95
+1656	8	MANDEVILLA HANGING BASKET PEACH	\N	t	2026-06-13 14:39:00.474483	10.95
+1657	8	MANDEVILLA HANGING BASKET  PINK	\N	t	2026-06-13 14:39:00.481657	10.95
+1658	8	MANDEVILLA HANGING BASKET RED	\N	t	2026-06-13 14:39:00.488273	10.95
+1659	8	MANDEVILLA HANGING BASKET WHITE	\N	t	2026-06-13 14:39:00.495422	10.95
+1660	8	MANDEVILLA HANGING BASKET (MIXED - RED & PINK & WHITE	\N	t	2026-06-13 14:39:00.501978	12.95
+1661	8	ALOCASIA BORNEO GIANT	\N	t	2026-06-13 14:39:00.510811	9.95
+1662	8	ALOCASIA PORTORA	\N	t	2026-06-13 14:39:00.518242	9.95
+1663	8	ALOCASIA CALIFORNIA	\N	t	2026-06-13 14:39:00.524628	9.95
+1664	8	ALOCASIA REGAL SHEILDS	\N	t	2026-06-13 14:39:00.531702	9.95
+1665	8	ARBORICOLA TRINETTE - VARIEGATED	\N	t	2026-06-13 14:39:00.539063	6.50
+1666	8	BANANA BASJOO (COLD HARDY ZONE 3)	\N	t	2026-06-13 14:39:00.545772	9.75
+1667	8	BANANA DWARF CAVENDISH -Great tasting	\N	t	2026-06-13 14:39:00.559573	9.75
+1668	8	BANANA ENSETE MAURELLII	\N	t	2026-06-13 14:39:00.566402	9.75
+1669	8	BIRD OF PARADISE - ORANGE BIRDS  3PPP	\N	t	2026-06-13 14:39:00.573278	9.75
+1670	8	BIRD OF PARADISE - WHITE BIRDS 3PPP	\N	t	2026-06-13 14:39:00.57922	9.75
+1671	8	CROTON MAGNIFICENT	\N	t	2026-06-13 14:39:00.584908	6.75
+1673	8	CROTON PETRA  3pp  12"-14" plted	\N	t	2026-06-13 14:39:00.598948	6.25
+1674	8	DIANELLA - FLAX LILLY	\N	t	2026-06-13 14:39:00.605584	6.75
+1675	8	DWARF PAPYRUS BABY MOSES	\N	t	2026-06-13 14:39:00.612303	7.95
+1676	8	FARFUGIUM - TRACTOR SEAT PLANT	\N	t	2026-06-13 14:39:00.618233	9.50
+1680	8	HAWAIIAN TI - CORDYLINE FLORIDA 3pp 23"plt	\N	t	2026-06-13 14:39:00.646085	7.50
+1681	8	MONSTERO DELICIOSO - SWISS CHEESE PLANT	\N	t	2026-06-13 14:39:00.654175	8.75
+1682	8	MONSTERA THAI CONSTELLATION	\N	t	2026-06-13 14:39:00.660577	17.00
+1683	8	PHILODENDRON SELLOUM	\N	t	2026-06-13 14:39:00.667805	6.25
+1684	8	SANSEVERIA LAURENTII	\N	t	2026-06-13 14:39:00.674844	8.75
+1685	8	SPATHIPHYLLUM VARIETIES	\N	t	2026-06-13 14:39:00.682656	8.75
+1679	8	FERN - MACHO FERN	\N	t	2026-06-13 14:39:00.639487	5.95
+1678	8	FERN - KIMBERLY QUEEN FERN	\N	t	2026-06-13 14:39:00.631941	27.00
+1677	8	FERN - FOXTAIL FERN	\N	t	2026-06-13 14:39:00.62523	5.95
+1655	8	KIMBERLY QUEEN FERN HANGING BASKET	\N	t	2026-06-13 14:39:00.459248	9.95
+1686	8	VARIGATED GINGER	\N	t	2026-06-13 14:39:00.688663	9.75
+1687	8	CHINESE FAN  PALM - can't ship to TX, LA,	\N	t	2026-06-13 14:39:00.695185	7.50
+1689	8	MAJESTY PALM MULTIS--	\N	t	2026-06-13 14:39:00.717412	7.50
+1691	8	SAGO PALM	\N	t	2026-06-13 14:39:00.737712	15.00
+1692	8	WINDMILL PALM -  can't ship to TX, LA	\N	t	2026-06-13 14:39:00.745787	15.00
+1693	8	AGAPANTHUS - BLUE LILLY OF THE NILE	\N	t	2026-06-13 14:39:00.752785	7.50
+1694	8	BEGONIA  ODORATA  local sales only	\N	t	2026-06-13 14:39:00.759307	8.95
+1695	8	BUDDLEIA BUSH - Royal Purple	\N	t	2026-06-13 14:39:00.766419	6.25
+1696	8	BUTTERFLY BUSH - CLAREDENDRON BLUE BUTTERFLY	\N	t	2026-06-13 14:39:00.773081	6.25
+1698	8	CANNA LILLY - ASSORTED COLORS	\N	t	2026-06-13 14:39:00.785775	8.95
+1699	8	CANNA LILLY - PEACH	\N	t	2026-06-13 14:39:00.791711	8.95
+1700	8	CANNA LILLY - PINK	\N	t	2026-06-13 14:39:00.799096	8.95
+1701	8	CANNA LILLY - RED	\N	t	2026-06-13 14:39:00.805614	8.95
+1702	8	CANNA LILLY - YELLOW	\N	t	2026-06-13 14:39:00.811852	8.95
+1703	8	CAPE HONEYSUCKLE BUSH YELLOW	\N	t	2026-06-13 14:39:00.818031	6.25
+1704	8	CROSSANDRA ORANGE MARMALADE	\N	t	2026-06-13 14:39:00.826219	6.25
+1708	8	DIPLADENIA BUSH - PINK BELLA	\N	t	2026-06-13 14:39:00.859539	8.95
+1712	8	DURANTA PURPLE SAPHIRE SHOWERS BUSH	\N	t	2026-06-13 14:39:00.888971	6.25
+1713	8	HIBISCUS BUSH - FIESTA	\N	t	2026-06-13 14:39:00.904608	7.95
+1714	8	HIBISCUS BUSH - MANGO	\N	t	2026-06-13 14:39:00.914737	7.95
+1715	8	HIBISCUS BUSH - PEACH DOUBLE FLOWER	\N	t	2026-06-13 14:39:00.922559	6.25
+1716	8	HIBISCUS BUSH - PINK PAINTED LADY	\N	t	2026-06-13 14:39:00.930373	6.25
+1717	8	HIBISCUS BUSH - PINK SEMINOLE	\N	t	2026-06-13 14:39:00.938046	6.25
+1718	8	HIBISCUS BUSH - RED DOUBLE FLOWER	\N	t	2026-06-13 14:39:00.945041	6.25
+1719	8	HIBISCUS BUSH - RED PRESIDENT	\N	t	2026-06-13 14:39:00.954211	6.25
+1720	8	HIBISCUS BUSH - YELLOW FT. MYERS	\N	t	2026-06-13 14:39:00.96182	6.25
+1721	8	HIBSICUS BUSH - 4 MIX COLOR	\N	t	2026-06-13 14:39:00.968691	7.95
+1722	8	HIBISCUS BUSH DWARF YODER - ORANGE MANDARIN WIND	\N	t	2026-06-13 14:39:00.976481	7.95
+1723	8	HIBISCUS BUSH DWARF YODER - PINK CAYMAN WIND	\N	t	2026-06-13 14:39:00.986047	7.95
+1724	8	HIBISCUS BUSH DWARF YODER - RED TORTUGA WIND	\N	t	2026-06-13 14:39:00.995885	7.95
+1725	8	HIBISCUS BUSH DWARF YODER - YELLOW SUNNY WIND	\N	t	2026-06-13 14:39:01.003429	7.95
+1726	8	HYDRANGEA - FLORIST QUALITY - BLUE	\N	t	2026-06-13 14:39:01.010668	13.95
+1727	8	HYDRANGEA - FLORIST QUALITY - PINK	\N	t	2026-06-13 14:39:01.018641	13.95
+1728	8	HYDRANDEA - FLORIST QUALITY - WHITE	\N	t	2026-06-13 14:39:01.026279	13.95
+1729	8	HIBISCUS BUSH HOLLYWOOD PROVEN WINNERS AMERICA'S SWEETHEART	\N	t	2026-06-13 14:39:01.03326	11.95
+1730	8	HIBISCUS BUSH HOLLYWOOD PROVEN WINNERS FIRST LADY	\N	t	2026-06-13 14:39:01.041542	11.95
+1731	8	HIBISCUS BUSH HOLLYWOOD PROVEN WINNERS HOT SHOT	\N	t	2026-06-13 14:39:01.048825	11.95
+1732	8	HIBISCUS BUSH HOLLYWOOD PROVEN WINNERS RICO SAUVE	\N	t	2026-06-13 14:39:01.056964	11.95
+1733	8	IRIS REGINA - BRAZILLIAN ORCHID	\N	t	2026-06-13 14:39:01.067457	9.75
+1734	8	IRIS WHITE AFRICAN (BUTTERFLY) IRIS	\N	t	2026-06-13 14:39:01.074506	7.50
+1735	8	IRIS YELLOW AFRICAN (BICOLOR) IRIS	\N	t	2026-06-13 14:39:01.083568	7.50
+1736	8	IXORA MAUI - RED	\N	t	2026-06-13 14:39:01.09082	6.25
+1737	8	IXORA MAUI - YELLOW	\N	t	2026-06-13 14:39:01.09774	6.25
+1738	8	IXORA DWARF TIAWANESE RED	\N	t	2026-06-13 14:39:01.104444	6.25
+1739	8	LOROPETALUM - PLUM DELIGHT	\N	t	2026-06-13 14:39:01.111834	6.50
+1740	8	MILKWEED - BUTTERFLY BUSH	\N	t	2026-06-13 14:39:01.120532	6.25
+1741	8	MONA LAVENDER - PLECTRANTHUS	\N	t	2026-06-13 14:39:01.132203	6.50
+1742	8	OLEANDER BUSH - CALYPSO PINK	\N	t	2026-06-13 14:39:01.143398	6.25
+1743	8	OLEANDER BUSH - PETITE PINK	\N	t	2026-06-13 14:39:01.150422	6.50
+1744	8	PLUMBAGO  WHITE	\N	t	2026-06-13 14:39:01.164602	6.25
+1745	8	RUELLIA PURPLE SHOWERS - MEXICAN PETUNIA	\N	t	2026-06-13 14:39:01.171434	6.25
+1746	8	RUELLIA WHITE SHOWERS	\N	t	2026-06-13 14:39:01.178297	6.25
+1747	8	SHRIMP RED BUSH - JUSTICIA BRANDEGEANA	\N	t	2026-06-13 14:39:01.18498	6.25
+1748	8	SNO ON THE MOUNTAIN	\N	t	2026-06-13 14:39:01.192243	6.50
+1749	8	SUNPATIENS - PURPLE, PINK, RED	\N	t	2026-06-13 14:39:01.198017	9.00
+1750	8	TIBOUCHINA BUSH - MORNING GLORY	\N	t	2026-06-13 14:39:01.204528	6.25
+1751	8	MULY GRASS - MUHLEN ERGIA CAPINENSIS	\N	t	2026-06-13 14:39:01.21044	6.25
+1753	8	WHITE FOUNTAIN GRASS - PENISETUM	\N	t	2026-06-13 14:39:01.225975	6.25
+1754	8	BLEEDING HEART TRELLIS	\N	t	2026-06-13 14:39:01.236186	9.75
+1755	8	CONFEDERATE JASMINE TRELLIS	\N	t	2026-06-13 14:39:01.243021	9.75
+1756	8	DIPLADENIA TRELLIS - PRETTY PINK - SUNTORY	\N	t	2026-06-13 14:39:01.249475	10.75
+1757	8	DIPLADENIA TRELLIS - PRETTY RED -  SUNTORY	\N	t	2026-06-13 14:39:01.257794	10.75
+1758	8	MANDEVILLA TRELLIS - MIX RED AND WHITE GIANT	\N	t	2026-06-13 14:39:01.267044	11.75
+1759	8	MANDEVILLA TRELLIS - PEACH SUNTORY	\N	t	2026-06-13 14:39:01.275651	10.75
+1760	8	MANDEVILLA TRELLIS - PINK BELLA  LADDER	\N	t	2026-06-13 14:39:01.282742	10.75
+1761	8	MANDEVILLA TRELLIS PINK ALICE DUPONT TEPEE	\N	t	2026-06-13 14:39:01.29012	10.75
+1762	8	MANDEVILLA TRELLIS - RED GIANT CRIMSON	\N	t	2026-06-13 14:39:01.297691	10.75
+1763	8	MANDEVILLA TRELLIS - WHITE GIANT	\N	t	2026-06-13 14:39:01.304591	10.75
+1764	8	MANDEVILLA TRELLIS - YELLOW -  PENTALINON LUTEUM	\N	t	2026-06-13 14:39:01.311944	10.75
+1765	8	PASSION VINE TRELLIS - PASSION FLOWER PURPLE	\N	t	2026-06-13 14:39:01.319209	9.75
+1766	8	PASSION VINE TRELLIS - PASSION FLOWER RED	\N	t	2026-06-13 14:39:01.329199	9.75
+1767	8	SKY VINE TRELLIS - THUNBERGIA PURPLE	\N	t	2026-06-13 14:39:01.337827	9.75
+1768	8	BRAIDED HIBISCUS TREE  - PEACH DOUBLE FLOWER	\N	t	2026-06-13 14:39:01.345256	13.25
+1769	8	BRAIDED HIBISCUS TREE  - PINK PAINTED LADY	\N	t	2026-06-13 14:39:01.35229	13.25
+1770	8	BRAIDED HIBISCUS TREE  - PINK SEMINOLE	\N	t	2026-06-13 14:39:01.362038	13.25
+1771	8	BRAIDED HIBISCUS TREE  - RED DOUBLE FLOWER	\N	t	2026-06-13 14:39:01.369226	13.25
+1772	8	BRAIDED HIBISCUS TREE  - RED PRESIDENT	\N	t	2026-06-13 14:39:01.376945	13.25
+1773	8	BRAIDED HIBISCUS TREE  - YELLOW FT MYERS	\N	t	2026-06-13 14:39:01.383535	13.25
+1774	8	BRAIDED HIBISCUS TREE - MANGO	\N	t	2026-06-13 14:39:01.394182	13.25
+1705	8	DIPLADENIA BUSH - BLUEPHORIA	\N	t	2026-06-13 14:39:00.833067	8.95
+1706	8	DIPLADENIA BUSH - CORAL SUNDENIA	\N	t	2026-06-13 14:39:00.839873	8.95
+1707	8	DIPLADENIA BUSH - ORANGE FIRED UP	\N	t	2026-06-13 14:39:00.852197	8.95
+1709	8	DIPLADENIA BUSH - RED BELLA	\N	t	2026-06-13 14:39:00.8666	8.95
+1711	8	DIPLADENIA BUSH - YELLOW SUNBEAM	\N	t	2026-06-13 14:39:00.881269	8.95
+235	8	10" Plumbago Imperial Blue	ea	t	2026-05-02 21:09:22.837842	6.25
+1752	8	RED FOUNTAIN GRASS - PENISETUM RUBRUM	\N	t	2026-06-13 14:39:01.217821	6.25
+1861	10	8” Tillandsia Dolce	\N	t	2026-06-13 15:00:34.834482	35.00
+1690	8	ROEBELLENII PALM -	\N	t	2026-06-13 14:39:00.730798	7.50
+1697	8	CALIFORNIA BUSH DAISY	\N	t	2026-06-13 14:39:00.779219	6.25
+1688	8	EUROPEAN FAN PALM -	\N	t	2026-06-13 14:39:00.705853	15.00
+1775	8	BRAIDED HIBISCUS TREE - YELLOW SUNNY WIND - YODER	\N	t	2026-06-13 14:39:01.403087	13.25
+1776	8	BRAIDED HIBISCUS TREE  - 4 MIXED COLORS	\N	t	2026-06-13 14:39:01.410185	13.25
+1777	8	BRAIDED RUELLIA TREE - MEXICAN PETUNIA	\N	t	2026-06-13 14:39:01.419573	13.25
+1778	8	BRAIDED SHRIMP TREE RED	\N	t	2026-06-13 14:39:01.429278	13.25
+1779	8	DURANTA PURPLE SAPHIRE SHOWERS TREE	\N	t	2026-06-13 14:39:01.444332	10.95
+1780	8	GARDENIA STANDARD - AIMEE 40"-44" tall	\N	t	2026-06-13 14:39:01.454364	15.50
+1781	8	HIBISCUS STANDARD - PEACH DOUBLE FLOWER	\N	t	2026-06-13 14:39:01.466581	10.25
+1782	8	HIBISCUS STANDARD - PINK PAINTED LADY	\N	t	2026-06-13 14:39:01.473859	10.25
+1783	8	HIBISCUS STANDARD - PINK SEMINOLE	\N	t	2026-06-13 14:39:01.4808	10.25
+1784	8	HIBISCUS STANDARD - RED DOUBLE FLOWER	\N	t	2026-06-13 14:39:01.487309	10.25
+1785	8	HIBISCUS STANDARD - RED PRESIDENT	\N	t	2026-06-13 14:39:01.493849	10.25
+1786	8	HIBISCUS STANDARD - YELLOW FT MYERS	\N	t	2026-06-13 14:39:01.501851	10.25
+1787	8	LANTANA STANDARD - NEW GOLD	\N	t	2026-06-13 14:39:01.508305	11.50
+1788	8	BLUE DAZE- BLEW MY MIND	\N	t	2026-06-13 14:39:01.51658	3.95
+1789	8	CORDYLINE RED SENSATION	\N	t	2026-06-13 14:39:01.536004	4.75
+1790	8	DIANELLA - VARIGATED FLAX LILLY	\N	t	2026-06-13 14:39:01.562856	3.25
+1791	8	DIPLADENIA BUSH - PINK  BELLA	\N	t	2026-06-13 14:39:01.594738	5.25
+1792	8	DWARF PAPYRUS  - BABY MOSES	\N	t	2026-06-13 14:39:01.628051	4.50
+1793	8	FERN - KANGAROO FERN - (WART FERN)	\N	t	2026-06-13 14:39:01.642821	3.50
+1794	8	FERN - SPRENGERII - APARAGUS FERN	\N	t	2026-06-13 14:39:01.674673	3.50
+1795	8	GERBER DAISY	\N	t	2026-06-13 14:39:01.68275	3.75
+1796	8	HEATHER - CUPHEA PURPLE	\N	t	2026-06-13 14:39:01.689221	3.25
+1797	8	HIBISCUS DWARF - FIESTA	\N	t	2026-06-13 14:39:01.695372	6.50
+1798	8	HIBISCUS DWARF -  PEACH DOUBLE FLOWER	\N	t	2026-06-13 14:39:01.702989	5.25
+1799	8	HIBISCUS DWARF - PINK PAINTED LADY	\N	t	2026-06-13 14:39:01.711002	5.25
+1800	8	HIBISCUS DWARF - RED DOUBLE FLOWER	\N	t	2026-06-13 14:39:01.717601	5.25
+1801	8	HIBISCUS DWARF - RED PRESIDENT	\N	t	2026-06-13 14:39:01.723846	5.25
+1802	8	HIBISCUS DWARF - YELLOW FT MYERS	\N	t	2026-06-13 14:39:01.730948	5.25
+1803	8	HIBISCUS DWARF - YODER VARIETIES - ORANGE MANDARIN WIND	\N	t	2026-06-13 14:39:01.737057	6.50
+1804	8	HIBISCUS DWARF - YODER VARIETIES - PINK CAYMAN WIND	\N	t	2026-06-13 14:39:01.744254	6.50
+1805	8	HIBISCUS DWARF - YODER VARIETIES - RED TORTUGA WIND	\N	t	2026-06-13 14:39:01.754105	6.50
+1806	8	HIBISCUS DWARF - YODER VARIETIES - YELLOW SUNNY WIND	\N	t	2026-06-13 14:39:01.763067	6.50
+1807	8	LANTANA - GOLD (NEW GOLD)	\N	t	2026-06-13 14:39:01.769516	3.25
+1808	8	LANTANA - MANGO	\N	t	2026-06-13 14:39:01.777609	3.25
+1809	8	LANTANA - PURPLE (IRENE)	\N	t	2026-06-13 14:39:01.785299	3.25
+1810	8	LANTANA - RED (DALLAS RED)	\N	t	2026-06-13 14:39:01.79505	3.25
+1811	8	LEMON GRASS - CYMBOPOGON CITRATUS	\N	t	2026-06-13 14:39:01.808885	3.75
+1812	8	MOSQUITO PLANT - PELARGONIUM CITROSUM "VAN LEENII"	\N	t	2026-06-13 14:39:01.815426	4.75
+1813	8	PENTAS - GRAFFITI SERIES - LIPSTICK	\N	t	2026-06-13 14:39:01.822583	3.25
+1814	8	PENTAS - GRAFFITI SERIES - PINK	\N	t	2026-06-13 14:39:01.829822	3.25
+1815	8	PENTAS - GRAFFITI SERIES - RED	\N	t	2026-06-13 14:39:01.839375	3.25
+1816	8	PENTAS - GRAFFITI SERIES -PURPLE	\N	t	2026-06-13 14:39:01.846373	3.25
+1817	8	PENTAS - GRAFFITI SERIES - WHITE	\N	t	2026-06-13 14:39:01.852478	3.25
+1818	8	POTATO VINE- BLACK (CANT SHIP TO TEXAS)	\N	t	2026-06-13 14:39:01.866386	3.25
+1819	8	POTATO VINE- LIME MARGARITE   (CANT SHIP TO TEXAS)	\N	t	2026-06-13 14:39:01.87275	3.25
+1820	8	SOCIETY GARLIC	\N	t	2026-06-13 14:39:01.887022	3.25
+1821	8	TRELLIS DIPLADENIA - PRETTY RED	\N	t	2026-06-13 14:39:01.899459	5.50
+1822	8	TRELLIS MANDEVILLA - PEACH	\N	t	2026-06-13 14:39:01.905475	5.50
+1823	8	TRELLIS MANDEVILLA - SUNTORY DARK PINK	\N	t	2026-06-13 14:39:01.911728	5.50
+1824	8	TRELLIS MANDEVILLA - RED GIANT	\N	t	2026-06-13 14:39:01.921556	5.50
+1825	8	TRELLIS MANDEVILLA - WHITE GIANT	\N	t	2026-06-13 14:39:01.928392	5.50
+1826	8	ZZ PLANT - GREEN	\N	t	2026-06-13 14:39:01.934405	8.50
+1827	8	ZZ PLANT - RAVEN	\N	t	2026-06-13 14:39:01.94181	9.50
+1828	8	DIPLADENIA  PRETTY PINK - 3PPP	\N	t	2026-06-13 14:39:01.948745	26.50
+1829	8	MANDEVILLA MIXED RED AND WHITE - 3PPP	\N	t	2026-06-13 14:39:01.956038	26.50
+1830	8	MANDEVILLA PINK ALICE DU PONT - 3PPP	\N	t	2026-06-13 14:39:01.965584	26.50
+1831	8	MANDEVILLA RED GIANT - 3PPP	\N	t	2026-06-13 14:39:01.973613	26.50
+1832	8	MANDEVILLA WHITE GIANT - 3PPP	\N	t	2026-06-13 14:39:01.981803	26.50
+1672	8	CROTON MAMMY 3pp   12" plted	\N	t	2026-06-13 14:39:00.591076	6.25
+1710	8	DIPLADENIA BUSH - WHITE SUNDENIA	\N	t	2026-06-13 14:39:00.873377	8.95
+1833	10	Orchids , Exotics Living Colors Nursery, Inc. Box Charges:	\N	t	2026-06-13 14:54:26.094917	2.50
+1834	10	Top-Load	\N	t	2026-06-13 14:54:26.193101	5.00
+1835	10	Guzmania Mirador Grower’s Choice of Ardie, Cotton Candy, Lila, & Tricolor Regular price	\N	t	2026-06-13 14:54:26.199977	3.65
+1836	10	Guzmania Mirador Three stunning bromeliads in an azalea pot TL	\N	t	2026-06-13 14:54:26.208534	15.95
+1837	10	Guzmania Mirador Three beautiful bromeliads in a bulb pan TL	\N	t	2026-06-13 14:54:26.215988	21.95
+1838	10	Guzmania Mirador Variegated w/ Red-Fuchsia center Regular price	\N	t	2026-06-13 14:54:26.222515	9.75
+1839	10	Guzmania Mirador Yellow w/ Red Regular price	\N	t	2026-06-13 14:54:26.229092	7.95
+1841	10	Tillandsia Luminosa Medium Sized Plant Grower’s Choice Assortment | 5-6 buds per plant Regular price	\N	t	2026-06-13 14:54:26.242913	24.50
+1842	10	Tillandsia Luminosa Non-blooming Vanilla orchid Green foliage in an azalea pot Regular price	\N	t	2026-06-13 14:54:26.249731	11.50
+1843	10	Tillandsia Luminosa Pack 8	\N	t	2026-06-13 14:54:26.256324	8.00
+1845	10	Tillandsia Luminosa Pack 9	\N	t	2026-06-13 14:54:26.271326	7.00
+1844	10	Tillandsia Luminosa Pack 10	\N	t	2026-06-13 14:54:26.263942	1.20
+1846	10	Tillandsia Luminosa Regular Price:	\N	t	2026-06-13 14:54:26.284972	1.50
+1847	10	Tillandsia Luminosa BALL (Medium) Pack 10	\N	t	2026-06-13 14:54:26.291991	6.50
+1848	10	Tillandsia Luminosa Pack 6	\N	t	2026-06-13 14:54:26.29783	5.75
+1849	10	Tillandsia Luminosa xerographica SALE!!!	\N	t	2026-06-13 14:54:26.303944	19.50
+1850	10	Tillandsia Luminosa Tillandsia Mix Box #11	\N	t	2026-06-13 14:54:26.315939	58.00
+1851	10	Tillandsia Luminosa Tillandsia Mix Box #13	\N	t	2026-06-13 14:54:26.322327	22.00
+1852	10	Tillandsia Luminosa Tillandsia Mix Box #8	\N	t	2026-06-13 14:54:26.33031	40.00
+1853	10	Tillandsia Luminosa • TL – Top Load:	\N	t	2026-06-13 14:54:26.336639	2.50
+1854	10	Tillandsia Luminosa • SL – Side Load:	\N	t	2026-06-13 14:54:26.342315	5.00
+1855	10	6” Aralia Variegated	\N	t	2026-06-13 15:00:34.776982	12.95
+1856	10	8” Aralia Variegated	\N	t	2026-06-13 15:00:34.791892	24.50
+1857	10	8” Medinilla myriantha	\N	t	2026-06-13 15:00:34.800685	35.00
+1858	10	4” Neoregelia Assorted	\N	t	2026-06-13 15:00:34.808533	3.30
+1859	10	10” Medinilla myriantha	\N	t	2026-06-13 15:00:34.817101	45.00
+1860	10	4” Tillandsia cyanea	\N	t	2026-06-13 15:00:34.825422	3.05
+1862	10	5” Guzmania Allura (P)	\N	t	2026-06-13 15:00:34.844426	5.25
+1863	10	8” Tillandsia Luminosa	\N	t	2026-06-13 15:00:34.910802	35.00
+1864	10	5” Guzmania Assorted	\N	t	2026-06-13 15:00:34.920856	5.25
+1865	10	7” Tillandsia xerographica - Blooming	\N	t	2026-06-13 15:00:34.93094	38.50
+1866	10	5” Guzmania Class	\N	t	2026-06-13 15:00:34.941795	5.25
+1867	10	4” Vanda Assorted	\N	t	2026-06-13 15:00:34.95132	22.50
+1868	10	5”5” Vanilla planifolia Guzmania Tatiana	\N	t	2026-06-13 15:00:34.958749	5.26
+1869	10	5” Guzmania Voila (P)	\N	t	2026-06-13 15:00:34.967345	5.75
+1870	10	5” Vanilla planifolia ‘Variegated’	\N	t	2026-06-13 15:00:34.978009	12.50
+1871	10	5” Guzmania Yellow Sun	\N	t	2026-06-13 15:00:34.985863	5.75
+1872	10	6” Zamioculcas zamiifolia	\N	t	2026-06-13 15:00:34.993347	8.50
+1873	10	5” Vriesea ‘Happy Red’	\N	t	2026-06-13 15:00:35.0049	5.75
+1874	10	6” Guzmania Rostara (P)	\N	t	2026-06-13 15:00:35.012496	7.85
+1875	10	8” Bromeliad Triple Combo	\N	t	2026-06-13 15:00:35.022785	15.95
+1877	10	6” Neoregelia Serendipity	\N	t	2026-06-13 15:00:35.039024	7.75
+1878	10	6” Tillandsia Antonio	\N	t	2026-06-13 15:00:35.046821	8.95
+1879	10	6” Vriesea ‘Helia’	\N	t	2026-06-13 15:00:35.056904	6.25
+1876	10	10” Bromeliad Triple Combo	\N	t	2026-06-13 15:00:35.029945	21.95
+1880	11	4" Aglaonema - Colored	\N	t	2026-06-15 12:07:06.244448	\N
+1881	11	6" Aglaonema - Colored	\N	t	2026-06-15 12:07:07.004263	\N
+1882	11	8" Aglaonema - Star Of India	\N	t	2026-06-15 12:07:07.141293	\N
+1883	11	4" Alocasia	\N	t	2026-06-15 12:07:07.146519	\N
+1884	11	4" Anthurium - W/ Flower	\N	t	2026-06-15 12:07:07.150587	\N
+1885	11	6" Anthurium - W/ Flower	\N	t	2026-06-15 12:07:07.155057	\N
+1886	11	6" Anthurium - No Flower	\N	t	2026-06-15 12:07:07.158856	\N
+1887	11	8" Anthurium - W/ Flower	\N	t	2026-06-15 12:07:07.162582	\N
+1888	11	4" Ardisia	\N	t	2026-06-15 12:07:07.166225	\N
+1889	11	6" Calathea	\N	t	2026-06-15 12:07:07.170407	\N
+1890	11	8" Calathea	\N	t	2026-06-15 12:07:07.174551	\N
+1891	11	6" Croton Petra	\N	t	2026-06-15 12:07:07.17844	\N
+1892	11	6" Croton Hybrid	\N	t	2026-06-15 12:07:07.182412	\N
+1893	11	4" Croton Picasso	\N	t	2026-06-15 12:07:07.186172	\N
+1894	11	6" Croton Picasso	\N	t	2026-06-15 12:07:07.189634	\N
+1895	11	3" Dieffenbachia	\N	t	2026-06-15 12:07:07.192804	\N
+1896	11	8" Dieffenbachia Hybrid	\N	t	2026-06-15 12:07:07.196562	\N
+1897	11	8" Dracaena	\N	t	2026-06-15 12:07:07.200639	\N
+1898	11	6" Fatsia	\N	t	2026-06-15 12:07:07.204159	\N
+1899	11	4" Fern	\N	t	2026-06-15 12:07:07.207094	\N
+1900	11	6" Fern	\N	t	2026-06-15 12:07:07.210312	\N
+1901	11	8" Fern Hb	\N	t	2026-06-15 12:07:07.216466	\N
+1902	11	8" Fern (Selaginella) Hb	\N	t	2026-06-15 12:07:07.220012	\N
+1903	11	6" Ficus	\N	t	2026-06-15 12:07:07.223675	\N
+1904	11	8" Ficus	\N	t	2026-06-15 12:07:07.227039	\N
+1905	11	4" Fittonia Tc	\N	t	2026-06-15 12:07:07.23033	\N
+1906	11	6" Homalomena	\N	t	2026-06-15 12:07:07.233088	\N
+1907	11	8" Homalomena	\N	t	2026-06-15 12:07:07.235886	\N
+1908	11	4" Maranta	\N	t	2026-06-15 12:07:07.238854	\N
+1909	11	6" Maranta	\N	t	2026-06-15 12:07:07.242199	\N
+1910	11	4" Monstera	\N	t	2026-06-15 12:07:07.244904	\N
+1911	11	6" Monstera	\N	t	2026-06-15 12:07:07.247978	\N
+1912	11	8" Monstera Hb	\N	t	2026-06-15 12:07:07.25231	\N
+1913	11	3" Palm	\N	t	2026-06-15 12:07:07.255674	\N
+1914	11	8" Palm	\N	t	2026-06-15 12:07:07.258021	\N
+1915	11	6" Palm Ponytail	\N	t	2026-06-15 12:07:07.260713	\N
+1916	11	4" Peperomia	\N	t	2026-06-15 12:07:07.264417	\N
+1917	11	4" Philodendron Upright	\N	t	2026-06-15 12:07:07.267767	\N
+1918	11	6" Philodendron Upright	\N	t	2026-06-15 12:07:07.270627	\N
+1919	11	4" Philodendron Vining	\N	t	2026-06-15 12:07:07.274096	\N
+1920	11	6" Philodendron Vining	\N	t	2026-06-15 12:07:07.278524	\N
+1921	11	8" Philodendron Vining	\N	t	2026-06-15 12:07:07.28143	\N
+1922	11	4" Pothos	\N	t	2026-06-15 12:07:07.284734	\N
+1923	11	6" Pothos	\N	t	2026-06-15 12:07:07.28725	\N
+1924	11	8" HB Pothos	\N	t	2026-06-15 12:07:07.290553	\N
+1925	11	8" HB Rhaphidaphora	\N	t	2026-06-15 12:07:07.293471	\N
+1928	11	4" Spathiphyllum	\N	t	2026-06-15 12:07:07.307477	\N
+1929	11	6" Spathiphyllum	\N	t	2026-06-15 12:07:07.310161	\N
+1930	11	3" Syngonium	\N	t	2026-06-15 12:07:07.312726	\N
+1931	11	8" Syngonium Hb	\N	t	2026-06-15 12:07:07.31548	\N
+1932	11	8" HB Tradescantia	\N	t	2026-06-15 12:07:07.318885	\N
+1933	11	4" Zz	\N	t	2026-06-15 12:07:07.321713	\N
+1934	11	6" Zz	\N	t	2026-06-15 12:07:07.324909	\N
+1935	19	2 inch Adenium	\N	t	2026-06-15 12:12:18.401115	1.43
+1936	19	6 inch Alocasia Low Rider	\N	t	2026-06-15 12:12:18.600599	5.92
+1937	19	8 inch Caladium	\N	t	2026-06-15 12:12:18.605553	10.30
+1938	19	2 inch African Violet	\N	t	2026-06-15 12:12:18.609445	1.85
+1939	19	6 inch Angelonia	\N	t	2026-06-15 12:12:18.612825	4.07
+1940	19	8 inch Celosia Plumosa	\N	t	2026-06-15 12:12:18.617188	8.15
+1941	19	2 inch Aloe Vera	\N	t	2026-06-15 12:12:18.625057	1.38
+1942	19	6 inch Anigozanthos Kang Paw	\N	t	2026-06-15 12:12:18.628778	5.27
+1943	19	8 inch Cuphea Sweets Whiskey Barrel	\N	t	2026-06-15 12:12:18.632845	9.00
+1944	19	2 inch Beaucarnea Multi	\N	t	2026-06-15 12:12:18.637023	1.12
+1945	19	6 inch Aphelandra Zebra Plant	\N	t	2026-06-15 12:12:18.640031	5.12
+1946	19	8 inch Dahlia	\N	t	2026-06-15 12:12:18.645583	9.30
+1947	19	2 inch Celosia Kimono	\N	t	2026-06-15 12:12:18.649096	1.12
+1948	19	6 inch Caladium	\N	t	2026-06-15 12:12:18.653099	5.82
+1949	19	8 inch Fern Kimberley Queen	\N	t	2026-06-15 12:12:18.656712	10.90
+1951	19	6 inch Celosia Plumosa	\N	t	2026-06-15 12:12:18.663802	3.92
+1952	19	8 inch Kong Coleus	\N	t	2026-06-15 12:12:18.667699	8.15
+1950	19	2 inch Fern Assorted	\N	t	2026-06-15 12:12:18.659994	1.79
+1953	19	6 inch Coleus	\N	t	2026-06-15 12:12:18.675427	4.07
+1954	19	8 inch Lavender	\N	t	2026-06-15 12:12:18.678698	8.80
+1955	19	2 inch Kalanchoe	\N	t	2026-06-15 12:12:18.68252	1.16
+1956	19	6 inch Coreopsis Asst	\N	t	2026-06-15 12:12:18.687278	4.37
+1957	19	8 inch Pentas	\N	t	2026-06-15 12:12:18.69096	9.50
+1958	19	2 inch Pachypodium Lamerei	\N	t	2026-06-15 12:12:18.6975	1.15
+1959	19	6 inch Crossandra Sundance	\N	t	2026-06-15 12:12:18.703531	5.27
+1960	19	8 inch Perilla Magilla	\N	t	2026-06-15 12:12:18.707182	8.15
+1962	19	6 inch Dahlia	\N	t	2026-06-15 12:12:18.713698	4.27
+1963	19	8 inch Rosemary BBQ	\N	t	2026-06-15 12:12:18.717148	8.80
+1961	19	2 inch Selaginella	\N	t	2026-06-15 12:12:18.710535	1.79
+1964	19	6 inch Echinacea Assorted	\N	t	2026-06-15 12:12:18.723798	5.12
+1965	19	8 inch Rosemary Upright	\N	t	2026-06-15 12:12:18.727026	8.80
+1966	19	2 inch Splash Assorted Round	\N	t	2026-06-15 12:12:18.731409	0.86
+1967	19	6 inch Eucalyptus	\N	t	2026-06-15 12:12:18.734433	5.42
+1968	19	8 inch Rudbeckia Denver Daisy	\N	t	2026-06-15 12:12:18.737517	8.15
+1969	19	2 inch Tradescantia Mini Sweetness	\N	t	2026-06-15 12:12:18.740493	1.16
+1970	19	6 inch Fern Assorted	\N	t	2026-06-15 12:12:18.743712	5.17
+1971	19	6 inch Fern Blue Star HB	\N	t	2026-06-15 12:12:18.746395	5.42
+1972	19	6 inch Fern Jester's Crown	\N	t	2026-06-15 12:12:18.748928	5.02
+1927	11	6" Sansevieria	\N	t	2026-06-15 12:07:07.303989	3.75
+1973	19	12 inch Dahlia Window Box	\N	t	2026-06-15 12:12:18.751706	10.00
+1974	19	4 inch Adenium	\N	t	2026-06-15 12:12:18.756229	4.12
+1975	19	12 inch Rosemary Window Box	\N	t	2026-06-15 12:12:18.760149	10.00
+1976	19	4 inch African Violet	\N	t	2026-06-15 12:12:18.76314	3.15
+1977	19	6 inch Fern Lemon Button	\N	t	2026-06-15 12:12:18.766348	5.02
+1978	19	4 inch Aphelandra	\N	t	2026-06-15 12:12:18.769999	2.67
+1979	19	6 inch Fern Maidenhair	\N	t	2026-06-15 12:12:18.773574	5.17
+1980	19	4 inch Caladium	\N	t	2026-06-15 12:12:18.777211	3.12
+1981	19	6 inch Fuchsia	\N	t	2026-06-15 12:12:18.78445	4.67
+1982	19	4 inch Celosia Brainiac	\N	t	2026-06-15 12:12:18.859862	2.02
+1983	19	4 inch Coleus Assorted	\N	t	2026-06-15 12:12:18.863115	2.02
+1984	19	6 inch Gomphrena	\N	t	2026-06-15 12:12:18.865723	4.07
+1985	19	4 inch Crossandra Sundance	\N	t	2026-06-15 12:12:18.868555	2.92
+1986	19	6 inch Juncus Spiralis	\N	t	2026-06-15 12:12:18.872606	4.42
+1987	19	4 inch Dahlia	\N	t	2026-06-15 12:12:18.87694	2.37
+1988	19	6 inch Kong Coleus	\N	t	2026-06-15 12:12:18.880233	4.07
+1989	19	4 inch Fern Assorted	\N	t	2026-06-15 12:12:18.883302	2.52
+1990	19	6 inch Lantana Shamrock	\N	t	2026-06-15 12:12:18.886572	4.07
+1991	19	4 inch Fern Lemon Button	\N	t	2026-06-15 12:12:18.889132	2.52
+1992	19	6 inch Lavender French	\N	t	2026-06-15 12:12:18.892999	4.27
+1993	19	4 inch Fuchsia	\N	t	2026-06-15 12:12:18.895928	2.52
+1994	19	6 inch Lavender Goodwin Creek	\N	t	2026-06-15 12:12:18.899567	4.27
+1995	19	4 inch Juncus Spiralis	\N	t	2026-06-15 12:12:18.90243	2.32
+1996	19	6 inch Lisianthus Julietta	\N	t	2026-06-15 12:12:18.905	4.52
+1997	19	4 inch Kalanchoe	\N	t	2026-06-15 12:12:18.907863	2.37
+1998	19	6 inch Marigold Assorted	\N	t	2026-06-15 12:12:18.911021	3.97
+1999	19	4 inch Kong Coleus	\N	t	2026-06-15 12:12:18.914169	2.02
+2000	19	6 inch Pentas	\N	t	2026-06-15 12:12:18.917452	4.17
+2001	19	4 inch Lavender French	\N	t	2026-06-15 12:12:18.920699	2.17
+2002	19	6 inch Perilla	\N	t	2026-06-15 12:12:18.924079	4.07
+2003	19	4 inch Lavender Goodwin Creek	\N	t	2026-06-15 12:12:18.927219	2.17
+2004	19	6 inch Pilea Peperomioides	\N	t	2026-06-15 12:12:18.930034	5.97
+2005	19	4 inch Lavender Spanish	\N	t	2026-06-15 12:12:18.932751	2.32
+2006	19	6 inch Plectranthus Mona Lavender	\N	t	2026-06-15 12:12:18.936756	4.87
+2007	19	4 inch Pachypodium Lamerei	\N	t	2026-06-15 12:12:18.940318	1.97
+2008	19	6 inch Rosemary BBQ	\N	t	2026-06-15 12:12:18.943568	4.27
+2009	19	4 inch Pilea Peperomioides	\N	t	2026-06-15 12:12:18.946443	3.87
+2010	19	6 inch Rosemary Prostrate	\N	t	2026-06-15 12:12:18.95018	4.27
+2011	19	4 inch Rosemary BBQ	\N	t	2026-06-15 12:12:18.954618	2.17
+2012	19	6 inch Rosemary Upright	\N	t	2026-06-15 12:12:18.958536	4.27
+2013	19	4 inch Rosemary Prostrate	\N	t	2026-06-15 12:12:18.961257	2.17
+2014	19	6 inch Rudbeckia Toto	\N	t	2026-06-15 12:12:18.964988	4.02
+2015	19	4 inch Rosemary Upright	\N	t	2026-06-15 12:12:18.967833	2.17
+2016	19	6 inch Salvia Mysty	\N	t	2026-06-15 12:12:18.970763	4.07
+2017	19	4 inch Selaginella Frosty	\N	t	2026-06-15 12:12:18.973779	2.47
+2018	19	6 inch Selaginella	\N	t	2026-06-15 12:12:18.977123	4.47
+2019	19	4 inch Splash Assorted	\N	t	2026-06-15 12:12:18.979972	1.42
+2020	19	6 inch Senecio Angel Wing	\N	t	2026-06-15 12:12:18.982629	5.22
+2021	19	4 inch Splash Combo Rose/White	\N	t	2026-06-15 12:12:18.985521	1.42
+2022	19	6 inch Splash Assorted	\N	t	2026-06-15 12:12:18.989079	3.62
+2023	19	4 inch Splash Pink	\N	t	2026-06-15 12:12:18.991801	1.42
+2024	19	6 inch Splash Combo Rose/White	\N	t	2026-06-15 12:12:18.994592	3.62
+2025	19	4 inch Splash Rose	\N	t	2026-06-15 12:12:18.9974	1.42
+2026	19	6 inch Splash Pink	\N	t	2026-06-15 12:12:19.002286	3.62
+2027	19	4 inch Tradescantia Mini Sweetness	\N	t	2026-06-15 12:12:19.005983	2.07
+2028	19	6 inch Splash Rose	\N	t	2026-06-15 12:12:19.009231	3.62
+2029	19	4 inch Tradescantia Nanouk	\N	t	2026-06-15 12:12:19.013425	2.07
+2030	19	6 inch Splash White	\N	t	2026-06-15 12:12:19.018431	3.62
+2031	19	6 inch Sunflower Dwarf	\N	t	2026-06-15 12:12:19.023459	3.92
+2032	19	6 inch Zinnia Magellan	\N	t	2026-06-15 12:12:19.026263	3.92
+2033	19	6 inch Zinnia Profusion	\N	t	2026-06-15 12:12:19.029637	3.92
+2035	11	2" Assorted Succulents 64/Flat	\N	t	2026-06-15 12:38:39.509243	44.50
+2036	11	4" Aeonium Black Schwarzkopf	\N	t	2026-06-15 12:38:39.517757	2.00
+2037	11	4" Agave Quadracolor	\N	t	2026-06-15 12:38:39.52361	3.00
+2038	11	4" Aloe Nobilis	\N	t	2026-06-15 12:38:39.528198	3.00
+2039	11	4" Cephalophyllum Red Spike	\N	t	2026-06-15 12:38:39.534212	2.00
+2040	11	4" Cotyledon Orbiculata	\N	t	2026-06-15 12:38:39.539616	2.75
+2041	11	4" Cotyledon Tomentosa	\N	t	2026-06-15 12:38:39.543455	2.75
+2042	11	4" Crassula Conjuncta	\N	t	2026-06-15 12:38:39.547202	2.80
+2043	11	4" Crassula Crosby Jade	\N	t	2026-06-15 12:38:39.550787	2.35
+2044	11	4" Crassula Dwarf Hobbit Jade	\N	t	2026-06-15 12:38:39.554819	2.35
+2045	11	4" Crassula Gollum Jade	\N	t	2026-06-15 12:38:39.558677	2.35
+2046	11	4" Crassula Hobbit Jade	\N	t	2026-06-15 12:38:39.562007	2.35
+2047	11	4" Crassula Sunset Hummels Jade	\N	t	2026-06-15 12:38:39.566299	2.25
+2048	11	4" Crass Perfoliata Hybrid Starburst	\N	t	2026-06-15 12:38:39.571341	2.75
+2049	11	4" Echeveria Elegans	\N	t	2026-06-15 12:38:39.576701	2.50
+2050	11	4" Echeveria Sanyatwe	\N	t	2026-06-15 12:38:39.580157	2.00
+2051	11	4" Euphorbia Caput Medusa	\N	t	2026-06-15 12:38:39.584247	3.15
+2052	11	4" Euphorbia Flanaganii	\N	t	2026-06-15 12:38:39.587937	3.00
+2053	11	4" Euphorbia Trigona Rubra	\N	t	2026-06-15 12:38:39.591946	3.15
+2054	11	4" Euphorbia Wakefeldii	\N	t	2026-06-15 12:38:39.596268	3.15
+2055	11	4" Faucaria Tigrina Tiger Jaws	\N	t	2026-06-15 12:38:39.599901	2.80
+2056	11	4" Gasteria Little Warty	\N	t	2026-06-15 12:38:39.603792	2.80
+2057	11	4" Graptoveria Big Blue	\N	t	2026-06-15 12:38:39.607265	2.50
+2058	11	4" Haworthia Concolor	\N	t	2026-06-15 12:38:39.61143	2.80
+2059	11	4" Kalanchoe Pumila	\N	t	2026-06-15 12:38:39.615252	3.15
+2060	11	4" Kalanchoe Tomentosa	\N	t	2026-06-15 12:38:39.619822	2.80
+2061	11	4" Opuntia Dwarf Rita	\N	t	2026-06-15 12:38:39.623323	3.15
+2062	11	4" Opuntia Microdasys - Gold	\N	t	2026-06-15 12:38:39.626971	2.75
+2063	11	4" Opuntia Microdasys - White Bunny	\N	t	2026-06-15 12:38:39.630524	2.85
+2064	11	4" Opuntia Subulata - Special Pricing	\N	t	2026-06-15 12:38:39.636343	2.00
+2065	11	4" Portulacaria Afra Minima	\N	t	2026-06-15 12:38:39.643122	2.50
+2066	11	4" Rhipsalis Capilliformis	\N	t	2026-06-15 12:38:39.646505	3.00
+2067	11	4" Rhipsalis Clavata	\N	t	2026-06-15 12:38:39.650057	3.00
+2068	11	4" Sedum Aurora	\N	t	2026-06-15 12:38:39.653914	2.75
+2069	11	4" Sedum Dasyphyllum Minor	\N	t	2026-06-15 12:38:39.657165	2.35
+2070	11	4" Sedum Donkey Tail	\N	t	2026-06-15 12:38:39.660456	3.00
+2071	11	4" Sedum Rubrotinctum	\N	t	2026-06-15 12:38:39.663583	2.35
+2072	11	4" Crassula String Of Buttons Variegated	\N	t	2026-06-15 12:38:39.669597	2.80
+2073	11	4" Cleistocactus Colademononis (Monkey'S Tail)	\N	t	2026-06-15 12:38:39.672789	4.50
+2074	11	6" Cleistocactus Winteri (Golden Rat Tail)	\N	t	2026-06-15 12:38:39.676078	6.50
+2075	11	6" Cotyledon Pendens - Full & Long	\N	t	2026-06-15 12:38:39.680868	5.25
+2076	11	6" Crasula Sarmentosa - Calico Kitten	\N	t	2026-06-15 12:38:39.683834	5.25
+2077	11	6" Othonna Capensis Ruby Necklace	\N	t	2026-06-15 12:38:39.687579	5.25
+2078	11	6" Senecio Fish Hook	\N	t	2026-06-15 12:38:39.691062	5.25
+2079	11	6" Senecio String Of Dolphins	\N	t	2026-06-15 12:38:39.695442	5.25
+2080	11	6" Senecio String Of Tears	\N	t	2026-06-15 12:38:39.699114	5.25
+2081	11	6" Xerosicyos Danguyi	\N	t	2026-06-15 12:38:39.703651	9.00
+2082	11	1 GAL Agave Angustifolia	\N	t	2026-06-15 12:38:39.707507	3.75
+2083	11	1 GAL Agave Celsii Multi Color	\N	t	2026-06-15 12:38:39.713711	3.75
+2084	11	1 GAL Agave Quadracolor	\N	t	2026-06-15 12:38:39.717145	3.00
+2085	11	1 GAL Alluadia Procera - Branching	\N	t	2026-06-15 12:38:39.721602	9.00
+2086	11	1 GAL Aloe Hercules	\N	t	2026-06-15 12:38:39.724295	5.00
+2087	11	1 GAL Aloe Cameronii	\N	t	2026-06-15 12:38:39.728005	7.00
+2088	11	1 GAL Aloe Striata Hybrid	\N	t	2026-06-15 12:38:39.73244	3.00
+2089	11	1 GAL Furcraea Macdougalii	\N	t	2026-06-15 12:38:39.737498	2.00
+2090	11	1 GAL Mexican Fence Post	\N	t	2026-06-15 12:38:39.741484	7.00
+2091	11	1 GAL Plumeria	\N	t	2026-06-15 12:38:39.74712	6.00
+2092	11	8" Sedum Donkey Tail	\N	t	2026-06-15 12:38:39.750416	12.00
+2093	11	8" Adenium Obesum - Bud + Bloom	\N	t	2026-06-15 12:38:39.753871	15.50
+2094	11	8" Crassula Crosby Character Jade	\N	t	2026-06-15 12:38:39.757542	10.00
+2095	11	8" Euphorbia Lactea - Crested	\N	t	2026-06-15 12:38:39.762931	17.00
+2096	11	8" Sanseveria Stuckyii Hybrid	\N	t	2026-06-15 12:38:39.766053	9.25
+2097	11	8" Nematanthus Black Goldfish	\N	t	2026-06-15 12:38:39.771049	15.00
+2098	11	8" Nematanthus Green Red Goldfish	\N	t	2026-06-15 12:38:39.774171	12.85
+2099	11	8" Sansevieria Robusta	\N	t	2026-06-15 12:38:39.777586	15.00
+2100	11	1 GAL Trichocereus Brevispinulsus Corn Cobb Cactus	\N	t	2026-06-15 12:38:39.780878	6.00
+2101	11	15 GALLON Agave Celsii Nova - Great Color	\N	t	2026-06-15 12:38:39.786538	35.00
+2102	11	15 GALLON Agave Mr. Ripple	\N	t	2026-06-15 12:38:39.790454	50.00
+2104	11	15 GALLON Aloe Vaombe	\N	t	2026-06-15 12:38:39.796627	35.00
+2105	11	15 GALLON Euphorbia Continifolia	\N	t	2026-06-15 12:38:39.800646	50.00
+2106	11	15 GALLON Erythrina - Coral Tree	\N	t	2026-06-15 12:38:39.803462	50.00
+2108	11	15 GALLON Opuntia Santa Rita	\N	t	2026-06-15 12:38:39.8097	50.00
+2109	11	15 GALLON Pedilanthus Bracteatus	\N	t	2026-06-15 12:38:39.817308	50.00
+2110	11	15 GALLON Senecio Decaryii	\N	t	2026-06-15 12:38:39.820642	25.00
+2111	11	15 GALLON Xerosicyos Danguyi - Staked	\N	t	2026-06-15 12:38:39.823608	100.00
+2112	11	15 GALLON Yucca Jewel	\N	t	2026-06-15 12:38:39.826477	85.00
+2113	11	24" Aloe Marlothii	\N	t	2026-06-15 12:38:39.832587	500.00
+2114	11	24" Aloe Tongaensis	\N	t	2026-06-15 12:38:39.836207	500.00
+2115	11	24" Furcraea Macdougalii	\N	t	2026-06-15 12:38:39.839849	400.00
+2116	11	25 GALLON Aloe Tongaensis	\N	t	2026-06-15 12:38:39.842787	300.00
+2117	11	15 GALLON Giant Bird Of Paradise - Only Available	\N	t	2026-06-15 12:38:39.847101	35.00
+2118	11	25 GALLON Giant Bird Of Paradise - Only Available Via Good Earth Truck	\N	t	2026-06-15 12:38:39.849972	125.00
+2119	11	4" Sedum Vera Higgins	\N	t	2026-06-15 12:38:39.854889	2.50
+2120	11	4" Senecio Haworthii	\N	t	2026-06-15 12:38:39.858127	2.80
+2121	11	4" Senecio Herrianus	\N	t	2026-06-15 12:38:39.862241	3.00
+2122	11	4" Senecio Vitalis	\N	t	2026-06-15 12:38:39.86645	2.00
+2123	11	4" Epipremnum Potho Gold	\N	t	2026-06-15 12:38:39.869427	3.00
+2124	11	4" Nematanthus Black Goldfish	\N	t	2026-06-15 12:38:39.872242	3.15
+2125	11	4" Nematanthus Candy Corn	\N	t	2026-06-15 12:38:39.876286	3.15
+2126	11	4" Nematanthus Green Red Goldfish	\N	t	2026-06-15 12:38:39.879245	3.00
+1926	11	4" Sansevieria	\N	t	2026-06-15 12:07:07.300477	3.25
+2127	11	6" Sanseveria Suffruiticosa Hybrid	\N	t	2026-06-15 12:38:39.897162	5.40
+2128	11	6" Aeschynanthus Lipstick	\N	t	2026-06-15 12:38:39.903443	7.00
+2129	11	6" Epipremnum Potho Gold	\N	t	2026-06-15 12:38:39.907278	6.60
+2130	11	6" Nematanthus Candy Corn	\N	t	2026-06-15 12:38:39.910099	6.20
+2131	11	6" Aeonium Blushing Beauty	\N	t	2026-06-15 12:38:39.913217	3.25
+2132	11	6" Aeonium Canariensis	\N	t	2026-06-15 12:38:39.917279	3.25
+2133	11	6" Aeonium Tricolor	\N	t	2026-06-15 12:38:39.921201	4.00
+2134	11	6" Adenium Obesum	\N	t	2026-06-15 12:38:39.924145	8.20
+2135	11	6" Aloe Dorothea	\N	t	2026-06-15 12:38:39.92743	4.50
+2136	11	6" Cheiridopsis Denticulata	\N	t	2026-06-15 12:38:39.930334	5.75
+2137	11	6" Crassula Crosby Jade - Great Color	\N	t	2026-06-15 12:38:39.934214	3.00
+2138	11	6" Echeveria Domingo	\N	t	2026-06-15 12:38:39.937649	3.50
+2139	11	6" Echeveria Gibbiflora Hybrid	\N	t	2026-06-15 12:38:39.940183	3.50
+2140	11	6" Echeveria Sanyatwe	\N	t	2026-06-15 12:38:39.943126	3.25
+2141	11	6" Euphorbia Lactea - Crested	\N	t	2026-06-15 12:38:39.946324	8.00
+2142	11	6" Kalanchoe Tomentosa	\N	t	2026-06-15 12:38:39.95033	4.50
+2143	11	6" Myrtillo Geometrizen No Crest	\N	t	2026-06-15 12:38:39.953166	7.00
+2144	11	6" Opuntia Pailana - Wooly - Multi	\N	t	2026-06-15 12:38:39.956263	5.15
+2145	11	6" Peanut Cactus	\N	t	2026-06-15 12:38:39.959489	7.00
+2146	11	10" Pedilanthus Bracteatus	\N	t	2026-06-15 12:38:39.962418	12.75
+2147	11	10" Aeonium Blushing Beauty	\N	t	2026-06-15 12:38:39.965436	8.50
+2148	11	10" Aeonium Canariensis	\N	t	2026-06-15 12:38:39.968731	8.50
+2149	11	10" Aeonium Mint Saucer	\N	t	2026-06-15 12:38:39.97216	8.50
+2150	11	10" Agave Quadracolor	\N	t	2026-06-15 12:38:39.975122	8.00
+2151	11	10" Agave Mr. Ripple	\N	t	2026-06-15 12:38:39.977762	20.00
+2152	11	10" Agave Paryii Truncata	\N	t	2026-06-15 12:38:39.980672	20.00
+2153	11	10" Crassula Dwarf Hobbit Jade	\N	t	2026-06-15 12:38:39.984149	8.75
+2154	11	10" Euphorbia Milli - Jerry'S Choice	\N	t	2026-06-15 12:38:39.988047	8.50
+2155	11	10" Euphorbia Resinefera	\N	t	2026-06-15 12:38:39.994106	20.00
+2156	11	10" Portulacaria Afra	\N	t	2026-06-15 12:38:39.999538	8.50
+2157	11	10" Xerosicyos Danguyi	\N	t	2026-06-15 12:38:40.003324	25.00
+2103	11	15 GALLON Alluadia Procera	\N	t	2026-06-15 12:38:39.793541	18.00
+2158	11	5 GALLON Aloe Cameronii	\N	t	2026-06-15 12:38:40.009274	9.75
+2159	11	5 GALLON Aloe Capitata	\N	t	2026-06-15 12:38:40.012096	15.00
+2160	11	5 GALLON Aloe Elgonica - Great Color	\N	t	2026-06-15 12:38:40.016612	15.00
+2161	11	5 GALLON Aloe Hercules - Special Pricing	\N	t	2026-06-15 12:38:40.019328	7.00
+2162	11	5 GALLON Aloe Marlothii	\N	t	2026-06-15 12:38:40.022793	18.00
+2163	11	5 GALLON Aloe Vanbalenii - Very Red	\N	t	2026-06-15 12:38:40.025675	12.50
+2164	11	5 GALLON Cereus Peruvianus	\N	t	2026-06-15 12:38:40.030211	15.00
+2165	11	5 GALLON Crassula Arborescens Undulatifolia	\N	t	2026-06-15 12:38:40.033155	8.50
+2166	11	5 GALLON Dasilarion Wheelerii	\N	t	2026-06-15 12:38:40.035804	12.50
+2167	11	5 GALLON Euphorbia Ammak (Singles)	\N	t	2026-06-15 12:38:40.041208	45.00
+2107	11	15 GALLON Furcraea Macdougalii	\N	t	2026-06-15 12:38:39.806419	8.00
+2168	11	5 GALLON Euphorbia Leucodendron	\N	t	2026-06-15 12:38:40.046312	18.00
+2169	11	5 GALLON Mexican Fence Post	\N	t	2026-06-15 12:38:40.052217	30.00
+2170	11	5 GALLON Opuntia Old Mexico	\N	t	2026-06-15 12:38:40.05501	20.00
+2171	11	5 GALLON Orange Bird Of Paradise - Singles	\N	t	2026-06-15 12:38:40.058604	10.00
+2172	11	5 GALLON Silver Torch-Cleistocactus Strausii	\N	t	2026-06-15 12:38:40.061811	35.00
+2173	11	5 GALLON Trichocereus Brevispinulsus Corn Cobb Cactus	\N	t	2026-06-15 12:38:40.065543	18.00
+\.
+
+
+--
+-- Data for Name: sales_order_items; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sales_order_items (id, sales_order_id, inventory_item_id, product_id, vendor_id, product_name, vendor_name, pack_size, quantity, created_at) FROM stdin;
+1	2	1	189	7	4" Gardenia Bush "Veitchii" Trayed	Kirkland Nurseries	30	1	2026-05-03 20:56:44.624794
+2	3	1	189	7	4" Gardenia Bush "Veitchii" Trayed	Kirkland Nurseries	30	1	2026-05-04 10:58:23.054453
+3	7	2	191	7	6" Gardenia "Veitchii" Topiary Sleeved	Kirkland Nurseries	12	1	2026-05-08 15:32:46.253431
+4	7	4	196	7	10" Gardenia Sleeved	Kirkland Nurseries	ea	1	2026-05-08 15:32:52.033718
+6	9	2	191	7	6" Gardenia "Veitchii" Topiary Sleeved	Kirkland Nurseries	12	1	2026-05-12 18:31:59.336568
+7	9	1	189	7	4" Gardenia Bush "Veitchii" Trayed	Kirkland Nurseries	30	1	2026-05-12 18:32:16.569424
+8	9	4	196	7	10" Gardenia Sleeved	Kirkland Nurseries	ea	1	2026-05-12 18:32:52.846825
+\.
+
+
+--
+-- Data for Name: sales_orders; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sales_orders (id, customer_name, status, notes, created_at, updated_at, needed_by, customer_id, shipping_address) FROM stdin;
+1	Julian	open	\N	2026-05-03 20:50:33.452794	2026-05-03 20:50:33.452794	\N	\N	\N
+2	Julian	open	\N	2026-05-03 20:56:13.061985	2026-05-03 20:56:13.061985	\N	\N	\N
+3	Test Customer	completed	\N	2026-05-04 10:58:22.641279	2026-05-04 10:58:23.12	\N	\N	\N
+4	Kelly	open	\N	2026-05-04 11:10:30.051154	2026-05-04 11:10:30.051154	\N	\N	\N
+5	Justin	open	\N	2026-05-08 15:24:22.664176	2026-05-08 15:24:22.664176	\N	\N	\N
+6	Justin	open	\N	2026-05-08 15:32:00.641646	2026-05-08 15:32:00.641646	\N	\N	\N
+7	Jut	open	\N	2026-05-08 15:32:34.572287	2026-05-08 15:32:34.572287	\N	\N	\N
+8	Jp	open	\N	2026-05-11 13:21:25.642719	2026-05-11 13:21:25.642719	\N	\N	\N
+9	Henry	completed	\N	2026-05-12 18:27:30.378419	2026-05-12 18:32:29.374	2026-06-11	\N	\N
+10	Julian	open	\N	2026-06-17 13:05:29.009719	2026-06-17 13:05:29.009719	\N	\N	\N
+11	Julian	open	\N	2026-06-17 18:58:54.706935	2026-06-17 18:58:54.706935	\N	\N	\N
+12	Julian	open	\N	2026-06-17 19:06:49.191552	2026-06-17 19:06:49.191552	\N	\N	\N
+13	John	open	\N	2026-06-17 19:13:40.26713	2026-06-17 19:13:40.26713	\N	\N	\N
+14	Test	open	\N	2026-06-17 19:22:11.396227	2026-06-17 19:22:11.396227	\N	\N	\N
+15	John	completed	\N	2026-06-17 19:23:36.851806	2026-06-17 20:45:31.171	\N	\N	\N
+16	John Smith	open	\N	2026-06-17 21:01:47.228088	2026-06-17 21:06:07.164	2026-06-19	\N	\N
+17	ken	open	\N	2026-06-18 14:17:44.619058	2026-06-18 14:17:44.619058	\N	\N	\N
+18	Carolyn	open	\N	2026-06-18 16:07:50.450757	2026-06-18 16:07:50.450757	\N	\N	\N
+19	chuck	open	\N	2026-06-18 16:15:34.760105	2026-06-18 16:15:34.760105	\N	\N	\N
+20	chucjk	open	\N	2026-06-18 16:21:53.5082	2026-06-18 16:21:53.5082	\N	\N	\N
+21	shu	open	\N	2026-06-18 16:37:19.053031	2026-06-18 16:37:19.053031	\N	\N	\N
+25	CANYON LAKE ACE HARDWARE	completed	\N	2026-07-01 17:57:07.190003	2026-07-01 19:19:42.091	2026-07-06	237	123 Main street, \nDallas\nTX 24567
+30	1 800 FLOWERS-DALLAS	open	\N	2026-07-02 11:52:10.74275	2026-07-02 11:52:10.74275	\N	2	1 800 FLOWERS-DALLAS 3380 BELTLINE RD exit napa auto at john connall FARMERS BRANCH, TX 75234
+\.
+
+
+--
+-- Data for Name: session; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.session (sid, sess, expire) FROM stdin;
+k380NlyfMaXsuWdFNpk7V4aGfHhm5C8L	{"cookie":{"originalMaxAge":604800000,"expires":"2026-07-09T11:49:04.459Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":6}	2026-07-09 11:49:22
+FV0Tc23RxyNeS623gMb6BW930VI7PXQI	{"cookie":{"originalMaxAge":604800000,"expires":"2026-07-09T11:51:49.518Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":1}	2026-07-15 18:34:46
+DyQXEWhdMXFFz-0ti9oAdw7vAz9ZGViN	{"cookie":{"originalMaxAge":604800000,"expires":"2026-07-08T16:59:20.432Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":1}	2026-07-08 20:37:08
+\.
+
+
+--
+-- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.settings (id, key, value, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: shop_listings; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.shop_listings (id, product_name, status, imported_at, price, category) FROM stdin;
+2482	45845	out_of_stock	2026-06-18 16:07:28.056632	\N	SeasonlDish Gardens
+2483	8in Acanthus	available	2026-06-18 16:07:28.056632	13.25	SeasonlDish Gardens
+2484	4in Combination	available	2026-06-18 16:07:28.056632	6.68	SeasonlDish Gardens
+2485	10in Bougainvillea	available	2026-06-18 16:07:28.056632	20	SeasonlDish Gardens
+2486	6in Ceramic Dish Garden	available	2026-06-18 16:07:28.056632	13.95	SeasonlDish Gardens
+2487	1 Gallon Coleus	limited	2026-06-18 16:07:28.056632	5	SeasonlDish Gardens
+2488	6in Combination	available	2026-06-18 16:07:28.056632	14.5	SeasonlDish Gardens
+2489	Croton <<< SALE >>>	out_of_stock	2026-06-18 16:07:28.056632	10	SeasonlDish Gardens
+2490	6in Liner Garden	available	2026-06-18 16:07:28.056632	10.5	SeasonlDish Gardens
+2491	Croton Std.	out_of_stock	2026-06-18 16:07:28.056632	28	SeasonlDish Gardens
+2492	6in Metal Dish Garden	available	2026-06-18 16:07:28.056632	13.75	SeasonlDish Gardens
+2493	4in Cypress	available	2026-06-18 16:07:28.056632	8.25	SeasonlDish Gardens
+2494	8in Big Bowl	available	2026-06-18 16:07:28.056632	17.25	SeasonlDish Gardens
+2495	10in Dipladenia Teepee	available	2026-06-18 16:07:28.056632	27.5	SeasonlDish Gardens
+2496	8in Ceramic Dish Garden	available	2026-06-18 16:07:28.056632	22.5	SeasonlDish Gardens
+2497	2in Golden Cypress	available	2026-06-18 16:07:28.056632	4.25	SeasonlDish Gardens
+2498	8in Liner Garden	available	2026-06-18 16:07:28.056632	13.85	SeasonlDish Gardens
+2499	4in Golden Cypress St.	available	2026-06-18 16:07:28.056632	13	SeasonlDish Gardens
+2500	8in Metal Dish Garden	available	2026-06-18 16:07:28.056632	21.5	SeasonlDish Gardens
+2501	4in Golden Cypress Tree	available	2026-06-18 16:07:28.056632	8.25	SeasonlDish Gardens
+2502	10in Big Bowl	limited	2026-06-18 16:07:28.056632	23.5	SeasonlDish Gardens
+2503	6in Golden Cypress St.	out_of_stock	2026-06-18 16:07:28.056632	22.5	SeasonlDish Gardens
+2504	10in Ceramic	available	2026-06-18 16:07:28.056632	30.75	SeasonlDish Gardens
+2505	6in Golden Cypress Tree	limited	2026-06-18 16:07:28.056632	16	SeasonlDish Gardens
+2506	10in Liner Garden	limited	2026-06-18 16:07:28.056632	18.75	SeasonlDish Gardens
+2507	8in Golden Cypress Tree	available	2026-06-18 16:07:28.056632	29.5	SeasonlDish Gardens
+2508	10in Metal Dish Garden	available	2026-06-18 16:07:28.056632	27.5	SeasonlDish Gardens
+2509	10in Hibiscus Std.	limited	2026-06-18 16:07:28.056632	22.5	SeasonlDish Gardens
+2510	12in Big Bowl Dish Garden	available	2026-06-18 16:07:28.056632	34	SeasonlDish Gardens
+2511	4in Leylandii Cypress	available	2026-06-18 16:07:28.056632	8.65	SeasonlDish Gardens
+2512	12in Ceramic Dish Garden	available	2026-06-18 16:07:28.056632	42.25	SeasonlDish Gardens
+2513	6in Leylandii Cypress	available	2026-06-18 16:07:28.056632	15	SeasonlDish Gardens
+2514	12in Metal Dish Garden	limited	2026-06-18 16:07:28.056632	37.5	SeasonlDish Gardens
+2515	10in Mandevilla H.B.	limited	2026-06-18 16:07:28.056632	15	SeasonlDish Gardens
+2516	14in Ceramic Dish Garden	limited	2026-06-18 16:07:28.056632	63.5	SeasonlDish Gardens
+2517	12in Mandevilla Teepee	limited	2026-06-18 16:07:28.056632	50	SeasonlDish Gardens
+2518	10in Mandevilla Trellis	out_of_stock	2026-06-18 16:07:28.056632	27.5	SeasonlDish Gardens
+2519	4in Norfolk Pine	available	2026-06-18 16:07:28.056632	4.5	SeasonlDish Gardens
+2520	6in Norfolk Pine	available	2026-06-18 16:07:28.056632	10	SeasonlDish Gardens
+2521	6in Olive Tree	available	2026-06-18 16:07:28.056632	12.5	SeasonlDish Gardens
+2522	8in Olive Tree	available	2026-06-18 16:07:28.056632	25	SeasonlDish Gardens
+2523	10in Plumbago	available	2026-06-18 16:07:28.056632	17.5	SeasonlDish Gardens
+2524	10in Plumeria	limited	2026-06-18 16:07:28.056632	25	SeasonlDish Gardens
+2525	10in Purslane H.B.	available	2026-06-18 16:07:28.056632	10	SeasonlDish Gardens
+2526	6in Rosemary	limited	2026-06-18 16:07:28.056632	10	SeasonlDish Gardens
+2527	4in Sweet Potato Vine	out_of_stock	2026-06-18 16:07:28.056632	1.5	SeasonlDish Gardens
+2528	6in Willow Variegated	available	2026-06-18 16:07:28.056632	21.5	SeasonlDish Gardens
+2529	6in Willow Variegated 36''	available	2026-06-18 16:07:28.056632	32.5	SeasonlDish Gardens
+2530	Kalanchoe	available	2026-06-18 16:07:28.056632	2	Color
+2531	Angelonia	available	2026-06-18 16:07:28.056632	8.95	Color
+2532	Spring Cactus	out_of_stock	2026-06-18 16:07:28.056632	2.25	Color
+2533	Anthurium - Giant	available	2026-06-18 16:07:28.056632	16.5	Color
+2534	Violets	available	2026-06-18 16:07:28.056632	2.35	Color
+2535	Aphelandra	available	2026-06-18 16:07:28.056632	10.5	Color
+2536	Crossandra	available	2026-06-18 16:07:28.056632	10.75	Color
+2537	Dipladenia	limited	2026-06-18 16:07:28.056632	9.5	Color
+2538	Anthurium	available	2026-06-18 16:07:28.056632	7.25	Color
+2539	Caladium	available	2026-06-18 16:07:28.056632	11.75	Color
+2540	Aphelandra	available	2026-06-18 16:07:28.056632	5	Color
+2541	Goldfish-Asst.	available	2026-06-18 16:07:28.056632	13	Color
+2542	Azalea	out_of_stock	2026-06-18 16:07:28.056632	9	Color
+2543	Gomphrena	available	2026-06-18 16:07:28.056632	9	Color
+2544	Azalea Tree	out_of_stock	2026-06-18 16:07:28.056632	14.5	Color
+2545	Kalanchoe / Calandiva	available	2026-06-18 16:07:28.056632	9.25	Color
+2546	Begonia Macaluta	limited	2026-06-18 16:07:28.056632	6.75	Color
+2547	Kangaroo Paw	out_of_stock	2026-06-18 16:07:28.056632	10.5	Color
+2548	Caladium	available	2026-06-18 16:07:28.056632	5.75	Color
+2549	Kong Coleus	available	2026-06-18 16:07:28.056632	8.95	Color
+2550	Coleus	available	2026-06-18 16:07:28.056632	4	Color
+2551	Mum	out_of_stock	2026-06-18 16:07:28.056632	9.25	Color
+2552	Crossandra	available	2026-06-18 16:07:28.056632	5.4	Color
+2553	Penta	out_of_stock	2026-06-18 16:07:28.056632	6.25	Color
+2554	Epicia	available	2026-06-18 16:07:28.056632	4.85	Color
+2555	Perilla	available	2026-06-18 16:07:28.056632	9	Color
+2556	Fuchsia	out_of_stock	2026-06-18 16:07:28.056632	4.75	Color
+2557	Plectranthus	available	2026-06-18 16:07:28.056632	10.25	Color
+2558	Gerbera	out_of_stock	2026-06-18 16:07:28.056632	4.85	Color
+2559	Rex Begonia	available	2026-06-18 16:07:28.056632	11.5	Color
+2560	Kalanchoe/Calandiva	available	2026-06-18 16:07:28.056632	4.65	Color
+2561	Rieger Begonia	available	2026-06-18 16:07:28.056632	10	Color
+2562	Kong Coleus	available	2026-06-18 16:07:28.056632	4	Color
+2563	Shasta Daisy	available	2026-06-18 16:07:28.056632	9	Color
+2564	Mini Rose	limited	2026-06-18 16:07:28.056632	6.35	Color
+2565	Spring Cactus	out_of_stock	2026-06-18 16:07:28.056632	12	Color
+2566	Rex Begonia	available	2026-06-18 16:07:28.056632	6.95	Color
+2567	Violet	available	2026-06-18 16:07:28.056632	11	Color
+2568	Rex Begonia (5'')	available	2026-06-18 16:07:28.056632	10	Color
+2569	Rieger Begonia	available	2026-06-18 16:07:28.056632	4.35	Color
+2570	Violet	available	2026-06-18 16:07:28.056632	4.5	Color
+2571	4in Dendrobium	available	2026-06-18 16:07:28.056632	17.5	Color
+2572	4'' Oncidium Hybrid	out_of_stock	2026-06-18 16:07:28.056632	20	Color
+2573	2.5in Hoya Kerri (heart)	available	2026-06-18 16:07:28.056632	3	Color
+2574	14'' Oncidium Tropical Breeze	out_of_stock	2026-06-18 16:07:28.056632	165	Color
+2575	2.5in Var Hoya Kerri	available	2026-06-18 16:07:28.056632	3	Color
+2576	2" Phalaenopsis	available	2026-06-18 16:07:28.056632	10.5	Color
+2577	3in Venus Fly Trap	available	2026-06-18 16:07:28.056632	5.5	Color
+2578	3" Phalaenopsis	available	2026-06-18 16:07:28.056632	12	Color
+2579	3in Sarrencia- Pitcher Plant	available	2026-06-18 16:07:28.056632	6.25	Color
+2580	5" Phalaenopsis 2 spike	available	2026-06-18 16:07:28.056632	27.5	Color
+2581	6in Eugenia 2-Ball	out_of_stock	2026-06-18 16:07:28.056632	18.5	Color
+2582	5" Phalaenopsis Waterfall 1 spike	available	2026-06-18 16:07:28.056632	27.5	Color
+2583	4in Ginseng	available	2026-06-18 16:07:28.056632	5.75	Color
+2584	5" Phalaenopsis Waterfall 2 spike	limited	2026-06-18 16:07:28.056632	35	Color
+2585	10in Ginseng Bonsai	available	2026-06-18 16:07:28.056632	36	Color
+2586	4in Myrtle Topiary	available	2026-06-18 16:07:28.056632	17.5	Color
+2587	4in Nepenthes	out_of_stock	2026-06-18 16:07:28.056632	8.75	Color
+2588	6in Myrtle Topiary	available	2026-06-18 16:07:28.056632	25	Color
+2589	6in Bog Garden	available	2026-06-18 16:07:28.056632	15	Color
+2590	6in Coconut	available	2026-06-18 16:07:28.056632	13	Color
+2591	6in Lucky Bamboo Trellis	out_of_stock	2026-06-18 16:07:28.056632	18.5	Color
+2592	4in Nepenthes	limited	2026-06-18 16:07:28.056632	8.75	Color
+2593	6in Nepenthes	out_of_stock	2026-06-18 16:07:28.056632	15	Color
+2594	6in Staghorn Wood Basket	available	2026-06-18 16:07:28.056632	20	Color
+2595	12in Staghorn Plaque	available	2026-06-18 16:07:28.056632	30.5	Color
+2596	2in Bromeliad	available	2026-06-18 16:07:28.056632	3.85	Bromeliads
+2597	Albertina	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2598	4in Bromeliad	available	2026-06-18 16:07:28.056632	6.85	Bromeliads
+2599	Barbra	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2600	5in Bromeliad	available	2026-06-18 16:07:28.056632	8.5	Bromeliads
+2601	Cherlette	available	2026-06-18 16:07:28.056632	13	Bromeliads
+2602	Splenden	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2603	Del Mar	out_of_stock	2026-06-18 16:07:28.056632	21.5	Bromeliads
+2604	BROMELIADS - Miscellaneous	out_of_stock	2026-06-18 16:07:28.056632	\N	Bromeliads
+2605	Fasciata	available	2026-06-18 16:07:28.056632	13	Bromeliads
+2606	Loose Tillandsia - Small	available	2026-06-18 16:07:28.056632	3	Bromeliads
+2607	Frederica	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2608	Loose Tillandsia - Medium	available	2026-06-18 16:07:28.056632	5	Bromeliads
+2609	Peggy	out_of_stock	2026-06-18 16:07:28.056632	16	Bromeliads
+2610	Loose Tillandsia - Large	available	2026-06-18 16:07:28.056632	8.5	Bromeliads
+2611	Loose Tillandsia-Xlarge	available	2026-06-18 16:07:28.056632	12.5	Bromeliads
+2612	Xerographica - Mini	out_of_stock	2026-06-18 16:07:28.056632	11.5	Bromeliads
+2613	Alerta	available	2026-06-18 16:07:28.056632	13	Bromeliads
+2614	Xerographica - Small	available	2026-06-18 16:07:28.056632	14.5	Bromeliads
+2615	Brimstone	available	2026-06-18 16:07:28.056632	13	Bromeliads
+2616	Xerographica - Medium	available	2026-06-18 16:07:28.056632	20.5	Bromeliads
+2617	Diane Triple	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2618	Xerographica - Large	out_of_stock	2026-06-18 16:07:28.056632	24	Bromeliads
+2619	Emperor	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2620	Ionanthe Bonsai Tree	available	2026-06-18 16:07:28.056632	14.5	Bromeliads
+2621	Fancy	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2622	Bamboo Till Garden	available	2026-06-18 16:07:28.056632	13	Bromeliads
+2623	Focus	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2624	Gorilla, Monkey, Panda w/till	limited	2026-06-18 16:07:28.056632	15.25	Bromeliads
+2625	Frambo	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2626	Yoga Frogs w/till	available	2026-06-18 16:07:28.056632	13.5	Bromeliads
+2627	Clair	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2628	Turtle Hatchings/Tills	available	2026-06-18 16:07:28.056632	13.75	Bromeliads
+2629	Dance	limited	2026-06-18 16:07:28.056632	13	Bromeliads
+2630	2" Cryptanthus	available	2026-06-18 16:07:28.056632	2.6	Bromeliads
+2631	Deborah	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2632	4" Cryptantus	available	2026-06-18 16:07:28.056632	3.75	Bromeliads
+2633	Happiness	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2634	1" Terracotta Till pot Magnet	limited	2026-06-18 16:07:28.056632	4.5	Bromeliads
+2635	Hilda	available	2026-06-18 16:07:28.056632	13	Bromeliads
+2636	2" Tillandsia	available	2026-06-18 16:07:28.056632	5.75	Bromeliads
+2637	Indian Knight	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2638	6'' Pineapple	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2639	Jazz	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2640	6in Till. Antoinio	out_of_stock	2026-06-18 16:07:28.056632	15	Bromeliads
+2641	Luna	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2642	7in Teakwood Basket Xeo Blooming	limited	2026-06-18 16:07:28.056632	77.5	Bromeliads
+2643	Margo	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2644	5in Cryp Abslute Zero	available	2026-06-18 16:07:28.056632	12.5	Bromeliads
+2645	Marcella	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2646	5in Crypt Betty	available	2026-06-18 16:07:28.056632	12.5	Bromeliads
+2647	Mixta	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2648	5" Crypt Red Baron	available	2026-06-18 16:07:28.056632	12.5	Bromeliads
+2649	Nancy	limited	2026-06-18 16:07:28.056632	13	Bromeliads
+2650	5" Crypt Star Zebra	available	2026-06-18 16:07:28.056632	12.5	Bromeliads
+2651	Orangeade	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2652	8'' Ae. America	out_of_stock	2026-06-18 16:07:28.056632	40	Bromeliads
+2653	Ostara	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2654	9'' Ae. Blanchetiana	available	2026-06-18 16:07:28.056632	45	Bromeliads
+2655	Passion	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2656	8" Ae. Little Harvey	limited	2026-06-18 16:07:28.056632	30	Bromeliads
+2657	Rebel	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2658	9'' Alc. Odorata	limited	2026-06-18 16:07:28.056632	45	Bromeliads
+2659	Rouch	limited	2026-06-18 16:07:28.056632	13	Bromeliads
+2660	8'' Rebel	limited	2026-06-18 16:07:28.056632	40	Bromeliads
+2661	Switch	available	2026-06-18 16:07:28.056632	13	Bromeliads
+2662	8'' Vri. Seeger	out_of_stock	2026-06-18 16:07:28.056632	35	Bromeliads
+2663	Tatiana	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2664	8" Brom. Ceramic Combo	limited	2026-06-18 16:07:28.056632	27.5	Bromeliads
+2665	Variada	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2666	8'' Brom. Combo	available	2026-06-18 16:07:28.056632	25	Bromeliads
+2667	Viola	out_of_stock	2026-06-18 16:07:28.056632	13	Bromeliads
+2668	10" Bromeliad Garden 3ppp	limited	2026-06-18 16:07:28.056632	38	Bromeliads
+2669	Ardie	available	2026-06-18 16:07:28.056632	13.5	Bromeliads
+2670	#1Tillandsia arrangement	limited	2026-06-18 16:07:28.056632	6.75	Bromeliads
+2671	Assorted	out_of_stock	2026-06-18 16:07:28.056632	13.5	Bromeliads
+2672	#2 Tillandsia arrangement	limited	2026-06-18 16:07:28.056632	12.75	Bromeliads
+2673	Cotton Candy	out_of_stock	2026-06-18 16:07:28.056632	13.5	Bromeliads
+2674	#3 Tillandsia arrangement	available	2026-06-18 16:07:28.056632	17.5	Bromeliads
+2675	Crimson	available	2026-06-18 16:07:28.056632	13.5	Bromeliads
+2676	#4 Tillandsia arrangement	available	2026-06-18 16:07:28.056632	22	Bromeliads
+2677	Donna	available	2026-06-18 16:07:28.056632	13.5	Bromeliads
+2678	Rafael	available	2026-06-18 16:07:28.056632	13.5	Bromeliads
+2679	Green Eyes	available	2026-06-18 16:07:28.056632	15	Bromeliads
+2680	2in Ferns	available	2026-06-18 16:07:28.056632	2.15	4in
+2681	Billietiae	out_of_stock	2026-06-18 16:07:28.056632	6.5	4in
+2682	2in Foliage	out_of_stock	2026-06-18 16:07:28.056632	1.5	4in
+2683	Brazil Cordatum	available	2026-06-18 16:07:28.056632	6.5	4in
+2684	2in Ponytail	out_of_stock	2026-06-18 16:07:28.056632	2.1	4in
+2685	Cordatum	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2686	2in Terrarium	available	2026-06-18 16:07:28.056632	1.5	4in
+2687	Cordatum (Neon)	out_of_stock	2026-06-18 16:07:28.056632	6.3	4in
+2688	Grey	available	2026-06-18 16:07:28.056632	6	4in
+2689	Homalomena	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2690	Colorama	available	2026-06-18 16:07:28.056632	4.85	4in
+2691	McColley Finale	available	2026-06-18 16:07:28.056632	5.25	4in
+2692	Dragon series- asst	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2693	Micans	available	2026-06-18 16:07:28.056632	6	4in
+2694	JC Compacta	available	2026-06-18 16:07:28.056632	4.85	4in
+2695	Pink / White Princess	available	2026-06-18 16:07:28.056632	12.75	4in
+2696	Lemon Lime Warneckii	available	2026-06-18 16:07:28.056632	4.85	4in
+2697	Ring of Fire	available	2026-06-18 16:07:28.056632	5	4in
+2698	Marginata Magenta	available	2026-06-18 16:07:28.056632	4.85	4in
+2699	White Wizard	available	2026-06-18 16:07:28.056632	6	4in
+2700	Marginata Sunray	available	2026-06-18 16:07:28.056632	4.85	4in
+2701	Golden	available	2026-06-18 16:07:28.056632	4.85	4in
+2702	Austral Gem	available	2026-06-18 16:07:28.056632	4.95	4in
+2703	Jade	available	2026-06-18 16:07:28.056632	4.85	4in
+2704	Autumn	available	2026-06-18 16:07:28.056632	4.95	4in
+2705	Marble Queen	available	2026-06-18 16:07:28.056632	4.85	4in
+2706	Birdnest	available	2026-06-18 16:07:28.056632	4.95	4in
+2707	N'Joy	available	2026-06-18 16:07:28.056632	6.5	4in
+2708	Button	available	2026-06-18 16:07:28.056632	4.95	4in
+2709	Corditas	available	2026-06-18 16:07:28.056632	4.95	4in
+2710	Crocodyllus	available	2026-06-18 16:07:28.056632	4.95	4in
+2711	Sanseveria Asst.	available	2026-06-18 16:07:28.056632	5.1	4in
+2712	East Indian	available	2026-06-18 16:07:28.056632	4.95	4in
+2713	Sanseveria Fernwood	available	2026-06-18 16:07:28.056632	7.25	4in
+2714	Falcata	out_of_stock	2026-06-18 16:07:28.056632	4.95	4in
+2715	Sanseveria Starfish	out_of_stock	2026-06-18 16:07:28.056632	7.25	4in
+2716	Hastata	available	2026-06-18 16:07:28.056632	4.95	4in
+2717	Sans Whale Fin	out_of_stock	2026-06-18 16:07:28.056632	9	4in
+2718	Heart	available	2026-06-18 16:07:28.056632	4.95	4in
+2719	Jester Crown	available	2026-06-18 16:07:28.056632	4.95	4in
+2720	Kangaroo	available	2026-06-18 16:07:28.056632	4.95	4in
+2721	Aglaonema (5'')	limited	2026-06-18 16:07:28.056632	10	4in
+2722	Maidenhair/Rosy	available	2026-06-18 16:07:28.056632	4.95	4in
+2723	Airplane	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2724	Lemon Button	available	2026-06-18 16:07:28.056632	4.95	4in
+2725	Alocasia - Asst	out_of_stock	2026-06-18 16:07:28.056632	5.85	4in
+2726	Mahoghany	available	2026-06-18 16:07:28.056632	4.95	4in
+2727	Arboricola	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2728	Plumosa	available	2026-06-18 16:07:28.056632	4.95	4in
+2729	Black ZZ (5")	out_of_stock	2026-06-18 16:07:28.056632	10.5	4in
+2730	Rabbit	available	2026-06-18 16:07:28.056632	4.95	4in
+2731	Calathea  Asst.	available	2026-06-18 16:07:28.056632	4.95	4in
+2732	Staghorn	available	2026-06-18 16:07:28.056632	5	4in
+2733	China Doll	limited	2026-06-18 16:07:28.056632	4.85	4in
+2734	Clusia	available	2026-06-18 16:07:28.056632	4.85	4in
+2735	Coffee	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2736	Repens / Var	available	2026-06-18 16:07:28.056632	4.85	4in
+2737	Cordyline Red Star	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2738	Rubber	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2739	Dieffenbachia	available	2026-06-18 16:07:28.056632	4.85	4in
+2740	Fittonia White	available	2026-06-18 16:07:28.056632	4.85	4in
+2741	Goldfish Asst.	available	2026-06-18 16:07:28.056632	5.75	4in
+2742	Maranta Lemon Lime	out_of_stock	2026-06-18 16:07:28.056632	6	4in
+2743	Maranta- Prayer Plant	out_of_stock	2026-06-18 16:07:28.056632	5.5	4in
+2744	Green/Var. assorted	out_of_stock	2026-06-18 16:07:28.056632	4.85	4in
+2745	Money Tree	available	2026-06-18 16:07:28.056632	7.5	4in
+2746	Neanthebella	available	2026-06-18 16:07:28.056632	4.85	4in
+2747	Pedilanthus	available	2026-06-18 16:07:28.056632	4.5	4in
+2748	White Butterfly / Pink Allusion	available	2026-06-18 16:07:28.056632	4.85	4in
+2749	Peperomia Ast.	available	2026-06-18 16:07:28.056632	4.85	4in
+2750	Peperomia Owls Eye	available	2026-06-18 16:07:28.056632	4.85	4in
+2751	Pilea Peperomoides	available	2026-06-18 16:07:28.056632	6.5	4in
+2752	Ponytail Stump	out_of_stock	2026-06-18 16:07:28.056632	7.25	4in
+2753	Cutlass	available	2026-06-18 16:07:28.056632	13.75	6in
+2754	Benjamina	limited	2026-06-18 16:07:28.056632	15	6in
+2755	Emerald Beauty	available	2026-06-18 16:07:28.056632	13.75	6in
+2756	Lyrata	out_of_stock	2026-06-18 16:07:28.056632	11	6in
+2757	Golden Madonna	available	2026-06-18 16:07:28.056632	17.75	6in
+2758	Repens- Asst.	available	2026-06-18 16:07:28.056632	15.5	6in
+2759	Ruby Ray	limited	2026-06-18 16:07:28.056632	17.75	6in
+2760	Rubber Ast	available	2026-06-18 16:07:28.056632	11.75	6in
+2761	Siam	available	2026-06-18 16:07:28.056632	17.75	6in
+2762	Triangularis Braid	out_of_stock	2026-06-18 16:07:28.056632	13.5	6in
+2763	Shades	available	2026-06-18 16:07:28.056632	13.75	6in
+2764	Silver Bay	available	2026-06-18 16:07:28.056632	13.75	6in
+2765	Sparkling Sarah	available	2026-06-18 16:07:28.056632	17.75	6in
+2766	Grape	available	2026-06-18 16:07:28.056632	12	6in
+2767	Romeo	out_of_stock	2026-06-18 16:07:28.056632	13.75	6in
+2768	Hedera	available	2026-06-18 16:07:28.056632	12.75	6in
+2769	Tigress	available	2026-06-18 16:07:28.056632	13.75	6in
+2770	Morengo	out_of_stock	2026-06-18 16:07:28.056632	15	6in
+2771	Wintry Winehouse	available	2026-06-18 16:07:28.056632	17.75	6in
+2772	Dracaena	out_of_stock	2026-06-18 16:07:28.056632	\N	6in
+2773	Eskimo	available	2026-06-18 16:07:28.056632	15.75	6in
+2774	Green Jewel	available	2026-06-18 16:07:28.056632	12	6in
+2775	Rope	out_of_stock	2026-06-18 16:07:28.056632	22.5	6in
+2776	Jade Jewl	available	2026-06-18 16:07:28.056632	11	6in
+2777	Tricolor	available	2026-06-18 16:07:28.056632	15.75	6in
+2778	Janet Craig Compacta	available	2026-06-18 16:07:28.056632	12	6in
+2779	Janet Craig Tip	available	2026-06-18 16:07:28.056632	12	6in
+2780	Palms	out_of_stock	2026-06-18 16:07:28.056632	\N	6in
+2781	Lemon Lime Warneckii	available	2026-06-18 16:07:28.056632	12	6in
+2782	Areca	available	2026-06-18 16:07:28.056632	13	6in
+2783	Lemon Surprise	out_of_stock	2026-06-18 16:07:28.056632	12	6in
+2784	Neanthebella	available	2026-06-18 16:07:28.056632	15	6in
+2785	Limelight	available	2026-06-18 16:07:28.056632	12.75	6in
+2786	Ponytail stump	limited	2026-06-18 16:07:28.056632	13	6in
+2787	Marginata	available	2026-06-18 16:07:28.056632	10	6in
+2788	Marginata Braid	available	2026-06-18 16:07:28.056632	11.75	6in
+2789	Marley	available	2026-06-18 16:07:28.056632	12	6in
+2790	Brasil Totem	out_of_stock	2026-06-18 16:07:28.056632	13.75	6in
+2791	Rikki	available	2026-06-18 16:07:28.056632	11	6in
+2792	Brasil Cordatum	available	2026-06-18 16:07:28.056632	16	6in
+2793	Sunray	available	2026-06-18 16:07:28.056632	14.25	6in
+2794	Cordatum	available	2026-06-18 16:07:28.056632	13.75	6in
+2795	Grey	available	2026-06-18 16:07:28.056632	13.5	6in
+2796	Homalomena	available	2026-06-18 16:07:28.056632	10.75	6in
+2797	Ariane	available	2026-06-18 16:07:28.056632	13.5	6in
+2798	McColley's	available	2026-06-18 16:07:28.056632	10	6in
+2799	Autum	available	2026-06-18 16:07:28.056632	13.5	6in
+2800	Monstera	available	2026-06-18 16:07:28.056632	10.5	6in
+2801	Austral Gem	available	2026-06-18 16:07:28.056632	13.5	6in
+2802	Monstera Cobra	out_of_stock	2026-06-18 16:07:28.056632	13.5	6in
+2803	Birdnest	available	2026-06-18 16:07:28.056632	13.5	6in
+2804	Moon light	out_of_stock	2026-06-18 16:07:28.056632	10	6in
+2805	Button	available	2026-06-18 16:07:28.056632	13.5	6in
+2806	Ring of Fire	available	2026-06-18 16:07:28.056632	12	6in
+2807	Blue Star	available	2026-06-18 16:07:28.056632	13.5	6in
+2808	Selloum	out_of_stock	2026-06-18 16:07:28.056632	10	6in
+2809	Bronze Venus	available	2026-06-18 16:07:28.056632	13.5	6in
+2810	Silver Stripe	out_of_stock	2026-06-18 16:07:28.056632	25	6in
+2811	East Indian Holly	available	2026-06-18 16:07:28.056632	13.5	6in
+2812	Painted Lady	available	2026-06-18 16:07:28.056632	15	6in
+2813	Foxtail	available	2026-06-18 16:07:28.056632	10	6in
+2814	Prince Of Orange	out_of_stock	2026-06-18 16:07:28.056632	10	6in
+2815	Jester Crown	available	2026-06-18 16:07:28.056632	12	6in
+2816	Tortum	out_of_stock	2026-06-18 16:07:28.056632	13.5	6in
+2817	Kangaroo	available	2026-06-18 16:07:28.056632	13.5	6in
+2818	White Princess	available	2026-06-18 16:07:28.056632	12	6in
+2819	Kimberly Queen	available	2026-06-18 16:07:28.056632	12	6in
+2820	Mahoghany	available	2026-06-18 16:07:28.056632	13.5	6in
+2821	Maidenhair	available	2026-06-18 16:07:28.056632	13.5	6in
+2822	Golden	available	2026-06-18 16:07:28.056632	14	6in
+2823	Plumosa	available	2026-06-18 16:07:28.056632	11.75	6in
+2824	Jade	available	2026-06-18 16:07:28.056632	14	6in
+2825	Pteris	available	2026-06-18 16:07:28.056632	13.5	6in
+2826	Marble Queen	available	2026-06-18 16:07:28.056632	14	6in
+2827	Rabbit Foot	available	2026-06-18 16:07:28.056632	12	6in
+2828	N'Joy	available	2026-06-18 16:07:28.056632	18.5	6in
+2829	Sprengerii	available	2026-06-18 16:07:28.056632	10	6in
+2830	Neon	available	2026-06-18 16:07:28.056632	18.5	6in
+2831	Staghorn	available	2026-06-18 16:07:28.056632	13.75	6in
+2832	Picta Silver Splash	out_of_stock	2026-06-18 16:07:28.056632	25	6in
+2833	Available now	out_of_stock	2026-06-18 16:07:28.056632	true	6in
+2834	Llimited quantities	out_of_stock	2026-06-18 16:07:28.056632	*	6in
+2835	Not available at this time	out_of_stock	2026-06-18 16:07:28.056632	false	6in
+2836	Prices are subject to change without notice.	out_of_stock	2026-06-18 16:07:28.056632	\N	6in
+2837	PAGE 5	out_of_stock	2026-06-18 16:07:28.056632	6IN FOLIAGE	6in
+2838	Emerald Beauty	available	2026-06-18 16:07:28.056632	25.5	8in
+2839	Audrey St.	available	2026-06-18 16:07:28.056632	20	8in
+2840	Romeo	out_of_stock	2026-06-18 16:07:28.056632	25.5	8in
+2841	Lyrata Column	out_of_stock	2026-06-18 16:07:28.056632	18.5	8in
+2842	Tigress	available	2026-06-18 16:07:28.056632	25.5	8in
+2843	Moclame Braid	available	2026-06-18 16:07:28.056632	20	8in
+2844	Silver Bay	available	2026-06-18 16:07:28.056632	25.5	8in
+2845	Rubber ST. Ast.	available	2026-06-18 16:07:28.056632	20	8in
+2846	Silverado	out_of_stock	2026-06-18 16:07:28.056632	25.5	8in
+2847	DRACAENA 8 inch pot	out_of_stock	2026-06-18 16:07:28.056632	\N	8in
+2848	Brasil Cordatum Pole	limited	2026-06-18 16:07:28.056632	32.75	8in
+2849	Bronze Bay	available	2026-06-18 16:07:28.056632	23.75	8in
+2850	Philo Congo Rojo &Green	out_of_stock	2026-06-18 16:07:28.056632	20	8in
+2851	Carmen	available	2026-06-18 16:07:28.056632	23.75	8in
+2852	Philo Lemon Lime Trellis	out_of_stock	2026-06-18 16:07:28.056632	20	8in
+2853	Dorado	available	2026-06-18 16:07:28.056632	23.75	8in
+2854	Philo Panda Pole	out_of_stock	2026-06-18 16:07:28.056632	35	8in
+2855	Gigantea	out_of_stock	2026-06-18 16:07:28.056632	23.75	8in
+2856	Philo Red Emerald Pole	limited	2026-06-18 16:07:28.056632	35	8in
+2857	Green Jewel	available	2026-06-18 16:07:28.056632	23.75	8in
+2858	Philo Selloum	available	2026-06-18 16:07:28.056632	21.5	8in
+2859	Green Jewel Cane	out_of_stock	2026-06-18 16:07:28.056632	35	8in
+2860	Philo Cordatum Totem	limited	2026-06-18 16:07:28.056632	21.5	8in
+2861	Hawaiian Sunshine Tip	available	2026-06-18 16:07:28.056632	23.75	8in
+2862	Philo Monstera	available	2026-06-18 16:07:28.056632	18.5	8in
+2863	Janet Craig Tip	available	2026-06-18 16:07:28.056632	23.75	8in
+2864	Potho Totem/Trellis Gold & Marble Queen	out_of_stock	2026-06-18 16:07:28.056632	25	8in
+2865	Janet Craig Compacta Cane	available	2026-06-18 16:07:28.056632	39.5	8in
+2866	Kristi	available	2026-06-18 16:07:28.056632	23.75	8in
+2867	Lemon Lime Warneckii Tip	available	2026-06-18 16:07:28.056632	23.75	8in
+2868	8in Cordatum	available	2026-06-18 16:07:28.056632	15	8in
+2869	Lime Light	available	2026-06-18 16:07:28.056632	23.75	8in
+2870	8in Hoya	out_of_stock	2026-06-18 16:07:28.056632	20	8in
+2871	Marginata Candelabra	available	2026-06-18 16:07:28.056632	21	8in
+2872	8in Marble Queen	available	2026-06-18 16:07:28.056632	15	8in
+2873	Marginata Cane	available	2026-06-18 16:07:28.056632	23.5	8in
+2874	8in Pothos	available	2026-06-18 16:07:28.056632	15	8in
+2875	Warneckii Tip	available	2026-06-18 16:07:28.056632	23.75	8in
+2876	8in Pothos Neon Queen	available	2026-06-18 16:07:28.056632	16.5	8in
+2877	10in Swiss Cheese	available	2026-06-18 16:07:28.056632	20	8in
+2878	Goldstar C/B	available	2026-06-18 16:07:28.056632	70	8in
+2879	Fabian Aralia	out_of_stock	2026-06-18 16:07:28.056632	70	8in
+2880	Alocasia Pink Princess	available	2026-06-18 16:07:28.056632	17.5	8in
+2881	Haw. Ming Aralia	out_of_stock	2026-06-18 16:07:28.056632	70	8in
+2882	Apoballis	limited	2026-06-18 16:07:28.056632	18.5	8in
+2883	J.C. Cane Cutback Cane	available	2026-06-18 16:07:28.056632	67.5	8in
+2884	Aspidistra	available	2026-06-18 16:07:28.056632	28.5	8in
+2885	J.C. Compacta 3'-4'	available	2026-06-18 16:07:28.056632	75	8in
+2886	Arboricola Var.	limited	2026-06-18 16:07:28.056632	18	8in
+2887	Lisa Cutback Cane 4'-5'	available	2026-06-18 16:07:28.056632	75	8in
+2888	Calathea	out_of_stock	2026-06-18 16:07:28.056632	22.5	8in
+2889	Michiko Cutback Cane	available	2026-06-18 16:07:28.056632	67.5	8in
+2890	Cordyline Red Star	out_of_stock	2026-06-18 16:07:28.056632	18	8in
+2891	Warneckii Cutback Cane	available	2026-06-18 16:07:28.056632	67.5	8in
+2892	Dieff. Maui Wowie	out_of_stock	2026-06-18 16:07:28.056632	21	8in
+2893	Fatsia Japonica	available	2026-06-18 16:07:28.056632	17.5	8in
+2894	Maranta Lemon Lime	available	2026-06-18 16:07:28.056632	24	8in
+2895	8in Blue Star	out_of_stock	2026-06-18 16:07:28.056632	18.95	8in
+2896	Money Tree	out_of_stock	2026-06-18 16:07:28.056632	20	8in
+2897	8in Birdnest	out_of_stock	2026-06-18 16:07:28.056632	27.5	8in
+2898	Ponytail Stump	out_of_stock	2026-06-18 16:07:28.056632	27.5	8in
+2899	8in Kangaroo HB	available	2026-06-18 16:07:28.056632	18.95	8in
+2900	Sanseveria Assorted	available	2026-06-18 16:07:28.056632	22.5	8in
+2901	8in Kimberly Queen HB	available	2026-06-18 16:07:28.056632	22.5	8in
+2902	Spathiphyllum (growers choice)	available	2026-06-18 16:07:28.056632	17.5	8in
+2903	8in Maidenhair	available	2026-06-18 16:07:28.056632	18.95	8in
+2904	Strelitzia	out_of_stock	2026-06-18 16:07:28.056632	27.5	8in
+2905	Swiss Cheese Trellis	out_of_stock	2026-06-18 16:07:28.056632	17.5	8in
+2906	Calypso	out_of_stock	2026-06-18 16:07:28.056632	39	10in
+2907	Alii St.	out_of_stock	2026-06-18 16:07:28.056632	32.5	10in
+2908	Emerald Beauty	available	2026-06-18 16:07:28.056632	39	10in
+2909	Altissima Bush	available	2026-06-18 16:07:28.056632	27.5	10in
+2910	Golden Modonna	out_of_stock	2026-06-18 16:07:28.056632	39	10in
+2911	Altissima Std.	available	2026-06-18 16:07:28.056632	32.5	10in
+2912	Legacy	available	2026-06-18 16:07:28.056632	39	10in
+2913	Audrey Bush	available	2026-06-18 16:07:28.056632	32.5	10in
+2914	Romeo	out_of_stock	2026-06-18 16:07:28.056632	39	10in
+2915	Audrey St.	available	2026-06-18 16:07:28.056632	40	10in
+2916	Shades	available	2026-06-18 16:07:28.056632	39	10in
+2917	Benjamina Braid	available	2026-06-18 16:07:28.056632	31	10in
+2918	Silver Bay	available	2026-06-18 16:07:28.056632	39	10in
+2919	Benjamina Std.	out_of_stock	2026-06-18 16:07:28.056632	26	10in
+2920	Stilleto	available	2026-06-18 16:07:28.056632	39	10in
+2921	Lyrata Column	out_of_stock	2026-06-18 16:07:28.056632	27.5	10in
+2922	Tigress	out_of_stock	2026-06-18 16:07:28.056632	39	10in
+2923	Lyrata Standard	available	2026-06-18 16:07:28.056632	37.5	10in
+2924	Lyrata Bush	available	2026-06-18 16:07:28.056632	27.5	10in
+2925	Moclame Std	out_of_stock	2026-06-18 16:07:28.056632	37.5	10in
+2926	Bronze Bay	available	2026-06-18 16:07:28.056632	38	10in
+2927	Rubber bush - asst.	available	2026-06-18 16:07:28.056632	27.5	10in
+2928	Carmen	available	2026-06-18 16:07:28.056632	38	10in
+2929	Rubber Std.	available	2026-06-18 16:07:28.056632	31	10in
+2930	Cintho Cane	out_of_stock	2026-06-18 16:07:28.056632	75	10in
+2931	Triangularis Std.	out_of_stock	2026-06-18 16:07:28.056632	37.5	10in
+2932	Dorado	available	2026-06-18 16:07:28.056632	38	10in
+2933	Diamond Edge Cane	out_of_stock	2026-06-18 16:07:28.056632	75	10in
+2934	Gigantea	available	2026-06-18 16:07:28.056632	30	10in
+2935	Cat	available	2026-06-18 16:07:28.056632	27.5	10in
+2936	Gold Coast Cane	out_of_stock	2026-06-18 16:07:28.056632	75	10in
+2937	Kentia	available	2026-06-18 16:07:28.056632	132	10in
+2938	Gold Star Cane C/B	available	2026-06-18 16:07:28.056632	115.00n	10in
+2939	Rhapis	available	2026-06-18 16:07:28.056632	71.5	10in
+2940	Green Jewel	available	2026-06-18 16:07:28.056632	38	10in
+2941	Ravanea- Majesty palm	available	2026-06-18 16:07:28.056632	27.5	10in
+2942	Green Jewel C/B 3-2-1	available	2026-06-18 16:07:28.056632	77	10in
+2943	Seifrizii	out_of_stock	2026-06-18 16:07:28.056632	36	10in
+2944	Hawaiian Sunshine	available	2026-06-18 16:07:28.056632	38	10in
+2945	Ponytail Stump	available	2026-06-18 16:07:28.056632	39.5	10in
+2946	Janet Craig Cane Cutback	available	2026-06-18 16:07:28.056632	110	10in
+2947	Janet Craig Tip 3ppp	available	2026-06-18 16:07:28.056632	38	10in
+2948	Janet Lind Multi Cane	available	2026-06-18 16:07:28.056632	72	10in
+2949	Congo Rojo	out_of_stock	2026-06-18 16:07:28.056632	36	10in
+2950	JC Compacta Bush	limited	2026-06-18 16:07:28.056632	38	10in
+2951	Congo Green	out_of_stock	2026-06-18 16:07:28.056632	36	10in
+2952	JC Compacta Cane	available	2026-06-18 16:07:28.056632	125	10in
+2953	Goeldii	available	2026-06-18 16:07:28.056632	25	10in
+2954	Kristi	available	2026-06-18 16:07:28.056632	38	10in
+2955	Monstera	available	2026-06-18 16:07:28.056632	25	10in
+2956	Lemon Lime Warn.	available	2026-06-18 16:07:28.056632	38	10in
+2957	Ring of Fire	limited	2026-06-18 16:07:28.056632	25	10in
+2958	Lemon Lime Warn. Cane	out_of_stock	2026-06-18 16:07:28.056632	75	10in
+2959	Selloum	limited	2026-06-18 16:07:28.056632	25	10in
+2960	Lime Light	available	2026-06-18 16:07:28.056632	38	10in
+2961	Summer Glory	available	2026-06-18 16:07:28.056632	36.5	10in
+2962	Lisa Cane c/b 5'	out_of_stock	2026-06-18 16:07:28.056632	110	10in
+2963	White Princess	limited	2026-06-18 16:07:28.056632	26	10in
+2964	Marley	out_of_stock	2026-06-18 16:07:28.056632	38	10in
+2965	Marginata Character	out_of_stock	2026-06-18 16:07:28.056632	45	10in
+2966	Marginata Stg	available	2026-06-18 16:07:28.056632	32.5	10in
+2967	Assorted	available	2026-06-18 16:07:28.056632	26.5	10in
+2968	Marginata Tip	out_of_stock	2026-06-18 16:07:28.056632	18.5	10in
+2969	Cylindrical	available	2026-06-18 16:07:28.056632	36	10in
+2970	Marginata Colorama	available	2026-06-18 16:07:28.056632	20	10in
+2971	Fernwood	available	2026-06-18 16:07:28.056632	40	10in
+2972	Marginata Open Weave Braid	limited	2026-06-18 16:07:28.056632	57.5	10in
+2973	Lancia	limited	2026-06-18 16:07:28.056632	82.5	10in
+2974	Marginata Zulu Weave	limited	2026-06-18 16:07:28.056632	61.25	10in
+2975	Whale Fin	available	2026-06-18 16:07:28.056632	36	10in
+2976	Mass Cane 3-2-1	available	2026-06-18 16:07:28.056632	31	10in
+2977	Mass Cane 4-3-2	available	2026-06-18 16:07:28.056632	49.5	10in
+2978	Mass Cane 33-15	out_of_stock	2026-06-18 16:07:28.056632	20.5	10in
+2979	Amate	available	2026-06-18 16:07:28.056632	29.5	10in
+2980	Mass Cane W/Potho	out_of_stock	2026-06-18 16:07:28.056632	23	10in
+2981	Arboricola Bush Asst	out_of_stock	2026-06-18 16:07:28.056632	24	10in
+2982	Michiko Cane Cutback	available	2026-06-18 16:07:28.056632	110	10in
+2983	Arboricola Std. Asst.	out_of_stock	2026-06-18 16:07:28.056632	25	10in
+2984	Pleomele Reflexa	limited	2026-06-18 16:07:28.056632	30	10in
+2985	Arboricola Braid	available	2026-06-18 16:07:28.056632	33.5	10in
+2986	Rikki	out_of_stock	2026-06-18 16:07:28.056632	38	10in
+2987	Song of India	out_of_stock	2026-06-18 16:07:28.056632	22.5	10in
+2988	Tarzan	available	2026-06-18 16:07:28.056632	34	10in
+2989	Lemon Lime Trellis	available	2026-06-18 16:07:28.056632	35	10in
+2990	Tarzan Tree Form	available	2026-06-18 16:07:28.056632	53	10in
+2991	10x40 Cordatum	out_of_stock	2026-06-18 16:07:28.056632	42.5	10in
+2992	Warneckii Cane cb	out_of_stock	2026-06-18 16:07:28.056632	110	10in
+2993	10x30 Philodendron asst.	available	2026-06-18 16:07:28.056632	35	10in
+2994	10x40 Red Emerald	available	2026-06-18 16:07:28.056632	47.5	10in
+2995	Cissus Discolor Teepee	out_of_stock	2026-06-18 16:07:28.056632	27.5	10in
+2996	10in Australian Treeform	available	2026-06-18 16:07:28.056632	35	10in
+2997	10in Macho	out_of_stock	2026-06-18 16:07:28.056632	20	10in
+2998	10in Boston	out_of_stock	2026-06-18 16:07:28.056632	17.5	10in
+2999	10in Foxtail	out_of_stock	2026-06-18 16:07:28.056632	20	10in
+3000	10in Kimberly Queen	out_of_stock	2026-06-18 16:07:28.056632	20	10in
+3001	10in Sprengerii	available	2026-06-18 16:07:28.056632	20	10in
+3002	10in Staghorn H. B.	available	2026-06-18 16:07:28.056632	55	10in
+3003	PAGE 7	available	2026-06-18 16:07:28.056632	\N	10in
+3004	BJ Freeman	out_of_stock	2026-06-18 16:07:28.056632	59	12in, 14in, 17in
+3005	BJ Freeman	out_of_stock	2026-06-18 16:07:28.056632	86.75	12in, 14in, 17in
+3006	Silver Bay	out_of_stock	2026-06-18 16:07:28.056632	59	12in, 14in, 17in
+3007	Emerald Beauty	out_of_stock	2026-06-18 16:07:28.056632	86.75	12in, 14in, 17in
+3008	Legacy	out_of_stock	2026-06-18 16:07:28.056632	86.75	12in, 14in, 17in
+3009	Shades	available	2026-06-18 16:07:28.056632	86.75	12in, 14in, 17in
+3010	Br.Mass Cane Stump	out_of_stock	2026-06-18 16:07:28.056632	122.5	12in, 14in, 17in
+3011	Silver Bay	available	2026-06-18 16:07:28.056632	86.75	12in, 14in, 17in
+3012	Green Jewl Cane	limited	2026-06-18 16:07:28.056632	112.5	12in, 14in, 17in
+3013	JC Compacta Cane	available	2026-06-18 16:07:28.056632	190	12in, 14in, 17in
+3014	Janet Craig Cane C/B	out_of_stock	2026-06-18 16:07:28.056632	190	12in, 14in, 17in
+3015	Fabian	out_of_stock	2026-06-18 16:07:28.056632	135	12in, 14in, 17in
+3016	Janet Lind Cane	out_of_stock	2026-06-18 16:07:28.056632	89.5	12in, 14in, 17in
+3017	Ming	out_of_stock	2026-06-18 16:07:28.056632	165	12in, 14in, 17in
+3018	Margi Stg.	available	2026-06-18 16:07:28.056632	48	12in, 14in, 17in
+3019	Janet Craig Tip	out_of_stock	2026-06-18 16:07:28.056632	73.5	12in, 14in, 17in
+3020	Ficus Altissima	available	2026-06-18 16:07:28.056632	42.5	12in, 14in, 17in
+3021	Janet Lind Cane	out_of_stock	2026-06-18 16:07:28.056632	110	12in, 14in, 17in
+3022	Ficus Audry St.	limited	2026-06-18 16:07:28.056632	48	12in, 14in, 17in
+3023	Lemon Lime Warn.	out_of_stock	2026-06-18 16:07:28.056632	73.5	12in, 14in, 17in
+3024	Ficus Lyrata Bush	available	2026-06-18 16:07:28.056632	50	12in, 14in, 17in
+3025	Marginata Braid	out_of_stock	2026-06-18 16:07:28.056632	75	12in, 14in, 17in
+3026	Ficus Lyrata Column	available	2026-06-18 16:07:28.056632	45	12in, 14in, 17in
+3027	Marginata Freestyle	available	2026-06-18 16:07:28.056632	140	12in, 14in, 17in
+3028	Ficus Lyrata Std.	available	2026-06-18 16:07:28.056632	62	12in, 14in, 17in
+3029	Marginata Staggered	available	2026-06-18 16:07:28.056632	65	12in, 14in, 17in
+3030	Ficus Rubber Bush	limited	2026-06-18 16:07:28.056632	50	12in, 14in, 17in
+3031	Marginata Open Weave Braid	available	2026-06-18 16:07:28.056632	94	12in, 14in, 17in
+3032	Ficus Rubber St. Ast.	available	2026-06-18 16:07:28.056632	50	12in, 14in, 17in
+3033	Marginata Zulu Weave	available	2026-06-18 16:07:28.056632	105	12in, 14in, 17in
+3034	Ficus Shivereana	limited	2026-06-18 16:07:28.056632	45	12in, 14in, 17in
+3035	Mass Cane Branched	out_of_stock	2026-06-18 16:07:28.056632	155	12in, 14in, 17in
+3036	Massangeane Cane 5-4-3-2	available	2026-06-18 16:07:28.056632	76	12in, 14in, 17in
+3037	Tarzan Stg	available	2026-06-18 16:07:28.056632	73	12in, 14in, 17in
+3038	Cat	out_of_stock	2026-06-18 16:07:28.056632	60	12in, 14in, 17in
+3039	Tarzan Tree Form	available	2026-06-18 16:07:28.056632	115	12in, 14in, 17in
+3040	Fishtail	out_of_stock	2026-06-18 16:07:28.056632	150	12in, 14in, 17in
+3041	Kentia	available	2026-06-18 16:07:28.056632	215	12in, 14in, 17in
+3042	Ponytail Stump	available	2026-06-18 16:07:28.056632	55	12in, 14in, 17in
+3043	14in Foxtail	available	2026-06-18 16:07:28.056632	45	12in, 14in, 17in
+3044	Ravenea - Majesty	available	2026-06-18 16:07:28.056632	62	12in, 14in, 17in
+3045	14in Kimberly Queen	out_of_stock	2026-06-18 16:07:28.056632	42.5	12in, 14in, 17in
+3046	Rhapis	available	2026-06-18 16:07:28.056632	160	12in, 14in, 17in
+3047	Alii Std.	limited	2026-06-18 16:07:28.056632	69	12in, 14in, 17in
+3048	12in Macho H.B	out_of_stock	2026-06-18 16:07:28.056632	25	12in, 14in, 17in
+3049	Audrey Bush	available	2026-06-18 16:07:28.056632	65	12in, 14in, 17in
+3050	12in Boston	available	2026-06-18 16:07:28.056632	28.5	12in, 14in, 17in
+3051	Audrey Colum	available	2026-06-18 16:07:28.056632	76	12in, 14in, 17in
+3052	12in Staghorn Plaque	out_of_stock	2026-06-18 16:07:28.056632	30.5	12in, 14in, 17in
+3053	Audrey St.	out_of_stock	2026-06-18 16:07:28.056632	110	12in, 14in, 17in
+3054	Benjamina Braid	out_of_stock	2026-06-18 16:07:28.056632	85	12in, 14in, 17in
+3055	Benjamina Standard	available	2026-06-18 16:07:28.056632	69	12in, 14in, 17in
+3056	Arboricola Ivory	out_of_stock	2026-06-18 16:07:28.056632	45	12in, 14in, 17in
+3057	Moclame Std.	available	2026-06-18 16:07:28.056632	65	12in, 14in, 17in
+3058	Mony Tree	available	2026-06-18 16:07:28.056632	75	12in, 14in, 17in
+3059	Lyrata Bush	out_of_stock	2026-06-18 16:07:28.056632	90	12in, 14in, 17in
+3060	Monstera	limited	2026-06-18 16:07:28.056632	42.5	12in, 14in, 17in
+3061	Lyrata Column	out_of_stock	2026-06-18 16:07:28.056632	85	12in, 14in, 17in
+3062	Ming Aralia Haw.	available	2026-06-18 16:07:28.056632	165	12in, 14in, 17in
+3063	Lyrata Standard	available	2026-06-18 16:07:28.056632	100	12in, 14in, 17in
+3064	Sansevieria	available	2026-06-18 16:07:28.056632	60	12in, 14in, 17in
+3065	Scheff. Amate	out_of_stock	2026-06-18 16:07:28.056632	52.5	12in, 14in, 17in
+3066	Spath	available	2026-06-18 16:07:28.056632	45	12in, 14in, 17in
+3067	Cat	out_of_stock	2026-06-18 16:07:28.056632	78.5	12in, 14in, 17in
+3068	Strelitzia	available	2026-06-18 16:07:28.056632	72.5	12in, 14in, 17in
+3069	Fishtail	available	2026-06-18 16:07:28.056632	245	12in, 14in, 17in
+3070	"ZZ" zamiaculcus zamifolia	available	2026-06-18 16:07:28.056632	62	12in, 14in, 17in
+3071	Foxtail	out_of_stock	2026-06-18 16:07:28.056632	80	12in, 14in, 17in
+3072	Kentia	available	2026-06-18 16:07:28.056632	305	12in, 14in, 17in
+3073	1.5in Cactus	available	2026-06-18 16:07:28.056632	1.9	CactusSucculents
+3074	2in Adenium	available	2026-06-18 16:07:28.056632	2.75	CactusSucculents
+3075	2.5in Cacti	available	2026-06-18 16:07:28.056632	3.3	CactusSucculents
+3076	2in Aloe Vera	available	2026-06-18 16:07:28.056632	2.75	CactusSucculents
+3077	3.25 in Fairy Castle Cactus	limited	2026-06-18 16:07:28.056632	5.5	CactusSucculents
+3078	2.5in Baby Toes	available	2026-06-18 16:07:28.056632	5.35	CactusSucculents
+3079	2.5 in Grafted Cacti	available	2026-06-18 16:07:28.056632	4.5	CactusSucculents
+3080	2.5 Burros Tail	out_of_stock	2026-06-18 16:07:28.056632	3.5	CactusSucculents
+3081	3.25in Cacti	available	2026-06-18 16:07:28.056632	5.5	CactusSucculents
+3082	2in Haworhia	available	2026-06-18 16:07:28.056632	2.1	CactusSucculents
+3083	3.25in Crested Euphorbia	out_of_stock	2026-06-18 16:07:28.056632	6.75	CactusSucculents
+3084	1.5in Succulents	available	2026-06-18 16:07:28.056632	1.8	CactusSucculents
+3085	3.25in Grafted Cacti	available	2026-06-18 16:07:28.056632	6.25	CactusSucculents
+3086	2.5in Lithops	available	2026-06-18 16:07:28.056632	6.4	CactusSucculents
+3087	4in Cacti	available	2026-06-18 16:07:28.056632	5.5	CactusSucculents
+3088	2in Succulent	available	2026-06-18 16:07:28.056632	1.8	CactusSucculents
+3089	2in Eup. Milli	available	2026-06-18 16:07:28.056632	2.85	CactusSucculents
+3090	2.5in Echeveria / Succulents	available	2026-06-18 16:07:28.056632	3.15	CactusSucculents
+3091	6in Euph. Milli Thai Hybrids	out_of_stock	2026-06-18 16:07:28.056632	17.5	CactusSucculents
+3092	2.5in Aloe Vera/ Haworthia	out_of_stock	2026-06-18 16:07:28.056632	3.3	CactusSucculents
+3093	4in Euph. Lactea	available	2026-06-18 16:07:28.056632	5.5	CactusSucculents
+3094	3.25in Echeveria & Succulents	available	2026-06-18 16:07:28.056632	4.35	CactusSucculents
+3095	2in Madagascar	available	2026-06-18 16:07:28.056632	2.25	CactusSucculents
+3096	3.25in Haworthia/Aloe	available	2026-06-18 16:07:28.056632	4.6	CactusSucculents
+3097	4in Monkey's Tail Cactus	out_of_stock	2026-06-18 16:07:28.056632	7.75	CactusSucculents
+3098	4in Haworthia / Gastoria	available	2026-06-18 16:07:28.056632	4.75	CactusSucculents
+3099	6in Cactus Asst	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3100	4in Aeonium Asst.	available	2026-06-18 16:07:28.056632	4.5	CactusSucculents
+3101	6in Crested Euphorbia	available	2026-06-18 16:07:28.056632	23.5	CactusSucculents
+3102	4in Aloe Vera	out_of_stock	2026-06-18 16:07:28.056632	4.35	CactusSucculents
+3103	6in Epi. Ric Rac	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3104	6in Aloe Vera	available	2026-06-18 16:07:28.056632	10	CactusSucculents
+3105	6in Epi. Ric Rac Fire	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3106	10in Aloe Vera	out_of_stock	2026-06-18 16:07:28.056632	25	CactusSucculents
+3107	6in Euph. Lactea	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3108	6in Aloe Vera Cameronii	out_of_stock	2026-06-18 16:07:28.056632	13	CactusSucculents
+3109	4in Euph. Leucodendron	out_of_stock	2026-06-18 16:07:28.056632	4.5	CactusSucculents
+3110	4in Donkey Tail	available	2026-06-18 16:07:28.056632	5.75	CactusSucculents
+3111	6in Euph. Leucodendron	out_of_stock	2026-06-18 16:07:28.056632	12.75	CactusSucculents
+3112	6in Donkey Tail	available	2026-06-18 16:07:28.056632	13.5	CactusSucculents
+3113	6in Euph. Trigona	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3114	4in Echeveria & Succulents	available	2026-06-18 16:07:28.056632	4.5	CactusSucculents
+3115	10in Euph. Trigona	out_of_stock	2026-06-18 16:07:28.056632	50	CactusSucculents
+3116	6in Lepismium Cruciforme	available	2026-06-18 16:07:28.056632	13.5	CactusSucculents
+3117	6in Mangave	out_of_stock	2026-06-18 16:07:28.056632	18.5	CactusSucculents
+3118	6in Ruby Neckles	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3119	4in Opuntia Subulata	available	2026-06-18 16:07:28.056632	6	CactusSucculents
+3120	6in String of Bananas	out_of_stock	2026-06-18 16:07:28.056632	15	CactusSucculents
+3121	6in Opuntia Subulata	available	2026-06-18 16:07:28.056632	11	CactusSucculents
+3122	6in String of Dolphin	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3123	6in Rat Tail Cactus	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3124	6in String of Heart/Varg	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3125	10in Lactea	limited	2026-06-18 16:07:28.056632	65	CactusSucculents
+3126	6in String of Pearls / Var.	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3127	10in Cereus Peruvianus	available	2026-06-18 16:07:28.056632	30	CactusSucculents
+3128	4in String of Pearls / Var.	available	2026-06-18 16:07:28.056632	6.5	CactusSucculents
+3129	10in Pricky Pear	available	2026-06-18 16:07:28.056632	45	CactusSucculents
+3130	4in String of Turtles	available	2026-06-18 16:07:28.056632	6.75	CactusSucculents
+3131	10in Triangle Cactus	out_of_stock	2026-06-18 16:07:28.056632	65	CactusSucculents
+3132	6in Sring of Turtles	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3133	5 Gal-Gold Torch	available	2026-06-18 16:07:28.056632	50	CactusSucculents
+3134	6in String of Watermelon	out_of_stock	2026-06-18 16:07:28.056632	15	CactusSucculents
+3135	12in Pilocereus Azures	available	2026-06-18 16:07:28.056632	45	CactusSucculents
+3136	6in Cotyledon Pendens	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3137	12in Euph. Ammak	out_of_stock	2026-06-18 16:07:28.056632	90	CactusSucculents
+3138	6in Crassula Calico Kitten	available	2026-06-18 16:07:28.056632	12.5	CactusSucculents
+3139	14in Euph. Ammak	available	2026-06-18 16:07:28.056632	150	CactusSucculents
+3140	6in Crassula Red Pegoda	out_of_stock	2026-06-18 16:07:28.056632	15	CactusSucculents
+3141	12in Euph. Chocolate Drop	available	2026-06-18 16:07:28.056632	135	CactusSucculents
+3142	6in Fish Hook	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3143	10in Euph. Ingens	available	2026-06-18 16:07:28.056632	95	CactusSucculents
+3144	6in Othonna Capensis Little Pickles	out_of_stock	2026-06-18 16:07:28.056632	15	CactusSucculents
+3145	14in Euph. Ingens	available	2026-06-18 16:07:28.056632	185	CactusSucculents
+3146	4in Stapila	available	2026-06-18 16:07:28.056632	5	CactusSucculents
+3147	6in Succulent	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3148	4in Thyrsiflora	out_of_stock	2026-06-18 16:07:28.056632	4.5	CactusSucculents
+3149	5in Clay Cactus Garden	available	2026-06-18 16:07:28.056632	11	CactusSucculents
+3150	6in Thyrsiflora	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3151	7in Clay Cactus Garden	available	2026-06-18 16:07:28.056632	16.75	CactusSucculents
+3152	10in Agave Blue	out_of_stock	2026-06-18 16:07:28.056632	50	CactusSucculents
+3153	8in Clay Cactus Garden	available	2026-06-18 16:07:28.056632	24.75	CactusSucculents
+3154	10in Pedilanthus	available	2026-06-18 16:07:28.056632	35	CactusSucculents
+3155	10in Clay Cactus Garden	available	2026-06-18 16:07:28.056632	44.75	CactusSucculents
+3156	10in Succulent	available	2026-06-18 16:07:28.056632	37.5	CactusSucculents
+3157	5in Succulent Low Bowl	available	2026-06-18 16:07:28.056632	12.75	CactusSucculents
+3158	10in Thyrsiflora	out_of_stock	2026-06-18 16:07:28.056632	37.5	CactusSucculents
+3159	6in Succulent Low Bowl	available	2026-06-18 16:07:28.056632	18.25	CactusSucculents
+3160	8in Succulent Low Bowl	available	2026-06-18 16:07:28.056632	27.75	CactusSucculents
+3161	2 in Jade Ast	out_of_stock	2026-06-18 16:07:28.056632	1.8	CactusSucculents
+3162	10in Succulent Low Bowl	available	2026-06-18 16:07:28.056632	48	CactusSucculents
+3163	4 in Jade Ast	available	2026-06-18 16:07:28.056632	4.85	CactusSucculents
+3164	6in Strawberry Pot Succ. Dg.	available	2026-06-18 16:07:28.056632	21	CactusSucculents
+3165	6 in Jade asst.	available	2026-06-18 16:07:28.056632	10.5	CactusSucculents
+3166	8 in Jade	out_of_stock	2026-06-18 16:07:28.056632	26	CactusSucculents
+3167	8 in Jade Character Low Bow	available	2026-06-18 16:07:28.056632	25	CactusSucculents
+3168	6in Euph. Firesticks	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3169	5 Gal Jade Character	available	2026-06-18 16:07:28.056632	50	CactusSucculents
+3170	10in Euph. Firesticks	out_of_stock	2026-06-18 16:07:28.056632	35	CactusSucculents
+3171	10in Jade Character	available	2026-06-18 16:07:28.056632	47.5	CactusSucculents
+3172	12in Euph. Firesticks	available	2026-06-18 16:07:28.056632	50	CactusSucculents
+3173	10in Jade / Var.	available	2026-06-18 16:07:28.056632	37	CactusSucculents
+3174	6in Pencil Cactus	available	2026-06-18 16:07:28.056632	15	CactusSucculents
+3175	14in Jade Bonsai color bowl	available	2026-06-18 16:07:28.056632	85	CactusSucculents
+3176	10in Pencil Cactus	out_of_stock	2026-06-18 16:07:28.056632	55	CactusSucculents
+3177	16in Jade Bonsai color bowl	available	2026-06-18 16:07:28.056632	98.5	CactusSucculents
+3178	4in Portulacaria Heart	available	2026-06-18 16:07:28.056632	11.5	CactusSucculents
+3179	Leaf Shine	available	2026-06-18 16:07:28.056632	11.75	Hard goods
+3180	Leaf Shine	available	2026-06-18 16:07:28.056632	39	Hard goods
+3181	Orchid Mix	out_of_stock	2026-06-18 16:07:28.056632	10.5	Hard goods
+3182	charcoal	out_of_stock	2026-06-18 16:07:28.056632	11.5	Hard goods
+3183	Mood Moss	available	2026-06-18 16:07:28.056632	67.5	Hard goods
+3184	Sheet Moss	available	2026-06-18 16:07:28.056632	67.5	Hard goods
+3185	Reindeer Moss	available	2026-06-18 16:07:28.056632	75	Hard goods
+3186	longfiber sphagnum moss	out_of_stock	2026-06-18 16:07:28.056632	38.5	Hard goods
+3187	longfiber sphagnum moss	out_of_stock	2026-06-18 16:07:28.056632	56	Hard goods
+3188	Spanish Moss (fresh)	out_of_stock	2026-06-18 16:07:28.056632	23.5	Hard goods
+3189	Sphagnum Moss	out_of_stock	2026-06-18 16:07:28.056632	72.5	Hard goods
+3190	4inch Ceranic Pot	out_of_stock	2026-06-18 16:07:28.056632	4.5	Hard goods
+3191	11.5	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3192	4inch Double Metal Planter	out_of_stock	2026-06-18 16:07:28.056632	3.5	Hard goods
+3193	8.95	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3194	4inch Metal Planter	out_of_stock	2026-06-18 16:07:28.056632	4	Hard goods
+3195	7.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3196	4inch Patriotic Metal Pot	out_of_stock	2026-06-18 16:07:28.056632	4	Hard goods
+3197	3.5	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3198	4inch Polkadot Metal Pot	out_of_stock	2026-06-18 16:07:28.056632	6	Hard goods
+3199	4.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3200	4inch Resin Planter	out_of_stock	2026-06-18 16:07:28.056632	1.25	Hard goods
+3201	7.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3202	4inch Triangle Basket	out_of_stock	2026-06-18 16:07:28.056632	3	Hard goods
+3203	3.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3204	4inch White Patriotic Wood Cube	out_of_stock	2026-06-18 16:07:28.056632	5.5	Hard goods
+3205	15.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3206	4inch Wicker Basket	out_of_stock	2026-06-18 16:07:28.056632	9	Hard goods
+3207	4.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3208	6inch Dishgarden Basket	out_of_stock	2026-06-18 16:07:28.056632	6.85	Hard goods
+3209	7	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3210	6inch Patriotic metal pot	out_of_stock	2026-06-18 16:07:28.056632	6	Hard goods
+3211	5	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3212	6inch Moss/Twig Basket	out_of_stock	2026-06-18 16:07:28.056632	7.5	Hard goods
+3213	6.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3214	6inch Peanut Basket	out_of_stock	2026-06-18 16:07:28.056632	11.5	Hard goods
+3215	8	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3216	6inch Resin Planter	out_of_stock	2026-06-18 16:07:28.056632	8.95	Hard goods
+3217	10.75	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3218	6inch Round White Stoneware Pot	out_of_stock	2026-06-18 16:07:28.056632	7.75	Hard goods
+3219	12.5	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3220	6inch Round Black Stoneware Pot	out_of_stock	2026-06-18 16:07:28.056632	7.75	Hard goods
+3221	17.5	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3222	4" Speed Cover	out_of_stock	2026-06-18 16:07:28.056632	0.5	Hard goods
+3223	1.25	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3224	4.5" Speed Cover	out_of_stock	2026-06-18 16:07:28.056632	0.6	Hard goods
+3225	1.5	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3226	6" Speed Cover	out_of_stock	2026-06-18 16:07:28.056632	0.85	Hard goods
+3227	6.5" Speed Cover	out_of_stock	2026-06-18 16:07:28.056632	0.95	Hard goods
+3228	4" liner	out_of_stock	2026-06-18 16:07:28.056632	0.15 ea	Hard goods
+3229	0.30 ea	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3230	6" liner	out_of_stock	2026-06-18 16:07:28.056632	0.25 ea	Hard goods
+3231	0.50 ea	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3232	8" liner	out_of_stock	2026-06-18 16:07:28.056632	0.50 ea	Hard goods
+3233	0.75 ea	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3234	10" liner	out_of_stock	2026-06-18 16:07:28.056632	0.75 ea	Hard goods
+3235	1.50 ea	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3236	12" liner	out_of_stock	2026-06-18 16:07:28.056632	1.10 ea	Hard goods
+3237	2.50 ea	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3238	14" liner	out_of_stock	2026-06-18 16:07:28.056632	1.75 ea	Hard goods
+3239	3.00 ea	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3240	17" liner	out_of_stock	2026-06-18 16:07:28.056632	2.50 ea	Hard goods
+3241	4.50 ea	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3242	Ocean Forest 12qt	out_of_stock	2026-06-18 16:07:28.056632	9.75	Hard goods
+3243	15	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3244	Ocean Forest 1.5cf	out_of_stock	2026-06-18 16:07:28.056632	21	Hard goods
+3245	10	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+3246	Ocean Forest 3cf	out_of_stock	2026-06-18 16:07:28.056632	42	Hard goods
+3247	23.5	out_of_stock	2026-06-18 16:07:28.056632	\N	Hard goods
+\.
+
+
+--
+-- Data for Name: shop_order_items; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.shop_order_items (id, sales_order_id, shop_listing_id, product_name, price, quantity, created_at) FROM stdin;
+1	14	137	8in Acanthus	13.25	3	2026-06-17 19:22:11.659319
+2	15	137	8in Acanthus	13.25	1	2026-06-17 19:23:39.93794
+3	15	140	6in Ceramic Dish Garden	13.95	1	2026-06-17 19:23:44.779641
+4	15	147	4in Cypress	8.25	1	2026-06-17 19:23:47.083007
+6	16	144	6in Liner Garden	10.5	1	2026-06-17 21:02:00.716998
+7	16	149	10in Dipladenia Teepee	27.5	1	2026-06-17 21:02:01.913023
+5	16	138	4in Combination	6.68	1	2026-06-17 21:01:59.441543
+8	17	951	8in Acanthus	13.25	1	2026-06-18 14:17:59.232387
+9	17	954	6in Ceramic Dish Garden	13.95	1	2026-06-18 14:18:00.306355
+10	17	958	6in Liner Garden	10.5	1	2026-06-18 14:18:01.96848
+11	20	2533	Anthurium - Giant	16.5	1	2026-06-18 16:22:01.153373
+12	20	2691	McColley Finale	5.25	1	2026-06-18 16:22:04.895033
+13	25	2483	8in Acanthus	13.25	1	2026-07-01 17:57:17.943039
+14	25	2492	6in Metal Dish Garden	13.75	1	2026-07-01 17:57:19.889664
+15	25	2496	8in Ceramic Dish Garden	22.5	1	2026-07-01 17:57:21.103627
+18	30	2483	8in Acanthus	13.25	1	2026-07-02 11:52:13.123826
+19	30	2487	1 Gallon Coleus	5	1	2026-07-02 11:52:14.330599
+20	30	2493	4in Cypress	8.25	1	2026-07-02 11:52:15.302284
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.users (id, email, name, password_hash, is_admin, can_orders, can_inventory, can_vendors, can_sales_orders, created_at) FROM stdin;
+1	jjpartridge@gmail.com	Julian	$2b$10$d8n.H9yO.JvdxmB6gU8VV.Y0YEv1HE2/rrmh0roUb59Wep.tAQ9gC	t	t	t	t	t	2026-05-18 14:40:55.744317
+\.
+
+
+--
+-- Data for Name: vendors; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.vendors (id, name, notes, created_at, email, shipping_days, source_location, price_list_email) FROM stdin;
+1	Plants in Design	\N	2026-05-02 21:04:57.123061	\N	\N	Florida	\N
+2	Quality Foliage	\N	2026-05-02 21:05:43.571976	\N	\N	Florida	\N
+3	Railroad	\N	2026-05-02 21:05:48.147035	\N	\N	Florida	\N
+4	T & T Botanicals	\N	2026-05-02 21:06:34.954276	\N	\N	Florida	\N
+5	Vine & Culture	\N	2026-05-02 21:07:29.547128	\N	\N	Florida	\N
+6	The Jungle	\N	2026-05-02 21:08:14.31905	\N	\N	Florida	\N
+7	Kirkland Nurseries	\N	2026-05-02 21:08:32.704116	\N	\N	Florida	\N
+8	K and M Nursery	\N	2026-05-02 21:08:48.105623	\N	\N	Florida	\N
+9	Live Trends	\N	2026-05-02 21:09:45.648507	\N	\N	Florida	\N
+11	Mercer	\N	2026-05-02 21:11:21.772803	\N	\N	Florida	\N
+12	Mt. Plymouth	\N	2026-05-02 21:11:48.861355	\N	\N	Florida	\N
+13	Tropical Earth	\N	2026-05-02 21:11:57.841907	\N	\N	Florida	\N
+14	Andersen Farms	\N	2026-06-11 22:30:56.642255	jjpartridge@gmail.com	3	Florida	Barb@Andersenfarms.com
+15	Castleton Gardens	\N	2026-06-11 23:26:56.600659	\N	3	Florida	castletongardensinc@gmail.com
+17	Sturon Nursery	\N	2026-06-13 13:57:28.701174	\N	\N	Florida	\N
+10	Living Colors	\N	2026-05-02 21:09:56.675419	\N	\N	Florida	\N
+19	Sunlet Nursery	\N	2026-06-15 12:08:14.929289	\N	\N	Florida	\N
+18	Capri Farms	\N	2026-06-13 14:08:23.446875	jjpartridge@gmail.com	3	California	\N
+16	Carter Road Tropical	\N	2026-06-12 01:08:31.955607	jjpartridge@gmail.com	4	Canada	\N
+\.
+
+
+--
+-- Name: customers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.customers_id_seq', 1613, true);
+
+
+--
+-- Name: inventory_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.inventory_items_id_seq', 369, true);
+
+
+--
+-- Name: inventory_transactions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.inventory_transactions_id_seq', 1405, true);
+
+
+--
+-- Name: order_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.order_items_id_seq', 1564, true);
+
+
+--
+-- Name: orders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.orders_id_seq', 303, true);
+
+
+--
+-- Name: price_list_imports_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.price_list_imports_id_seq', 25, true);
+
+
+--
+-- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.products_id_seq', 2173, true);
+
+
+--
+-- Name: sales_order_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.sales_order_items_id_seq', 8, true);
+
+
+--
+-- Name: sales_orders_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.sales_orders_id_seq', 30, true);
+
+
+--
+-- Name: settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.settings_id_seq', 1, false);
+
+
+--
+-- Name: shop_listings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.shop_listings_id_seq', 3247, true);
+
+
+--
+-- Name: shop_order_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.shop_order_items_id_seq', 20, true);
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.users_id_seq', 6, true);
+
+
+--
+-- Name: vendors_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.vendors_id_seq', 19, true);
+
+
+--
+-- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_items inventory_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_items
+    ADD CONSTRAINT inventory_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_transactions inventory_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_transactions
+    ADD CONSTRAINT inventory_transactions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: order_items order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: price_list_imports price_list_imports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.price_list_imports
+    ADD CONSTRAINT price_list_imports_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sales_order_items sales_order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_items
+    ADD CONSTRAINT sales_order_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sales_orders sales_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: session session_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.session
+    ADD CONSTRAINT session_pkey PRIMARY KEY (sid);
+
+
+--
+-- Name: settings settings_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.settings
+    ADD CONSTRAINT settings_key_unique UNIQUE (key);
+
+
+--
+-- Name: settings settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.settings
+    ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shop_listings shop_listings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_listings
+    ADD CONSTRAINT shop_listings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shop_order_items shop_order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_order_items
+    ADD CONSTRAINT shop_order_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_unique UNIQUE (email);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: vendors vendors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vendors
+    ADD CONSTRAINT vendors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: IDX_session_expire; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "IDX_session_expire" ON public.session USING btree (expire);
+
+
+--
+-- Name: inventory_items inventory_items_product_id_products_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_items
+    ADD CONSTRAINT inventory_items_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: inventory_items inventory_items_vendor_id_vendors_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_items
+    ADD CONSTRAINT inventory_items_vendor_id_vendors_id_fk FOREIGN KEY (vendor_id) REFERENCES public.vendors(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: inventory_transactions inventory_transactions_order_id_orders_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_transactions
+    ADD CONSTRAINT inventory_transactions_order_id_orders_id_fk FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE SET NULL;
+
+
+--
+-- Name: inventory_transactions inventory_transactions_product_id_products_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_transactions
+    ADD CONSTRAINT inventory_transactions_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: inventory_transactions inventory_transactions_vendor_id_vendors_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_transactions
+    ADD CONSTRAINT inventory_transactions_vendor_id_vendors_id_fk FOREIGN KEY (vendor_id) REFERENCES public.vendors(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: order_items order_items_order_id_orders_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_order_id_orders_id_fk FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: order_items order_items_product_id_products_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: orders orders_vendor_id_vendors_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_vendor_id_vendors_id_fk FOREIGN KEY (vendor_id) REFERENCES public.vendors(id) ON DELETE CASCADE;
+
+
+--
+-- Name: price_list_imports price_list_imports_vendor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.price_list_imports
+    ADD CONSTRAINT price_list_imports_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES public.vendors(id) ON DELETE CASCADE;
+
+
+--
+-- Name: products products_vendor_id_vendors_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_vendor_id_vendors_id_fk FOREIGN KEY (vendor_id) REFERENCES public.vendors(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sales_order_items sales_order_items_inventory_item_id_inventory_items_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_items
+    ADD CONSTRAINT sales_order_items_inventory_item_id_inventory_items_id_fk FOREIGN KEY (inventory_item_id) REFERENCES public.inventory_items(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: sales_order_items sales_order_items_product_id_products_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_items
+    ADD CONSTRAINT sales_order_items_product_id_products_id_fk FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: sales_order_items sales_order_items_sales_order_id_sales_orders_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_items
+    ADD CONSTRAINT sales_order_items_sales_order_id_sales_orders_id_fk FOREIGN KEY (sales_order_id) REFERENCES public.sales_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sales_order_items sales_order_items_vendor_id_vendors_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_items
+    ADD CONSTRAINT sales_order_items_vendor_id_vendors_id_fk FOREIGN KEY (vendor_id) REFERENCES public.vendors(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: sales_orders sales_orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE SET NULL;
+
+
+--
+-- Name: shop_order_items shop_order_items_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_order_items
+    ADD CONSTRAINT shop_order_items_sales_order_id_fkey FOREIGN KEY (sales_order_id) REFERENCES public.sales_orders(id) ON DELETE CASCADE;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict awCNttznaG60RSs5nIeg0hHx6vI3nHqDcxmXicoBFVHu6Gm1ThlbO5QDCyY8Rwh
+

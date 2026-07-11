@@ -12,3 +12,9 @@ id = "NJ96eX6NNk_pQMWzDV0wa"
 uri = "file://vickery-db-backup-20260505_121357.dump.gz"
 type = "unspecified"
 title = "vickery-db-backup-20260505_121357.dump.gz"
+
+[[outputs]]
+id = "TpHL9Av7hoYyO8QY4LbQq"
+uri = "file://vickery-db-export-20260711.zip"
+type = "unspecified"
+title = "Vickery DB Export — July 11, 2026"
