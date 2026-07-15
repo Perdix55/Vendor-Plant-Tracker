@@ -106,7 +106,7 @@ export default function SalesOrderPrint() {
                   <img
                     src={`/api/storage${logoUrl}`}
                     alt="Logo"
-                    style={{ maxHeight: 64, maxWidth: 200, objectFit: "contain", marginBottom: 8 }}
+                    style={{ maxHeight: 128, maxWidth: 400, objectFit: "contain", marginBottom: 8 }}
                   />
                 ) : (
                   <h1 className="text-2xl font-bold tracking-tight text-green-800" style={{ fontFamily: "Arial, sans-serif" }}>

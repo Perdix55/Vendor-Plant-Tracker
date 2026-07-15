@@ -75,12 +75,12 @@ export function Sidebar() {
 
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center border-b px-4">
+      <div className="flex h-20 items-center border-b px-4">
         {logoUrl ? (
           <img
             src={`/api/storage${logoUrl}`}
             alt="Logo"
-            className="max-h-9 max-w-[160px] object-contain"
+            className="max-h-[72px] max-w-[320px] object-contain"
           />
         ) : (
           <span className="font-semibold tracking-tight text-lg text-primary flex items-center gap-2">
