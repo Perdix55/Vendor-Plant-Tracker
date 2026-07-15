@@ -113,12 +113,14 @@ export default function SalesOrderPrint() {
                     Vickery Greenhouse
                   </h1>
                 )}
-                <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                  4911 E Grand Ave<br />
-                  Dallas, TX 75223<br />
-                  214-824-4440 / 800-408-0323<br />
-                  sales@vickerygreenhouse.com
-                </p>
+                {!logoUrl && (
+                  <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                    4911 E Grand Ave<br />
+                    Dallas, TX 75223<br />
+                    214-824-4440 / 800-408-0323<br />
+                    sales@vickerygreenhouse.com
+                  </p>
+                )}
               </div>
               <div className="text-right shrink-0">
                 <p className="text-xs uppercase tracking-widest text-gray-400 mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Sales Order</p>
