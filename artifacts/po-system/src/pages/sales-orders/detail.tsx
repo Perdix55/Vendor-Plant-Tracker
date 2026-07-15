@@ -759,7 +759,7 @@ export default function SalesOrderDetail() {
                         onMouseEnter={() => setCatalogHighlight(i)}
                       >
                         <span className="flex-1 font-medium truncate">{item.productName}</span>
-                        {item.price && <span className="text-muted-foreground text-xs shrink-0">${item.price}</span>}
+                        {item.price && <span className="text-muted-foreground text-xs shrink-0">${parseFloat(item.price).toFixed(2)}</span>}
                         {catalogCart[item.shopListingId] && (
                           <span className="text-blue-600 font-semibold text-xs shrink-0">× {catalogCart[item.shopListingId].qty}</span>
                         )}
@@ -797,7 +797,7 @@ export default function SalesOrderDetail() {
                           <TableRow key={item.shopListingId} className={qty > 0 ? "bg-blue-50/40" : ""}>
                             <TableCell className="font-medium">{item.productName}</TableCell>
                             <TableCell className="text-muted-foreground text-sm">
-                              {item.price ? `$${item.price}` : "—"}
+                              {item.price ? `$${parseFloat(item.price).toFixed(2)}` : "—"}
                             </TableCell>
                             <TableCell>
                               {isEditing ? (

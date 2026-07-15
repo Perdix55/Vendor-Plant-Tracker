@@ -458,7 +458,7 @@ export default function NewSalesOrder() {
                         <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{item.productName}</p>
-                          {item.price && <p className="text-xs text-muted-foreground">${item.price}</p>}
+                          {item.price && <p className="text-xs text-muted-foreground">${parseFloat(item.price).toFixed(2)}</p>}
                         </div>
                         {(catalogCart[item.shopListingId]?.qty ?? 0) > 0 && (
                           <Badge variant="secondary" className="shrink-0 text-xs">
@@ -501,7 +501,7 @@ export default function NewSalesOrder() {
                         </div>
                         {item.price && (
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            <span className="font-medium text-foreground">${item.price}</span>
+                            <span className="font-medium text-foreground">${parseFloat(item.price).toFixed(2)}</span>
                           </p>
                         )}
                       </div>
