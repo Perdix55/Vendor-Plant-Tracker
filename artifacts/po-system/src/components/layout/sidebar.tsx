@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/auth-context";
 import type { SafeUser } from "@/contexts/auth-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { HelpModal } from "@/components/help/HelpModal";
+import { useGetSettings } from "@workspace/api-client-react";
 
 type NavItem = {
   title: string;
@@ -59,6 +60,8 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [helpOpen, setHelpOpen] = useState(false);
+  const { data: settings } = useGetSettings();
+  const logoUrl = settings?.logoUrl ?? null;
 
   const visibleItems = user
     ? sidebarNavItems.filter((item) => item.permission === null || item.permission(user))
@@ -73,10 +76,18 @@ export function Sidebar() {
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center border-b px-4">
-        <span className="font-semibold tracking-tight text-lg text-primary flex items-center gap-2">
-          <div className="h-6 w-6 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">V</div>
-          Vickery Wholesale
-        </span>
+        {logoUrl ? (
+          <img
+            src={`/api/storage${logoUrl}`}
+            alt="Logo"
+            className="max-h-9 max-w-[160px] object-contain"
+          />
+        ) : (
+          <span className="font-semibold tracking-tight text-lg text-primary flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">V</div>
+            Vickery Wholesale
+          </span>
+        )}
       </div>
       <ScrollArea className="flex-1 py-4">
         <nav className="grid gap-1 px-2">

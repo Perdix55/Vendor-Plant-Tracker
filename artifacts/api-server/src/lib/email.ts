@@ -7,7 +7,15 @@ export type EmailPayload = {
   html: string;
   fromAddress: string;
   fromName?: string;
+  logoUrl?: string | null;
 };
+
+export function wrapEmailHtml(content: string, logoUrl?: string | null): string {
+  const logoHtml = logoUrl
+    ? `<div style="text-align:right;padding:16px 24px 0;"><img src="${logoUrl}" alt="Logo" style="max-height:60px;max-width:200px;object-fit:contain;" /></div>`
+    : "";
+  return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">${logoHtml}<div style="padding:24px;">${content}</div></div>`;
+}
 
 export type SmtpConfig = {
   host: string;
@@ -26,7 +34,8 @@ export async function sendEmail(
   smtp: SmtpConfig | null,
   log: Logger
 ): Promise<void> {
-  const { to, subject, html, fromAddress, fromName = "Vickery Wholesale Greenhouse" } = payload;
+  const { to, subject, fromAddress, fromName = "Vickery Wholesale Greenhouse", logoUrl } = payload;
+  const html = wrapEmailHtml(payload.html, logoUrl);
   const fromHeader = `${fromName} <${fromAddress}>`;
 
   if (smtp) {

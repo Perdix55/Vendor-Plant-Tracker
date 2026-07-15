@@ -32,7 +32,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert, ArrowDownToLine, CheckCircle2, XCircle, BarChart2, Loader2, Copy, ChevronDown, ChevronUp, Lightbulb, Users, Search } from "lucide-react";
+import { Check, Pencil, X, Mail, ShieldCheck, Plus, Package, Sparkles, ToggleLeft, ToggleRight, Store, FileSpreadsheet, Upload, AlertCircle, Settings, UserCog, Trash2, KeyRound, ShieldAlert, ArrowDownToLine, CheckCircle2, XCircle, BarChart2, Loader2, Copy, ChevronDown, ChevronUp, Lightbulb, Users, Search, ImageIcon } from "lucide-react";
+import { useUpload } from "@workspace/object-storage-web";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1759,7 +1760,39 @@ function SettingsTab() {
   const [smtpUser, setSmtpUser] = useState("");
   const [smtpPass, setSmtpPass] = useState("");
   const [smtpSecure, setSmtpSecure] = useState(false);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+
+  const logoUpload = useUpload({
+    onSuccess: (res) => {
+      updateSettings.mutate(
+        { data: { logoUrl: res.objectPath } },
+        {
+          onSuccess: () => {
+            setCurrentLogoUrl(res.objectPath);
+            queryClient.invalidateQueries({ queryKey: ["getSettings"] });
+            toast({ title: "Logo uploaded" });
+          },
+          onError: () => toast({ title: "Failed to save logo", variant: "destructive" }),
+        }
+      );
+    },
+    onError: () => toast({ title: "Upload failed", variant: "destructive" }),
+  });
+
+  const handleRemoveLogo = () => {
+    updateSettings.mutate(
+      { data: { logoUrl: null } },
+      {
+        onSuccess: () => {
+          setCurrentLogoUrl(null);
+          queryClient.invalidateQueries({ queryKey: ["getSettings"] });
+          toast({ title: "Logo removed" });
+        },
+        onError: () => toast({ title: "Failed to remove logo", variant: "destructive" }),
+      }
+    );
+  };
 
   if (settings && !initialized) {
     setFromEmail(settings.fromEmail ?? "");
@@ -1769,6 +1802,7 @@ function SettingsTab() {
     setSmtpUser(settings.smtpUser ?? "");
     setSmtpPass(settings.smtpPass ?? "");
     setSmtpSecure(settings.smtpSecure === "true");
+    setCurrentLogoUrl(settings.logoUrl ?? null);
     setInitialized(true);
   }
 
@@ -1809,6 +1843,75 @@ function SettingsTab() {
 
   return (
     <div className="space-y-4 max-w-lg">
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Branding</CardTitle>
+          </div>
+          <CardDescription>
+            Upload your logo to display it in the sidebar, on emails, and on sales order prints.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {currentLogoUrl ? (
+            <div className="flex items-center gap-4">
+              <div className="border rounded-md p-2 bg-muted/30 flex items-center justify-center h-16 w-40">
+                <img
+                  src={`/api/storage${currentLogoUrl}`}
+                  alt="Current logo"
+                  className="max-h-12 max-w-[140px] object-contain"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor="logo-upload"
+                  className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium border rounded-md px-3 py-1.5 hover:bg-muted transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  {logoUpload.isUploading ? "Uploading…" : "Replace Logo"}
+                </Label>
+                <button
+                  onClick={handleRemoveLogo}
+                  className="text-xs text-destructive hover:underline text-left"
+                >
+                  Remove logo
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="border-2 border-dashed rounded-md p-4 bg-muted/20 flex flex-col items-center justify-center h-16 w-40 text-muted-foreground">
+                <ImageIcon className="h-6 w-6 opacity-40" />
+                <p className="text-xs mt-1">No logo</p>
+              </div>
+              <div>
+                <Label
+                  htmlFor="logo-upload"
+                  className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium border rounded-md px-3 py-1.5 hover:bg-muted transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  {logoUpload.isUploading ? "Uploading…" : "Upload Logo"}
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG, or SVG recommended</p>
+              </div>
+            </div>
+          )}
+          <input
+            id="logo-upload"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={logoUpload.isUploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) logoUpload.uploadFile(file);
+              e.target.value = "";
+            }}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">

@@ -39,10 +39,11 @@ async function sendResetEmail(req: import("express").Request, toEmail: string, c
   for (const row of settingsRows) settingsMap[row.key] = row.value ?? null;
   const fromAddress = settingsMap.fromEmail?.trim() || "sales@vickerygreenhouse.com";
   const fromName = settingsMap.smtpFromName?.trim() || "Vickery Wholesale Greenhouse";
+  const logoUrl = settingsMap.logoUrl?.trim() || null;
   const smtp = buildSmtpConfig(settingsMap);
 
   await sendEmail(
-    { to: toEmail, subject: "Reset your Vickery Wholesale Greenhouse password", html, fromAddress, fromName },
+    { to: toEmail, subject: "Reset your Vickery Wholesale Greenhouse password", html, fromAddress, fromName, logoUrl },
     smtp,
     req.log
   );

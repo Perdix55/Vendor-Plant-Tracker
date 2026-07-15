@@ -8,6 +8,35 @@
 import * as zod from "zod";
 
 /**
+ * @summary Request a presigned URL for file upload
+ */
+
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string().min(1),
+  size: zod.number().min(1),
+  contentType: zod.string().min(1),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string().url(),
+  objectPath: zod.string(),
+  metadata: zod
+    .object({
+      name: zod.string().min(1),
+      size: zod.number().min(1),
+      contentType: zod.string().min(1),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  objectPath: zod.coerce.string(),
+});
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -1253,6 +1282,7 @@ export const GetSettingsResponse = zod.object({
   smtpPass: zod.string().nullish(),
   smtpSecure: zod.string().nullish(),
   smtpFromName: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
 });
 
 /**
@@ -1266,6 +1296,7 @@ export const UpdateSettingsBody = zod.object({
   smtpPass: zod.string().nullish(),
   smtpSecure: zod.string().nullish(),
   smtpFromName: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
 });
 
 export const UpdateSettingsResponse = zod.object({
@@ -1276,4 +1307,5 @@ export const UpdateSettingsResponse = zod.object({
   smtpPass: zod.string().nullish(),
   smtpSecure: zod.string().nullish(),
   smtpFromName: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
 });

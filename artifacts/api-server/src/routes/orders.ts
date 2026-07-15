@@ -568,6 +568,7 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
     for (const row of settingsRows) settingsMap[row.key] = row.value ?? null;
     const fromAddress = settingsMap.fromEmail?.trim() || "sales@vickerygreenhouse.com";
     const fromName = settingsMap.smtpFromName?.trim() || "Vickery Wholesale Greenhouse";
+    const logoUrl = settingsMap.logoUrl?.trim() || null;
     const smtp = buildSmtpConfig(settingsMap);
 
     await sendEmail(
@@ -577,6 +578,7 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
         html: emailBody,
         fromAddress,
         fromName,
+        logoUrl,
       },
       smtp,
       req.log

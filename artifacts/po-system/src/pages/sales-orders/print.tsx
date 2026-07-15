@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { format } from "date-fns";
 import { Printer } from "lucide-react";
+import { useGetSettings } from "@workspace/api-client-react";
 
 type OrderItem = {
   id: number;
@@ -30,6 +31,8 @@ export default function SalesOrderPrint() {
   const salesOrderId = params?.id ? parseInt(params.id) : 0;
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState(false);
+  const { data: settings } = useGetSettings();
+  const logoUrl = settings?.logoUrl ?? null;
 
   useEffect(() => {
     if (!salesOrderId) return;
@@ -99,9 +102,17 @@ export default function SalesOrderPrint() {
           <div className="px-10 pt-10 pb-6 border-b border-gray-200">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-green-800" style={{ fontFamily: "Arial, sans-serif" }}>
-                  Vickery Greenhouse
-                </h1>
+                {logoUrl ? (
+                  <img
+                    src={`/api/storage${logoUrl}`}
+                    alt="Logo"
+                    style={{ maxHeight: 64, maxWidth: 200, objectFit: "contain", marginBottom: 8 }}
+                  />
+                ) : (
+                  <h1 className="text-2xl font-bold tracking-tight text-green-800" style={{ fontFamily: "Arial, sans-serif" }}>
+                    Vickery Greenhouse
+                  </h1>
+                )}
                 <p className="text-sm text-gray-600 mt-1 leading-relaxed">
                   4911 E Grand Ave<br />
                   Dallas, TX 75223<br />

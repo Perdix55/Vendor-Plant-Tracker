@@ -4,7 +4,7 @@ import { settingsTable } from "@workspace/db";
 
 const router = Router();
 
-const SETTING_KEYS = ["fromEmail", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpSecure", "smtpFromName"] as const;
+const SETTING_KEYS = ["fromEmail", "smtpHost", "smtpPort", "smtpUser", "smtpPass", "smtpSecure", "smtpFromName", "logoUrl"] as const;
 
 function emptySettings(): Record<string, string | null> {
   return Object.fromEntries(SETTING_KEYS.map((k) => [k, null]));
