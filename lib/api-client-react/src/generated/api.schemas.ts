@@ -523,6 +523,7 @@ export type ImportVendorProductsBody = {
 
 export type ImportVendorProducts201 = {
   productsCreated: number;
+  skipped?: number;
 };
 
 export type ListOrdersParams = {

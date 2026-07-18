@@ -224,7 +224,7 @@ router.post("/vendors/:vendorId/products/import", async (req, res) => {
       return res.status(400).json({ error: "products array is required" });
     }
 
-    const rows = products
+    const incoming = products
       .filter((p: any) => p.name && typeof p.name === "string" && p.name.trim())
       .map((p: any) => ({
         vendorId,
@@ -234,12 +234,30 @@ router.post("/vendors/:vendorId/products/import", async (req, res) => {
         isActive: true,
       }));
 
-    if (rows.length === 0) {
+    if (incoming.length === 0) {
       return res.status(400).json({ error: "No valid products in payload" });
     }
 
+    const existing = await db
+      .select({ name: productsTable.name, packSize: productsTable.packSize })
+      .from(productsTable)
+      .where(eq(productsTable.vendorId, vendorId));
+
+    const existingKeys = new Set(
+      existing.map((p) => `${p.name.toLowerCase()}||${(p.packSize ?? "").toLowerCase()}`)
+    );
+
+    const rows = incoming.filter(
+      (p) => !existingKeys.has(`${p.name.toLowerCase()}||${(p.packSize ?? "").toLowerCase()}`)
+    );
+
+    if (rows.length === 0) {
+      res.status(201).json({ productsCreated: 0, skipped: incoming.length });
+      return;
+    }
+
     await db.insert(productsTable).values(rows);
-    res.status(201).json({ productsCreated: rows.length });
+    res.status(201).json({ productsCreated: rows.length, skipped: incoming.length - rows.length });
   } catch (err) {
     req.log.error({ err }, "Failed to import products");
     res.status(500).json({ error: "Internal server error" });

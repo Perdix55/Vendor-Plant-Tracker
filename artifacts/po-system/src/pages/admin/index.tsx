@@ -1437,7 +1437,14 @@ function ImportProductsDialog({ vendorId, vendorName, onSuccess }: { vendorId: n
       { vendorId, data: { products: products.map(p => ({ name: p.name, packSize: p.packSize || null })) } },
       {
         onSuccess: (result) => {
-          toast({ title: "Import successful", description: `${result.productsCreated} product${result.productsCreated === 1 ? "" : "s"} added to ${vendorName}.` });
+          const skipped = result.skipped ?? 0;
+          const added = result.productsCreated;
+          const desc = added === 0
+            ? `All ${skipped} product${skipped === 1 ? "" : "s"} already exist — nothing added.`
+            : skipped > 0
+              ? `${added} added, ${skipped} already existed and were skipped.`
+              : `${added} product${added === 1 ? "" : "s"} added to ${vendorName}.`;
+          toast({ title: added === 0 ? "Nothing to import" : "Import successful", description: desc });
           handleClose(false);
           onSuccess();
         },

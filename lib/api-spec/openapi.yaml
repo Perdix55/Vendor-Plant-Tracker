@@ -201,6 +201,8 @@ paths:
                 properties:
                   productsCreated:
                     type: integer
+                  skipped:
+                    type: integer
 
   /vendors/{vendorId}:
     get:
