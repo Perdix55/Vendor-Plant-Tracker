@@ -1,18 +1,36 @@
 import OpenAI from "openai";
 
-if (!process.env.AI_INTEGRATIONS_OPENAI_BASE_URL) {
-  throw new Error(
-    "AI_INTEGRATIONS_OPENAI_BASE_URL must be set. Did you forget to provision the OpenAI AI integration?",
-  );
+let client: OpenAI | undefined;
+
+function resolveOpenAIConfig(): { apiKey: string; baseURL: string } {
+  const apiKey =
+    process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+  const baseURL =
+    process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ??
+    process.env.OPENAI_BASE_URL ??
+    "https://api.openai.com/v1";
+
+  if (!apiKey) {
+    throw new Error(
+      "OpenAI is not configured. Set AI_INTEGRATIONS_OPENAI_API_KEY (Replit) or OPENAI_API_KEY.",
+    );
+  }
+
+  return { apiKey, baseURL };
 }
 
-if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
-  throw new Error(
-    "AI_INTEGRATIONS_OPENAI_API_KEY must be set. Did you forget to provision the OpenAI AI integration?",
-  );
+export function getOpenAI(): OpenAI {
+  if (!client) {
+    const { apiKey, baseURL } = resolveOpenAIConfig();
+    client = new OpenAI({ apiKey, baseURL });
+  }
+  return client;
 }
 
-export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+/** Lazy OpenAI client — does not require env vars until first use. */
+export const openai: OpenAI = new Proxy({} as OpenAI, {
+  get(_target, prop, receiver) {
+    const value = Reflect.get(getOpenAI(), prop, receiver);
+    return typeof value === "function" ? value.bind(getOpenAI()) : value;
+  },
 });
