@@ -5,6 +5,7 @@ import {
   useUpdateVendor,
   useCreateVendor,
   useImportVendor,
+  useImportVendorProducts,
   useListVendorProducts,
   useCreateProduct,
   useUpdateProduct,
@@ -1401,6 +1402,132 @@ function CustomersTab() {
   );
 }
 
+function ImportProductsDialog({ vendorId, vendorName, onSuccess }: { vendorId: number; vendorName: string; onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [products, setProducts] = useState<ParsedProduct[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [parseError, setParseError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const importProducts = useImportVendorProducts();
+  const { toast } = useToast();
+
+  const reset = () => {
+    setProducts([]); setFileName(""); setParseError("");
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleClose = (v: boolean) => { if (!v) reset(); setOpen(v); };
+
+  const handleFile = async (file: File) => {
+    setParseError("");
+    setFileName(file.name);
+    try {
+      const parsed = await parseSpreadsheet(file);
+      setProducts(parsed);
+      if (parsed.length === 0) setParseError("No product rows found. Make sure the file has a header row with a Product Name column.");
+    } catch {
+      setParseError("Could not read the file. Make sure it's a valid .xlsx, .xls, or .csv file.");
+      setProducts([]);
+    }
+  };
+
+  const handleImport = () => {
+    if (products.length === 0) return;
+    importProducts.mutate(
+      { vendorId, data: { products: products.map(p => ({ name: p.name, packSize: p.packSize || null })) } },
+      {
+        onSuccess: (result) => {
+          toast({ title: "Import successful", description: `${result.productsCreated} product${result.productsCreated === 1 ? "" : "s"} added to ${vendorName}.` });
+          handleClose(false);
+          onSuccess();
+        },
+        onError: () => toast({ title: "Import failed", description: "Could not import products.", variant: "destructive" }),
+      }
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5">
+          <FileSpreadsheet className="h-4 w-4" />
+          Import Spreadsheet
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Import Products for {vendorName}</DialogTitle>
+          <DialogDescription>
+            Upload a .xlsx, .xls, or .csv file with a <strong>Product Name</strong> column and optional <strong>Pack Size</strong> column. Existing products are kept — only new rows are added.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-1">
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/30 ${fileName ? "border-green-300 bg-green-50/50" : "border-muted-foreground/25"}`}
+            onClick={() => fileRef.current?.click()}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+            {fileName ? (
+              <div className="flex flex-col items-center gap-1">
+                <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                <p className="font-medium text-sm text-green-700">{fileName}</p>
+                <p className="text-xs text-muted-foreground">{products.length} product{products.length === 1 ? "" : "s"} found — click to change</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium">Drop your spreadsheet here or click to browse</p>
+                <p className="text-xs text-muted-foreground">.xlsx, .xls, or .csv</p>
+              </div>
+            )}
+          </div>
+
+          {parseError && (
+            <div className="flex items-start gap-2 text-destructive text-sm bg-destructive/10 rounded-md p-3">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              {parseError}
+            </div>
+          )}
+
+          {products.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Preview ({products.length} products)</Label>
+              <ScrollArea className="h-52 rounded-md border">
+                <Table>
+                  <TableHeader className="bg-muted/50 sticky top-0">
+                    <TableRow>
+                      <TableHead className="text-xs">Product Name</TableHead>
+                      <TableHead className="text-xs">Pack Size</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.map((p, i) => (
+                      <TableRow key={i} className="text-sm">
+                        <TableCell className="py-1.5">{p.name}</TableCell>
+                        <TableCell className="py-1.5 text-muted-foreground">{p.packSize || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
+          <Button onClick={handleImport} disabled={products.length === 0 || importProducts.isPending}>
+            {importProducts.isPending ? "Importing..." : `Import ${products.length > 0 ? `${products.length} Products` : ""}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function VendorProductsTab() {
   const { data: vendors, isLoading: isLoadingVendors } = useListVendors();
   const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
@@ -1524,7 +1651,16 @@ function VendorProductsTab() {
               </Select>
 
               {selectedVendorId && (
-                <Dialog open={addOpen} onOpenChange={setAddOpen}>
+                <>
+                  <ImportProductsDialog
+                    vendorId={selectedVendorId}
+                    vendorName={vendors?.find(v => v.id === selectedVendorId)?.name ?? "this vendor"}
+                    onSuccess={() => {
+                      queryClient.invalidateQueries({ queryKey: getListVendorProductsQueryKey(selectedVendorId) });
+                      queryClient.invalidateQueries({ queryKey: getListVendorsQueryKey() });
+                    }}
+                  />
+                  <Dialog open={addOpen} onOpenChange={setAddOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-1.5" data-testid="button-add-product">
                       <Plus className="h-4 w-4" />
@@ -1592,6 +1728,7 @@ function VendorProductsTab() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+                </>
               )}
             </div>
           </div>

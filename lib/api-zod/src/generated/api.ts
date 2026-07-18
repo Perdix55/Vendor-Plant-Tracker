@@ -91,6 +91,23 @@ export const ImportVendorBody = zod.object({
 });
 
 /**
+ * @summary Bulk-import products for an existing vendor
+ */
+export const ImportVendorProductsParams = zod.object({
+  vendorId: zod.coerce.number(),
+});
+
+export const ImportVendorProductsBody = zod.object({
+  products: zod.array(
+    zod.object({
+      name: zod.string(),
+      packSize: zod.string().nullish(),
+      cost: zod.number().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary Get a vendor by ID
  */
 export const GetVendorParams = zod.object({

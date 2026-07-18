@@ -40,6 +40,8 @@ import type {
   ImportCustomersBody,
   ImportCustomersResult,
   ImportVendorBody,
+  ImportVendorProducts201,
+  ImportVendorProductsBody,
   ImportVendorResult,
   InventoryAdjustBody,
   InventoryItem,
@@ -573,6 +575,97 @@ export const useImportVendor = <
   TContext
 > => {
   return useMutation(getImportVendorMutationOptions(options));
+};
+
+/**
+ * @summary Bulk-import products for an existing vendor
+ */
+export const getImportVendorProductsUrl = (vendorId: number) => {
+  return `/api/vendors/${vendorId}/products/import`;
+};
+
+export const importVendorProducts = async (
+  vendorId: number,
+  importVendorProductsBody: ImportVendorProductsBody,
+  options?: RequestInit,
+): Promise<ImportVendorProducts201> => {
+  return customFetch<ImportVendorProducts201>(
+    getImportVendorProductsUrl(vendorId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(importVendorProductsBody),
+    },
+  );
+};
+
+export const getImportVendorProductsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importVendorProducts>>,
+    TError,
+    { vendorId: number; data: BodyType<ImportVendorProductsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importVendorProducts>>,
+  TError,
+  { vendorId: number; data: BodyType<ImportVendorProductsBody> },
+  TContext
+> => {
+  const mutationKey = ["importVendorProducts"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importVendorProducts>>,
+    { vendorId: number; data: BodyType<ImportVendorProductsBody> }
+  > = (props) => {
+    const { vendorId, data } = props ?? {};
+
+    return importVendorProducts(vendorId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportVendorProductsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importVendorProducts>>
+>;
+export type ImportVendorProductsMutationBody =
+  BodyType<ImportVendorProductsBody>;
+export type ImportVendorProductsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Bulk-import products for an existing vendor
+ */
+export const useImportVendorProducts = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importVendorProducts>>,
+    TError,
+    { vendorId: number; data: BodyType<ImportVendorProductsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importVendorProducts>>,
+  TError,
+  { vendorId: number; data: BodyType<ImportVendorProductsBody> },
+  TContext
+> => {
+  return useMutation(getImportVendorProductsMutationOptions(options));
 };
 
 /**

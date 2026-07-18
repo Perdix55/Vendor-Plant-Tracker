@@ -215,6 +215,37 @@ router.patch("/vendors/:vendorId/products/:productId", async (req, res) => {
   }
 });
 
+// POST /vendors/:vendorId/products/import
+router.post("/vendors/:vendorId/products/import", async (req, res) => {
+  try {
+    const vendorId = parseInt(req.params.vendorId, 10);
+    const { products } = req.body;
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: "products array is required" });
+    }
+
+    const rows = products
+      .filter((p: any) => p.name && typeof p.name === "string" && p.name.trim())
+      .map((p: any) => ({
+        vendorId,
+        name: p.name.trim(),
+        packSize: p.packSize?.trim() || null,
+        cost: p.cost != null && p.cost !== "" ? String(p.cost) : null,
+        isActive: true,
+      }));
+
+    if (rows.length === 0) {
+      return res.status(400).json({ error: "No valid products in payload" });
+    }
+
+    await db.insert(productsTable).values(rows);
+    res.status(201).json({ productsCreated: rows.length });
+  } catch (err) {
+    req.log.error({ err }, "Failed to import products");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // POST /vendors/import
 router.post("/vendors/import", async (req, res) => {
   try {

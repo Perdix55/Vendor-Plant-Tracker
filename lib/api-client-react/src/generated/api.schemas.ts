@@ -511,6 +511,20 @@ export interface UpdateSalesOrderItemBody {
   quantity: number;
 }
 
+export type ImportVendorProductsBodyProductsItem = {
+  name: string;
+  packSize?: string | null;
+  cost?: number | null;
+};
+
+export type ImportVendorProductsBody = {
+  products: ImportVendorProductsBodyProductsItem[];
+};
+
+export type ImportVendorProducts201 = {
+  productsCreated: number;
+};
+
 export type ListOrdersParams = {
   vendorId?: number;
   status?: ListOrdersStatus;
