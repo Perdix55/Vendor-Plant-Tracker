@@ -335,6 +335,25 @@ export const CustomerResetPasswordResponse = zod.object({
 });
 
 /**
+ * @summary Search products across all vendors
+ */
+export const SearchProductsQueryParams = zod.object({
+  q: zod.coerce.string(),
+});
+
+export const SearchProductsResponseItem = zod.object({
+  id: zod.number(),
+  vendorId: zod.number(),
+  vendorName: zod.string(),
+  name: zod.string(),
+  packSize: zod.string().nullish(),
+  cost: zod.string().nullish(),
+  isActive: zod.boolean(),
+  isNew: zod.boolean(),
+});
+export const SearchProductsResponse = zod.array(SearchProductsResponseItem);
+
+/**
  * @summary List products for a vendor
  */
 export const ListVendorProductsParams = zod.object({

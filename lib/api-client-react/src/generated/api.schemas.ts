@@ -42,6 +42,17 @@ export interface Product {
   createdAt: string;
 }
 
+export interface ProductWithVendor {
+  id: number;
+  vendorId: number;
+  vendorName: string;
+  name: string;
+  packSize?: string | null;
+  cost?: string | null;
+  isActive: boolean;
+  isNew: boolean;
+}
+
 export interface CreateVendorBody {
   name: string;
   email?: string | null;
@@ -524,6 +535,10 @@ export type ImportVendorProductsBody = {
 export type ImportVendorProducts201 = {
   productsCreated: number;
   skipped?: number;
+};
+
+export type SearchProductsParams = {
+  q: string;
 };
 
 export type ListOrdersParams = {

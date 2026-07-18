@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { vendorsTable, productsTable } from "@workspace/db";
-import { eq, count } from "drizzle-orm";
+import { eq, count, ilike } from "drizzle-orm";
 
 const router = Router();
 
@@ -127,6 +127,47 @@ router.patch("/vendors/:vendorId", async (req, res) => {
     res.json(v);
   } catch (err) {
     req.log.error({ err }, "Failed to update vendor");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /products/search?q=
+router.get("/products/search", async (req, res) => {
+  try {
+    const q = String(req.query.q ?? "").trim();
+    if (!q) {
+      res.json([]);
+      return;
+    }
+
+    const rows = await db
+      .select({
+        id: productsTable.id,
+        vendorId: productsTable.vendorId,
+        vendorName: vendorsTable.name,
+        name: productsTable.name,
+        packSize: productsTable.packSize,
+        cost: productsTable.cost,
+        isActive: productsTable.isActive,
+        createdAt: productsTable.createdAt,
+      })
+      .from(productsTable)
+      .innerJoin(vendorsTable, eq(productsTable.vendorId, vendorsTable.id))
+      .where(ilike(productsTable.name, `%${q}%`))
+      .orderBy(productsTable.name, vendorsTable.name);
+
+    res.json(rows.map((r) => ({
+      id: r.id,
+      vendorId: r.vendorId,
+      vendorName: r.vendorName,
+      name: r.name,
+      packSize: r.packSize ?? null,
+      cost: r.cost ?? null,
+      isActive: r.isActive,
+      isNew: isNewProduct(r.createdAt),
+    })));
+  } catch (err) {
+    req.log.error({ err }, "Failed to search products");
     res.status(500).json({ error: "Internal server error" });
   }
 });

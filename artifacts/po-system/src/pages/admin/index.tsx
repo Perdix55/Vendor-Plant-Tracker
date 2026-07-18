@@ -6,6 +6,8 @@ import {
   useCreateVendor,
   useImportVendor,
   useImportVendorProducts,
+  useSearchProducts,
+  getSearchProductsQueryKey,
   useListVendorProducts,
   useCreateProduct,
   useUpdateProduct,
@@ -1541,6 +1543,29 @@ function VendorProductsTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const [searchQ, setSearchQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(searchQ.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQ]);
+
+  const { data: searchResults, isFetching: isSearching } = useSearchProducts(
+    { q: debouncedQ },
+    { query: { enabled: debouncedQ.length >= 2, queryKey: getSearchProductsQueryKey({ q: debouncedQ }) } }
+  );
+
+  const groupedResults = (searchResults ?? []).reduce<Record<string, typeof searchResults>>((acc, r) => {
+    const key = `${r.name}||${r.packSize ?? ""}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key]!.push(r);
+    return acc;
+  }, {});
+  const groupedEntries = Object.values(groupedResults).sort((a, b) =>
+    (b!.length - a!.length) || a![0].name.localeCompare(b![0].name)
+  );
+  const multiVendorCount = groupedEntries.filter(g => g!.length > 1).length;
+
   const { data: products, isLoading: isLoadingProducts } = useListVendorProducts(
     selectedVendorId ?? 0,
     { query: { enabled: !!selectedVendorId, queryKey: getListVendorProductsQueryKey(selectedVendorId ?? 0) } }
@@ -1635,6 +1660,101 @@ function VendorProductsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Cross-vendor search */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Cross-Vendor Search</CardTitle>
+          </div>
+          <CardDescription>Find which vendors carry a particular plant.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by plant name…"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              className="pl-9"
+            />
+            {isSearching && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+
+          {debouncedQ.length >= 2 && !isSearching && searchResults !== undefined && (
+            <div className="space-y-2">
+              {groupedEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2 text-center">No products found matching "{debouncedQ}".</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pb-1">
+                    <span>{groupedEntries.length} product{groupedEntries.length !== 1 ? "s" : ""} found</span>
+                    {multiVendorCount > 0 && (
+                      <>
+                        <span className="text-muted-foreground/40">·</span>
+                        <span className="text-amber-600 font-medium">{multiVendorCount} available from multiple vendors</span>
+                      </>
+                    )}
+                  </div>
+                  <ScrollArea className="max-h-96 rounded-md border">
+                    <Table>
+                      <TableHeader className="bg-muted/50 sticky top-0">
+                        <TableRow>
+                          <TableHead className="text-xs">Product</TableHead>
+                          <TableHead className="text-xs">Pack Size</TableHead>
+                          <TableHead className="text-xs">Vendors</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {groupedEntries.map((group) => {
+                          const first = group![0];
+                          const isMulti = group!.length > 1;
+                          return (
+                            <TableRow key={`${first.name}||${first.packSize}`} className={isMulti ? "bg-amber-50/50" : ""}>
+                              <TableCell className="font-medium text-sm py-2">
+                                <div className="flex items-center gap-1.5">
+                                  {first.name}
+                                  {isMulti && (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0 border-amber-400 text-amber-700 bg-amber-50">
+                                      {group!.length} vendors
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-sm py-2">{first.packSize ?? "—"}</TableCell>
+                              <TableCell className="py-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {group!.map((r) => (
+                                    <Badge
+                                      key={r.vendorId}
+                                      variant="secondary"
+                                      className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                                      onClick={() => setSelectedVendorId(r.vendorId)}
+                                    >
+                                      {r.vendorName}
+                                      {r.cost ? ` · $${parseFloat(r.cost).toFixed(2)}` : ""}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </>
+              )}
+            </div>
+          )}
+          {debouncedQ.length > 0 && debouncedQ.length < 2 && (
+            <p className="text-xs text-muted-foreground">Type at least 2 characters to search.</p>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">

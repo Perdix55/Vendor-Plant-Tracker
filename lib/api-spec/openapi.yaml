@@ -470,6 +470,27 @@ paths:
         "200":
           description: Logged out
 
+  /products/search:
+    get:
+      operationId: searchProducts
+      tags: [products]
+      summary: Search products across all vendors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching products with vendor info
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductWithVendor"
+
   /vendors/{vendorId}/products:
     get:
       operationId: listVendorProducts
@@ -1273,6 +1294,29 @@ components:
         createdAt:
           type: string
       required: [id, vendorId, name, isActive, isNew, createdAt]
+
+    ProductWithVendor:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorId:
+          type: integer
+        vendorName:
+          type: string
+        name:
+          type: string
+        packSize:
+          type: string
+          nullable: true
+        cost:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        isNew:
+          type: boolean
+      required: [id, vendorId, vendorName, name, isActive, isNew]
 
     CreateVendorBody:
       type: object
