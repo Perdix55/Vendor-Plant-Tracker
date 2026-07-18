@@ -1770,7 +1770,7 @@ function VendorProductsTab() {
                 <SelectTrigger className="w-56" data-testid="select-vendor-products">
                   <SelectValue placeholder="Select a vendor..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72 overflow-y-auto">
                   {(vendors ?? []).map(v => (
                     <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>
                   ))}
