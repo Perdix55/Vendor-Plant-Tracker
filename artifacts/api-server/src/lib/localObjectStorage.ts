@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "crypto";
 import { Readable } from "stream";
+import { getPublicAppOrigin } from "./app-url";
 import { ObjectNotFoundError } from "./objectStorage";
 
 export type LocalStoredFile = {
@@ -62,7 +63,8 @@ export class LocalObjectStorageService {
   async getObjectEntityUploadURL(): Promise<string> {
     ensureUploadsDir();
     const objectId = randomUUID();
-    return `/api/storage/uploads/put/${objectId}`;
+    const origin = getPublicAppOrigin().replace(/\/$/, "");
+    return `${origin}/api/storage/uploads/put/${objectId}`;
   }
 
   normalizeObjectEntityPath(rawPath: string): string {
