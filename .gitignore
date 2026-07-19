@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local object storage (Render/non-Replit uploads)
+data/object-storage/

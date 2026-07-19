@@ -1,22 +1,23 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import express from "express";
 import { Readable } from "stream";
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
-import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
+import {
+  createObjectStorageService,
+  downloadStoredObject,
+  ObjectNotFoundError,
+} from "../lib/objectStorageService";
+import {
+  isLocalObjectStorage,
+  LocalObjectStorageService,
+} from "../lib/localObjectStorage";
 
 const router: IRouter = Router();
-const objectStorageService = new ObjectStorageService();
+const objectStorageService = createObjectStorageService();
 
-/**
- * POST /storage/uploads/request-url
- *
- * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
- */
 router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
@@ -43,13 +44,40 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
   }
 });
 
-/**
- * GET /storage/public-objects/*
- *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * These are unconditionally public — no authentication or ACL checks.
- * IMPORTANT: Always provide this endpoint when object storage is set up.
- */
+router.put(
+  "/storage/uploads/put/:objectId",
+  express.raw({ type: "*/*", limit: "10mb" }),
+  async (req: Request, res: Response) => {
+    if (!isLocalObjectStorage() || !(objectStorageService instanceof LocalObjectStorageService)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    const objectId = req.params.objectId;
+    if (!objectId || Array.isArray(objectId)) {
+      res.status(400).json({ error: "Invalid object id" });
+      return;
+    }
+
+    const body = req.body;
+    if (!Buffer.isBuffer(body) || body.length === 0) {
+      res.status(400).json({ error: "Empty upload body" });
+      return;
+    }
+
+    try {
+      const contentType = typeof req.headers["content-type"] === "string"
+        ? req.headers["content-type"]
+        : undefined;
+      const objectPath = objectStorageService.saveUploadedObject(objectId, body, contentType);
+      res.status(200).json({ objectPath });
+    } catch (error) {
+      req.log.error({ err: error }, "Error saving uploaded object");
+      res.status(500).json({ error: "Failed to save upload" });
+    }
+  },
+);
+
 router.get("/storage/public-objects/*filePath", async (req: Request, res: Response) => {
   try {
     const raw = req.params.filePath;
@@ -60,7 +88,7 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
       return;
     }
 
-    const response = await objectStorageService.downloadObject(file);
+    const response = await downloadStoredObject(objectStorageService, file);
 
     res.status(response.status);
     response.headers.forEach((value, key) => res.setHeader(key, value));
@@ -77,13 +105,6 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
   }
 });
 
-/**
- * GET /storage/objects/*
- *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
- */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
@@ -91,22 +112,7 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
 
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
-
-    const response = await objectStorageService.downloadObject(objectFile);
+    const response = await downloadStoredObject(objectStorageService, objectFile);
 
     res.status(response.status);
     response.headers.forEach((value, key) => res.setHeader(key, value));
