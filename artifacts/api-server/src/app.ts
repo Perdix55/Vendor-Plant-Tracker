@@ -1,9 +1,11 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 import { Pool } from "pg";
+import path from "node:path";
+import fs from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -37,6 +39,8 @@ app.use(
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const isProduction = process.env.NODE_ENV === "production";
+
 app.use(
   session({
     store: new PgSession({ pool: pgPool, createTableIfMissing: true }),
@@ -45,7 +49,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
+      secure: isProduction,
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
@@ -53,5 +57,16 @@ app.use(
 );
 
 app.use("/api", router);
+
+// Render runs API + frontend in one service. Replit serves the frontend separately,
+// but serving the built assets here is harmless and keeps Render deploys working.
+const frontendDist = path.resolve(__dirname, "../../po-system/dist/public");
+
+if (fs.existsSync(path.join(frontendDist, "index.html"))) {
+  app.use(express.static(frontendDist));
+  app.use((_req: Request, res: Response) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+}
 
 export default app;

@@ -7,11 +7,7 @@ services:
     runtime: node
     plan: starter
     region: ohio
-    buildCommand: >-
-      corepack prepare pnpm@10.4.1 --activate &&
-      pnpm install --frozen-lockfile &&
-      pnpm --filter @workspace/po-system run build &&
-      pnpm --filter @workspace/api-server run build
+    buildCommand: bash scripts/render-build.sh
     startCommand: pnpm --filter @workspace/api-server run start
     healthCheckPath: /api/healthz
     envVars:

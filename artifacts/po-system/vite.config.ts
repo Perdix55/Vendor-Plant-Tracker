@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+// Keep defaults below — required for Render builds when Replit env vars are absent.
 const rawPort = process.env.PORT;
 const port = rawPort ? Number(rawPort) : 5173;
 

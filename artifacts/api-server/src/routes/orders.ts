@@ -12,6 +12,7 @@ import {
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sendEmail, buildSmtpConfig } from "../lib/email";
+import { getPublicAppOrigin } from "../lib/app-url";
 
 const router = Router();
 
@@ -540,11 +541,7 @@ router.post("/orders/:orderId/send-email", async (req, res) => {
       await db.update(ordersTable).set({ confirmToken: token }).where(eq(ordersTable.id, orderId));
     }
 
-    // Build the confirmation URL using REPLIT_DOMAINS or fallback
-    const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim()
-      ?? `localhost:80`;
-    const protocol = domain.startsWith("localhost") ? "http" : "https";
-    const confirmUrl = `${protocol}://${domain}/confirm/${token}`;
+    const confirmUrl = `${getPublicAppOrigin()}/confirm/${token}`;
 
     // Format week date nicely
     const weekDateDisplay = order.weekDate;

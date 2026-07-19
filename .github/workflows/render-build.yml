@@ -1,0 +1,24 @@
+name: Render build check
+
+on:
+  push:
+    branches: [New-Railway-Branch]
+  pull_request:
+    branches: [New-Railway-Branch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
+      BASE_PATH: /
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - run: corepack enable
+
+      - run: bash scripts/render-build.sh

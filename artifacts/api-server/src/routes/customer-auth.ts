@@ -5,6 +5,7 @@ import { db, customersTable } from "@workspace/db";
 import { settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendEmail, buildSmtpConfig } from "../lib/email";
+import { getPublicAppOrigin } from "../lib/app-url";
 
 const router = Router();
 
@@ -20,9 +21,7 @@ function safeCustomerColumns() {
 }
 
 async function sendResetEmail(req: import("express").Request, toEmail: string, customerName: string, token: string) {
-  const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim() ?? "localhost:80";
-  const protocol = domain.startsWith("localhost") ? "http" : "https";
-  const resetUrl = `${protocol}://${domain}/customer-reset/${token}`;
+  const resetUrl = `${getPublicAppOrigin()}/customer-reset/${token}`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
